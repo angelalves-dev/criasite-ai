@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CriaSite AI — Criador de sites</title>
+  <meta name="description" content="Crie uma primeira versão do seu site em poucos minutos.">
+  <style>
+    :root{--bg:#0b1020;--panel:#121a2d;--panel2:#18233b;--text:#f4f7ff;--muted:#a9b5ce;--accent:#8b5cf6;--line:#2a3651}
+    *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top right,#1e1b4b 0,#0b1020 42%);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:var(--text)}
+    .wrap{max-width:1240px;margin:auto;padding:28px 20px 50px}.top{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:28px}
+    .brand{display:flex;align-items:center;gap:11px;font-size:22px;font-weight:800;letter-spacing:-.5px}.logo{display:grid;place-items:center;width:42px;height:42px;border-radius:13px;background:linear-gradient(135deg,#8b5cf6,#22d3ee);color:white;font-weight:900}
+    .tag{border:1px solid var(--line);border-radius:999px;padding:8px 12px;color:#c4b5fd;font-size:12px}
+    h1{font-size:clamp(30px,5vw,48px);line-height:1.05;letter-spacing:-1.7px;margin:0 0 12px}.intro{color:var(--muted);max-width:720px;line-height:1.6;margin:0 0 28px}
+    .layout{display:grid;grid-template-columns:minmax(280px,390px) minmax(0,1fr);gap:20px;align-items:start}.panel{background:rgba(18,26,45,.92);border:1px solid var(--line);border-radius:20px;padding:22px;box-shadow:0 20px 60px #0002}
+    h2{font-size:17px;margin:0 0 18px}.field{margin-bottom:15px}.field label{display:block;font-size:13px;font-weight:700;margin-bottom:7px;color:#dbe5fb}
+    input,select,textarea{width:100%;padding:12px 13px;border-radius:11px;border:1px solid #34415d;background:#0d1425;color:var(--text);font:inherit;outline:none}
+    input:focus,select:focus,textarea:focus{border-color:#a78bfa;box-shadow:0 0 0 3px #8b5cf622}textarea{resize:vertical;min-height:86px}input[type=color]{height:45px;padding:5px;cursor:pointer}
+    .twocol{display:grid;grid-template-columns:1fr 1fr;gap:12px}.hint{font-size:12px;color:var(--muted);line-height:1.5;margin-top:6px}
+    button{font:inherit;font-weight:750;border:0;border-radius:11px;padding:12px 15px;cursor:pointer;transition:transform .15s,opacity .15s}button:hover{transform:translateY(-1px)}button:focus-visible{outline:3px solid #c4b5fd;outline-offset:2px}
+    .primary{background:linear-gradient(135deg,#8b5cf6,#6366f1);color:white;width:100%;margin-top:5px}.secondary{background:#26334e;color:#edf2ff;border:1px solid #3a4967}
+    .preview-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px}.preview-head h2{margin:0}.actions{display:flex;gap:8px;flex-wrap:wrap}
+    .preview-frame{width:100%;height:650px;border:1px solid #34415d;border-radius:13px;background:white}.preview-note{font-size:12px;color:var(--muted);line-height:1.5;margin-top:12px}
+    .status{font-size:12px;color:#a7f3d0;min-height:18px;margin-top:10px}.footer{color:#7f8ba6;font-size:12px;text-align:center;margin-top:24px}
+    @media(max-width:850px){.layout{grid-template-columns:1fr}.preview-frame{height:560px}.top{align-items:flex-start;flex-direction:column}.panel{padding:17px}}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <header class="top">
+      <div class="brand"><div class="logo">C</div><span>CriaSite <span style="color:#a78bfa">AI</span></span></div>
+      <div class="tag">VERSÃO INICIAL · GRATUITA</div>
+    </header>
+    <h1>Seu próximo site começa<br>com uma ideia.</h1>
+    <p class="intro">Preencha os dados do negócio, escolha um estilo e gere uma prévia. Depois, baixe um arquivo HTML independente para testar ou publicar.</p>
+
+    <div class="layout">
+      <section class="panel" aria-labelledby="form-title">
+        <h2 id="form-title">1. Conte sobre seu negócio</h2>
+        <div class="field">
+          <label for="businessName">Nome do negócio</label>
+          <input id="businessName" value="Minha Empresa" maxlength="70" placeholder="Ex.: Hamburgueria do João">
+        </div>
+        <div class="field">
+          <label for="businessType">Tipo de negócio</label>
+          <select id="businessType">
+            <option value="restaurante">Restaurante / Hamburgueria</option>
+            <option value="barbearia">Barbearia</option>
+            <option value="academia">Academia</option>
+            <option value="servicos">Prestador de serviços</option>
+            <option value="loja">Loja</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="tagline">O que você oferece?</label>
+          <textarea id="tagline" maxlength="240" placeholder="Descreva seu negócio em uma ou duas frases.">Qualidade, atendimento próximo e uma experiência feita para você.</textarea>
+        </div>
+        <div class="twocol">
+          <div class="field">
+            <label for="accent">Cor principal</label>
+            <input id="accent" type="color" value="#7c3aed">
+          </div>
+          <div class="field">
+            <label for="style">Estilo do site</label>
+            <select id="style">
+              <option value="moderno">Moderno</option>
+              <option value="elegante">Elegante</option>
+              <option value="vibrante">Vibrante</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label for="offerings">Produtos ou serviços (separe por vírgulas)</label>
+          <input id="offerings" maxlength="240" value="Atendimento personalizado, Qualidade, Orçamento grátis" placeholder="Ex.: Corte, Barba, Sobrancelha">
+          <div class="hint">Esses itens aparecerão como cartões no site gerado.</div>
+        </div>
+        <div class="field">
+          <label for="whatsapp">WhatsApp com DDD (opcional)</label>
+          <input id="whatsapp" inputmode="numeric" maxlength="20" placeholder="Ex.: 5592999999999">
+          <div class="hint">Use código do país + DDD + número, somente números. Se deixar vazio, o botão será apenas demonstrativo.</div>
+        </div>
+        <button class="primary" id="generateBtn">✦ Gerar meu site</button>
+        <div class="status" id="status" role="status" aria-live="polite"></div>
+      </section>
+
+      <section class="panel" aria-labelledby="preview-title">
+        <div class="preview-head">
+          <h2 id="preview-title">2. Prévia do site</h2>
+          <div class="actions">
+            <button class="secondary" id="refreshBtn" type="button">Atualizar</button>
+            <button class="secondary" id="downloadBtn" type="button">Baixar HTML</button>
+          </div>
+        </div>
+        <iframe class="preview-frame" id="preview" title="Prévia do site criado" sandbox="allow-scripts allow-forms allow-popups" referrerpolicy="no-referrer"></iframe>
+        <p class="preview-note">Esta versão cria sites a partir de modelos e dos dados preenchidos; ainda não usa uma API de IA. O arquivo baixado pode ser aberto no navegador. Para colocar um site no ar, será necessário publicá-lo em um serviço de hospedagem.</p>
+      </section>
+    </div>
+    <p class="footer">CriaSite AI · Protótipo inicial · Seus dados ficam no navegador durante esta sessão.</p>
+  </main>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    let generatedHTML = "";
+
+    function escapeHTML(value) {
+      return String(value).replace(/[&<>"']/g, (char) => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+      })[char]);
+    }
+
+    function makeWebsite(data) {
+      const name = escapeHTML(data.name || "Meu Negócio");
+      const tagline = escapeHTML(data.tagline || "Uma experiência feita para você.");
+      const typeNames = {
+        restaurante: "Sabor e qualidade em cada detalhe",
+        barbearia: "Seu estilo, nosso cuidado",
+        academia: "Sua evolução começa aqui",
+        servicos: "Soluções feitas para você",
+        loja: "Descubra algo especial"
+      };
+      const defaultTitles = {
+        restaurante: ["Nosso cardápio", "Feito para você"],
+        barbearia: ["Nossos serviços", "Seu próximo visual começa aqui"],
+        academia: ["Nossos serviços", "Dê o próximo passo"],
+        servicos: ["O que fazemos", "Vamos tirar sua ideia do papel"],
+        loja: ["Destaques", "Encontre o que procura"]
+      };
+      const accent = /^#[0-9a-fA-F]{6}$/.test(data.accent) ? data.accent : "#7c3aed";
+      const isElegant = data.style === "elegante";
+      const bg = isElegant ? "#171717" : data.style === "vibrante" ? "#fff7ed" : "#f8fafc";
+      const fg = isElegant ? "#fafafa" : "#172033";
+      const muted = isElegant ? "#d4d4d4" : "#64748b";
+      const cards = (data.offerings || "")
+        .split(",").map(x => x.trim()).filter(Boolean).slice(0, 8);
+      const safeCards = (cards.length ? cards : ["Atendimento personalizado", "Qualidade", "Compromisso"])
+        .map((item, i) => `<article class="card"><span class="number">0${i + 1}</span><h3>${escapeHTML(item)}</h3><p>Entre em contato para saber mais sobre ${escapeHTML(item.toLowerCase())}.</p></article>`).join("");
+      const phone = (data.whatsapp || "").replace(/\D/g, "");
+      const validPhone = phone.length >= 10 && phone.length <= 15;
+      const ctaHref = validPhone ? `https://wa.me/${phone}?text=${encodeURIComponent("Olá! Gostaria de saber mais sobre " + (data.name || "seus serviços") + ".")}` : "#contato";
+      const ctaLabel = validPhone ? "Fale pelo WhatsApp" : "Entre em contato";
+      const heroLine = escapeHTML(typeNames[data.type] || "Uma experiência feita para você");
+      const sectionTitle = escapeHTML((defaultTitles[data.type] || defaultTitles.servicos)[0]);
+      const closing = escapeHTML((defaultTitles[data.type] || defaultTitles.servicos)[1]);
+      const font = isElegant ? "Georgia, serif" : "Inter, Arial, sans-serif";
+      return `<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="${tagline}"><title>${name}</title>
+<style>
+:root{--accent:${accent};--bg:${bg};--fg:${fg};--muted:${muted};}*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;font-family:${font};background:var(--bg);color:var(--fg);line-height:1.6}a{color:inherit}.nav{display:flex;justify-content:space-between;align-items:center;gap:15px;padding:20px max(6%,calc((100% - 1120px)/2));border-bottom:1px solid ${isElegant ? "#404040" : "#e2e8f0"}}.brand{font-size:19px;font-weight:800;text-decoration:none}.nav a:last-child{font-size:14px;font-weight:700;text-decoration:none}.hero{max-width:1120px;margin:auto;padding:95px 6% 85px}.eyebrow{color:var(--accent);font-size:12px;font-weight:800;letter-spacing:2px;text-transform:uppercase}.hero h1{font-size:clamp(38px,7vw,76px);line-height:1.03;letter-spacing:-2px;max-width:850px;margin:18px 0}.hero p{max-width:650px;color:var(--muted);font-size:18px}.btn{display:inline-block;margin-top:20px;padding:13px 20px;background:var(--accent);color:white;text-decoration:none;border-radius:9px;font-weight:800}.section{padding:68px 6%;max-width:1120px;margin:auto}.section h2{font-size:clamp(28px,4vw,42px);line-height:1.1;margin:8px 0 12px}.section-intro{color:var(--muted);max-width:650px}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:16px;margin-top:30px}.card{border:1px solid ${isElegant ? "#404040" : "#e2e8f0"};border-radius:14px;padding:22px;background:${isElegant ? "#222" : "#fff"}}.number{color:var(--accent);font-size:12px;font-weight:900}.card h3{margin:15px 0 8px}.card p{font-size:14px;color:var(--muted)}.contact{background:${isElegant ? "#222" : "#eef2ff"};border-radius:20px;padding:35px}.contact p{color:var(--muted)}footer{text-align:center;padding:28px 6%;color:var(--muted);font-size:12px}@media(max-width:600px){.hero{padding-top:65px}.nav{padding:17px 5%}.section{padding-top:48px;padding-bottom:48px}}
+</style></head><body>
+<header class="nav"><a class="brand" href="#">${name}</a><a href="#contato">Contato ↗</a></header>
+<main><section class="hero"><div class="eyebrow">${heroLine}</div><h1>${name}</h1><p>${tagline}</p><a class="btn" href="${ctaHref}" ${validPhone ? 'target="_blank" rel="noopener noreferrer"' : ""}>${ctaLabel} ↗</a></section>
+<section class="section"><div class="eyebrow">Conheça</div><h2>${sectionTitle}</h2><p class="section-intro">${tagline}</p><div class="cards">${safeCards}</div></section>
+<section class="section" id="contato"><div class="contact"><div class="eyebrow">Vamos conversar</div><h2>${closing}</h2><p>Entre em contato para tirar dúvidas, conhecer nossas opções ou solicitar mais informações.</p><a class="btn" href="${ctaHref}" ${validPhone ? 'target="_blank" rel="noopener noreferrer"' : ""}>${ctaLabel} ↗</a></div></section></main>
+<footer>© ${new Date().getFullYear()} ${name}. Todos os direitos reservados.</footer></body></html>`;
+    }
+
+    function getData() {
+      return {
+        name: $("businessName").value.trim(),
+        type: $("businessType").value,
+        tagline: $("tagline").value.trim(),
+        accent: $("accent").value,
+        style: $("style").value,
+        offerings: $("offerings").value,
+        whatsapp: $("whatsapp").value
+      };
+    }
+
+    function generate() {
+      generatedHTML = makeWebsite(getData());
+      $("preview").srcdoc = generatedHTML;
+      $("status").textContent = "Prévia atualizada! Você já pode baixar o HTML.";
+    }
+
+    function download() {
+      if (!generatedHTML) generate();
+      const blob = new Blob([generatedHTML], { type: "text/html;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      const safeName = (getData().name || "meu-site").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "meu-site";
+      link.href = url;
+      link.download = safeName + ".html";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      $("status").textContent = "Download iniciado. Abra o arquivo HTML no navegador para testar.";
+    }
+
+    $("generateBtn").addEventListener("click", generate);
+    $("refreshBtn").addEventListener("click", generate);
+    $("downloadBtn").addEventListener("click", download);
+    ["businessName","businessType","tagline","accent","style","offerings","whatsapp"].forEach(id => {
+      $(id).addEventListener("change", generate);
+    });
+    generate();
+  </script>
+</body>
+</html>
