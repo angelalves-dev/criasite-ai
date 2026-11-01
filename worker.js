@@ -54,7 +54,7 @@ export default {
       whatsapp: String(business.whatsapp || "").replace(/[^0-9]/g, "").slice(0, 20)
     })}\n\nDescrição e necessidades do cliente: ${prompt}`;
 
-    const model = String(env.GEMINI_MODEL || "gemini-2.5-flash");
+    const model = String(env.GEMINI_MODEL || "gemini-3.1-flash-lite");
     const endpoint = "https://generativelanguage.googleapis.com/v1beta/models/" +
       encodeURIComponent(model) + ":generateContent?key=" + encodeURIComponent(env.GEMINI_API_KEY);
 
