@@ -44,7 +44,19 @@ export default {
     if (prompt.length < 15) return json({ error: "Descreva o site com pelo menos 15 caracteres." }, 400, origin);
     if (prompt.length > 5000) return json({ error: "A descrição deve ter no máximo 5.000 caracteres." }, 400, origin);
 
-    const instructions = `Você é um desenvolvedor web sênior e designer de sites comerciais. Gere um site completo em português do Brasil, pronto para salvar como um único arquivo HTML. Responda SOMENTE com o código HTML, sem markdown ou explicações. O HTML deve começar com <!doctype html> e incluir CSS dentro de <style>, sem bibliotecas ou dependências externas, responsivo para celular e computador, acessível e visualmente marcante. Não entregue um modelo genérico curto: personalize o design para o segmento e inclua, conforme fizer sentido, navegação responsiva com menu móvel funcional, hero com chamadas para ação, sobre a empresa, serviços/produtos em cards detalhados, benefícios, processo de trabalho, galeria visual, planos/preços editáveis, FAQ com acordeão funcional, CTA final e rodapé completo. Acrescente seções específicas ao negócio em vez de repetir sempre a mesma estrutura. Use CSS detalhado, tipografia forte, paleta coerente, ícones SVG inline quando úteis, microanimações discretas, estados hover/focus, foco visível e respeito a prefers-reduced-motion. Inclua JavaScript puro para interações úteis, como menu móvel, acordeões, filtros de catálogo, galeria/modal ou validação de formulário. Adicione SEO básico e HTML semântico. Formulários devem validar no navegador e só enviar por WhatsApp/mailto se houver dados adequados; nunca finja que existe backend. Não invente depoimentos, avaliações, estatísticas, endereço ou certificações. Não inclua scripts externos, rastreadores, formulários que enviem dados a servidores desconhecidos ou chaves de API. Não prometa login, banco de dados, pagamentos ou backend real; se pedidos, crie apenas uma interface demonstrativa e deixe clara a limitação. Use textos reais e específicos para o segmento, sem lorem ipsum. Não invente endereço, avaliações, certificações ou alegações médicas. Se houver WhatsApp, crie um link wa.me válido usando apenas dígitos. Não inclua scripts externos, rastreadores, formulários que enviem dados a servidores desconhecidos ou chaves de API. O usuário deve poder editar o arquivo depois.\n\nDados fornecidos pelo criador: ${JSON.stringify({
+    const instructions = `Você é uma equipe sênior de design UX/UI, desenvolvimento front-end, conversão e SEO. Crie um site comercial realmente profissional, rico e personalizado para o negócio descrito, em português do Brasil. Entregue SOMENTE um documento HTML completo começando com <!doctype html>, com CSS dentro de <style> e JavaScript puro dentro de <script>. Tudo deve funcionar em um único arquivo, sem frameworks, bibliotecas externas, fontes externas ou scripts de terceiros. Não faça uma página genérica curta.
+
+QUALIDADE VISUAL OBRIGATÓRIA: defina uma direção de arte específica para o segmento; crie hierarquia tipográfica forte, paleta harmoniosa, espaços generosos, grid consistente, cartões detalhados, bordas e sombras sutis, estados hover/focus e microinterações elegantes. Evite aparência de template básico, excesso de gradientes, emojis como ícones principais e blocos repetitivos. Use SVG inline para ícones e desenhos simples. Se não houver imagens fornecidas, crie áreas visuais atraentes com CSS e fundos ilustrativos, sem apontar para URLs de imagem inventadas ou imagens quebradas. A aparência deve ser excelente em desktop e celular.
+
+ESTRUTURA: produza normalmente entre 8 e 12 seções relevantes, adaptadas ao segmento, sem enchimento: cabeçalho com logotipo textual e navegação responsiva; hero com proposta de valor, descrição e CTA; apresentação/sobre; serviços ou catálogo detalhado; benefícios/diferenciais; processo ou etapas; galeria/portfólio quando relevante; planos/preços apenas quando solicitados ou fizerem sentido; FAQ funcional; contato com CTA final; rodapé completo. Acrescente conteúdo próprio do segmento (por exemplo, cardápio para restaurante, equipe/modalidades para academia, imóveis para imobiliária, projetos para construção, cursos para educação). Não mostre seção vazia nem repita o mesmo texto para preencher espaço.
+
+FUNCIONALIDADE: menu móvel acessível; navegação por âncoras com scroll suave; FAQ com botões e aria-expanded; filtros ou busca para catálogos quando fizer sentido; galeria/modal quando fizer sentido; formulário com labels, validação e mensagens claras. Formulário não pode fingir que enviou dados: só abra WhatsApp ou mailto se houver destino real fornecido; caso contrário, explique que o envio precisa ser configurado. Botões e links devem funcionar. Respeite prefers-reduced-motion, foco visível, contraste e HTML semântico. Inclua title, meta description, headings em ordem e textos alternativos quando houver imagens.
+
+INTEGRIDADE: não invente endereço, telefone, horários, preços, depoimentos, avaliações, certificações, números de clientes ou alegações médicas. Use os dados fornecidos; quando faltarem, use rótulos editáveis como [Adicionar endereço] e [Informar horário] ou omita o dado. Marque conteúdo demonstrativo como exemplo. Use o WhatsApp informado somente se válido, convertido para dígitos no link wa.me. Nunca inclua chaves de API, rastreadores, coleta oculta de dados ou scripts de terceiros. Não afirme que login, pagamentos, agendamento, banco de dados ou envio a servidores funcionam sem backend real; quando solicitados, crie apenas uma demonstração visual claramente identificada e indique o que precisa ser conectado.
+
+ANTES DE RESPONDER, revise mentalmente o HTML: tags fechadas, CSS válido, JavaScript sem erros óbvios, IDs únicos, links para seções existentes, mobile responsivo e nenhum dado comercial inventado. Retorne somente o código HTML, sem markdown, comentários introdutórios ou explicações fora do documento. O arquivo deve ser fácil de editar pelo usuário.
+
+Dados fornecidos pelo criador: ${JSON.stringify({
       name: String(business.name || "Meu Negócio").slice(0, 100),
       type: String(business.type || "servicos").slice(0, 80),
       tagline: String(business.tagline || "").slice(0, 200),
@@ -52,7 +64,9 @@ export default {
       style: String(business.style || "moderno").slice(0, 50),
       offerings: String(business.offerings || "").slice(0, 1200),
       whatsapp: String(business.whatsapp || "").replace(/[^0-9]/g, "").slice(0, 20)
-    })}\n\nDescrição e necessidades do cliente: ${prompt}`;
+    })}
+
+Descrição e necessidades do cliente: ${prompt}`;
 
     const model = String(env.GEMINI_MODEL || "gemini-3.1-flash-lite");
     const endpoint = "https://generativelanguage.googleapis.com/v1beta/models/" +
@@ -65,7 +79,7 @@ export default {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           contents: [{ parts: [{ text: instructions }] }],
-          generationConfig: { temperature: 0.75, maxOutputTokens: 8192 }
+          generationConfig: { temperature: 0.75, maxOutputTokens: 12000 }
         })
       });
     } catch {
