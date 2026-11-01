@@ -21,7 +21,7 @@ PARTE 2 — PUBLICAR O WORKER SEGURO
 2. Abra Workers & Pages e crie um Worker.
 3. Copie o conteúdo do arquivo worker.js deste repositório para o editor do Worker e publique.
 4. Nas configurações do Worker, adicione um segredo/secret com o nome exato GEMINI_API_KEY e cole sua chave da IA.
-5. Opcional: adicione uma variável GEMINI_MODEL com o nome do modelo Gemini disponível para sua conta. O padrão do código é gemini-2.5-flash.
+5. Opcional: adicione uma variável GEMINI_MODEL com o nome do modelo Gemini disponível para sua conta. O padrão atual do código é gemini-3.1-flash-lite; confirme no Google AI Studio quais modelos estão disponíveis para sua chave.
 6. Publique e copie a URL pública do Worker (por exemplo, https://nome-do-worker.seu-subdominio.workers.dev).
 
 PARTE 3 — CONECTAR A PÁGINA AO WORKER
