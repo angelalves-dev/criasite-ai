@@ -14,6 +14,28 @@ function json(data, status, origin) {
   return new Response(JSON.stringify(data), { status, headers: corsHeaders(origin) });
 }
 
+function inspectHtml(html) {
+  const issues = [];
+  const sections = (html.match(/<section\b/gi) || []).length;
+  const ids = new Set(Array.from(html.matchAll(/\bid=["']([^"']+)["']/gi), m => m[1]));
+  const anchors = Array.from(html.matchAll(/href=["']#([^"']+)["']/gi), m => m[1]);
+  const broken = [...new Set(anchors.filter(id => id && !ids.has(id)))];
+  if (sections < 7) issues.push('Poucas seções: crie pelo menos 7 seções úteis, específicas e sem repetição.');
+  if (!/<meta\s+name=["']viewport["']/i.test(html)) issues.push('Falta meta viewport para celular.');
+  if (!/<title>\s*[^<]+<\/title>/i.test(html) || !/<meta\s+name=["']description["']/i.test(html)) issues.push('Complete title e meta description para SEO básico.');
+  if (!/@media\s*\(/i.test(html)) issues.push('Falta CSS responsivo com media query.');
+  if (!/<nav\b/i.test(html)) issues.push('Falta navegação semântica nav.');
+  if (!/aria-expanded|aria-label=["'][^"']*(menu|navega)|menu-toggle|nav-toggle|hamburger/i.test(html)) issues.push('Adicione um controle acessível e funcional para o menu móvel.');
+  if (/perguntas frequentes|\bfaq\b|d[uú]vidas frequentes/i.test(html) && !/aria-expanded|<details\b|addEventListener\s*\(\s*["']click|onclick=/i.test(html)) issues.push('FAQ sem interação aparente para abrir e fechar respostas.');
+  if (/<form\b/i.test(html) && !/addEventListener\s*\(\s*["']submit|onsubmit=|mailto:|wa\.me\//i.test(html)) issues.push('Formulário sem tratamento de envio aparente; não finja que enviou dados.');
+  if (broken.length) issues.push('Links internos sem destino: ' + broken.slice(0, 6).map(id => '#' + id).join(', '));
+  if (/<img\b/i.test(html) && /<img\b(?![^>]*\balt=)/i.test(html)) issues.push('Adicione alt às imagens.');
+  return { sections, issues: issues.slice(0, 8) };
+}
+
+function extractHtml(result) {
+  return (result?.candidates?.[0]?.content?.parts || []).map(p => p.text || '').join('\n').replace(/^\s*```(?:html)?\s*/i, '').replace(/\s*```\s*$/i, '').trim();
+}
 export default {
   async fetch(request, env) {
     const origin = request.headers.get("Origin") || "";
