@@ -35,6 +35,10 @@ function inspectHtml(html) {
   if (/perguntas frequentes|\bfaq\b|d[uú]vidas frequentes/i.test(html) && !/aria-expanded/i.test(html) && !/<details\b/i.test(html)) issues.push('Torne as perguntas frequentes acessíveis com details/summary ou aria-expanded nos botões.');
   if (/<form\b/i.test(html) && /placeholder=/i.test(html) && !/<label\b/i.test(html)) issues.push('Adicione labels acessíveis aos campos do formulário; placeholder não substitui label.');
   if (/<form\b/i.test(html) && /enviado com sucesso|mensagem enviada|formulário enviado/i.test(html) && !/wa\.me\/|mailto:/i.test(html)) issues.push('O formulário aparenta confirmar envio sem um destino real; substitua por aviso claro de demonstração/configuração necessária.');
+  if (/wa\\.me\\/|api\\.whatsapp\\.com\\/send/i.test(html) && /00000000000|123456789|5511999999999|55555555555/i.test(html)) issues.push('Link de WhatsApp com número fictício; remover o link e orientar configuração de número real.');
+  if (/monitoramento 24.?h|climatiza[cç][aã]o|profissionais certificados|mais de [0-9]+ clientes|milhares de alunos/i.test(html)) issues.push('Possíveis alegações comerciais não fornecidas; remover ou marcar como conteúdo editável.');
+  if (sections >= 7 && !/<svg\\b|<img\\b|background-image\\s*:|linear-gradient\\s*\\(/i.test(html)) issues.push('Composição visual pouco rica; adicionar ilustrações próprias em CSS/SVG, sem placeholders.');
+  if (sections >= 7 && (html.match(/class=["'][^"']*card[^"']*["']/gi) || []).length >= 6 && !/<svg\\b/i.test(html)) issues.push('Layout repetitivo de cartões; variar a composição das seções e adicionar detalhes gráficos.');
   return { sections, issues: issues.slice(0, 12) };
 }
 
