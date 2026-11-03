@@ -39,6 +39,12 @@ function inspectHtml(html) {
   if (/monitoramento 24.?h|climatiza[cç][aã]o|profissionais certificados|mais de [0-9]+ clientes|milhares de alunos/i.test(html)) issues.push('Possíveis alegações comerciais não fornecidas; remover ou marcar como conteúdo editável.');
   if (sections >= 7 && !/svg|<img|background-image|linear-gradient/i.test(html)) issues.push('Composição visual pouco rica; adicionar ilustrações próprias em CSS/SVG, sem placeholders.');
   if (sections >= 7 && (html.match(/class=["'][^"']*card[^"']*["']/gi) || []).length >= 6 && !/svg/i.test(html)) issues.push('Layout repetitivo de cartões; variar a composição das seções e adicionar detalhes gráficos.');
+  if (!/<h1\\b/i.test(html)) issues.push('Falta um título principal h1 claro no hero.');
+  if (/\\[(?:inserir|adicionar|informar|detalhes|pre[cç]o|telefone|endereço|horário)[^\\]]*\\]/i.test(html)) issues.push('Ainda existem instruções provisórias entre colchetes; transformar em campos editáveis claros ou remover do site publicado.');
+  if (/<button[^>]*(?:menu|nav)[^>]*>/i.test(html) && !/addEventListener\\s*\\(\\s*["']click|onclick=/i.test(html)) issues.push('Botão de menu sem comportamento de clique identificável.');
+  if (/onsubmit=["']return false;?["']/i.test(html)) issues.push('Formulário bloqueia o envio; substituir por contato funcional ou aviso claro de demonstração.');
+  if (/href=["']#contato["']/i.test(html) && !/id=["']contato["']/i.test(html)) issues.push('CTA aponta para #contato, mas a seção de contato não existe.');
+  if (/<button\\b/i.test(html) && !/:focus-visible|:focus\\b/i.test(html)) issues.push('Adicione estados de foco visíveis para navegação por teclado.');
   return { sections, issues: issues.slice(0, 12) };
 }
 
@@ -153,8 +159,8 @@ Descrição e necessidades do cliente: ${prompt}`;
           const candidate = extractHtml(repairResult);
           if (candidate && /^<!doctype html/i.test(candidate) && /<html[\s>]/i.test(candidate) && candidate.length >= 500) {
             const candidateQuality = inspectHtml(candidate);
-            const originalScore = quality.issues.length * 10 + Math.max(0, 8 - quality.sections) * 4;
-            const candidateScore = candidateQuality.issues.length * 10 + Math.max(0, 8 - candidateQuality.sections) * 4;
+            const originalScore = quality.issues.length * 12 + Math.max(0, 8 - quality.sections) * 5;
+            const candidateScore = candidateQuality.issues.length * 12 + Math.max(0, 8 - candidateQuality.sections) * 5;
             if (candidateScore < originalScore) {
               html = candidate;
               quality = candidateQuality;
