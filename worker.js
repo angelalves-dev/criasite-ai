@@ -30,6 +30,11 @@ function inspectHtml(html) {
   if (/<form\b/i.test(html) && !/addEventListener\s*\(\s*["']submit|onsubmit=|mailto:|wa\.me\//i.test(html)) issues.push('Formulário sem tratamento de envio aparente; não finja que enviou dados.');
   if (broken.length) issues.push('Links internos sem destino: ' + broken.slice(0, 6).map(id => '#' + id).join(', '));
   if (/<img\b/i.test(html) && /<img\b(?![^>]*\balt=)/i.test(html)) issues.push('Adicione alt às imagens.');
+  if (/via\\.placeholder\\.com|placehold\\.co|placekitten\\.com/i.test(html)) issues.push('Remova imagens de placeholder que podem falhar; use composição visual em CSS ou imagens reais fornecidas e estáveis.');
+  if (/©\\s*202[0-5]\\b/i.test(html)) issues.push('Atualize o ano antigo do rodapé dinamicamente com JavaScript ou use o ano atual.');
+  if (/perguntas frequentes|\\bfaq\\b|d[uú]vidas frequentes/i.test(html) && !/aria-expanded/i.test(html) && !/<details\\b/i.test(html)) issues.push('Torne as perguntas frequentes acessíveis com details/summary ou aria-expanded nos botões.');
+  if (/<form\\b/i.test(html) && /placeholder=/i.test(html) && !/<label\\b/i.test(html)) issues.push('Adicione labels acessíveis aos campos do formulário; placeholder não substitui label.');
+  if (/<form\\b/i.test(html) && /enviado com sucesso|mensagem enviada|formulário enviado/i.test(html) && !/wa\\.me\\/|mailto:/i.test(html)) issues.push('O formulário aparenta confirmar envio sem um destino real; substitua por aviso claro de demonstração/configuração necessária.');
   return { sections, issues: issues.slice(0, 8) };
 }
 
