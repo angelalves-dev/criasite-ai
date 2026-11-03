@@ -139,9 +139,9 @@ Descrição e necessidades do cliente: ${prompt}`;
     let repairApplied = false;
     if (quality.issues.length) {
       repairAttempted = true;
-      const repairPrompt = "Corrija o HTML abaixo e devolva SOMENTE o documento completo começando por <!doctype html>, sem markdown. Preserve o design e o conteúdo válido, corrigindo estes problemas: \n- " +
-        quality.issues.join("\n- ") +
-        "\nNão invente endereço, preços, avaliações ou depoimentos. Garanta responsividade, acessibilidade, links internos válidos e não finja que backend existe. Pedido original: \n" + prompt + "\nHTML a corrigir:\n" + html;
+      const repairPrompt = "Você é diretor de arte digital e engenheiro front-end sênior. Melhore substancialmente o HTML abaixo e devolva SOMENTE o documento completo começando por <!doctype html>, sem markdown. Não faça apenas uma correção superficial. Crie direção de arte personalizada, hero marcante, tipografia forte, composição em duas colunas ou sobreposição, detalhes gráficos SVG/CSS, espaçamento profissional e pelo menos 8 seções úteis com layouts variados. Não transforme tudo em cartões iguais. Corrija obrigatoriamente estes problemas: \\n- " +
+        quality.issues.join("\\n- ") +
+        "\\nNão invente endereço, telefone, preços, avaliações, depoimentos, certificações, instalações ou resultados. Sem WhatsApp real fornecido, não crie link wa.me; indique que o número precisa ser configurado. Não use imagens placeholder nem URLs aleatórias. Garanta responsividade, menu acessível, links internos válidos, FAQ acessível e não finja que backend existe. O resultado deve ficar visivelmente mais elaborado que o original. Pedido original: \\n" + prompt + "\\nHTML a melhorar:\\n" + html;
       try {
         const repairResponse = await fetch(endpoint, {
           method: "POST",
