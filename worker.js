@@ -120,16 +120,44 @@ Descrição e necessidades do cliente: ${prompt}`;
       }, status, origin);
     }
 
-    const html = result?.candidates?.[0]?.content?.parts
-      ?.map(part => part.text || "")
-      .join("\n")
-      .replace(/^\s*```(?:html)?\s*/i, "")
-      .replace(/\s*```\s*$/i, "")
-      .trim();
-
+    let html = extractHtml(result);
     if (!html || !/^<!doctype html/i.test(html) || !/<html[\s>]/i.test(html) || html.length < 500) {
       return json({ error: "A IA não retornou um HTML completo. Tente uma descrição mais específica." }, 502, origin);
     }
-    return json({ html }, 200, origin);
+
+    let quality = inspectHtml(html);
+    let repairAttempted = false;
+    let repairApplied = false;
+    if (quality.issues.length) {
+      repairAttempted = true;
+      const repairPrompt = "Corrija o HTML abaixo e devolva SOMENTE o documento completo começando por <!doctype html>, sem markdown. Preserve o design e o conteúdo válido, corrigindo estes problemas: \n- " +
+        quality.issues.join("\n- ") +
+        "\nNão invente endereço, preços, avaliações ou depoimentos. Garanta responsividade, acessibilidade, links internos válidos e não finja que backend existe. Pedido original: \n" + prompt + "\nHTML a corrigir:\n" + html;
+      try {
+        const repairResponse = await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ contents: [{ parts: [{ text: repairPrompt }] }], generationConfig: { temperature: 0.35, maxOutputTokens: 12000 } })
+        });
+        const repairResult = await repairResponse.json().catch(() => ({}));
+        if (repairResponse.ok) {
+          const candidate = extractHtml(repairResult);
+          if (candidate && /^<!doctype html/i.test(candidate) && /<html[\s>]/i.test(candidate) && candidate.length >= 500) {
+            const candidateQuality = inspectHtml(candidate);
+            if (candidateQuality.issues.length <= quality.issues.length) {
+              html = candidate;
+              quality = candidateQuality;
+              repairApplied = true;
+            }
+          }
+        }
+      } catch {
+        // Se a correção falhar, mantém o primeiro HTML válido.
+      }
+    }
+    return json({
+      html,
+      quality: { checked: true, autoRepairAttempted: repairAttempted, autoRepairApplied: repairApplied, sectionCount: quality.sections, warnings: quality.issues, note: "A verificação é estática; confira a prévia e teste os controles no navegador." }
+    }, 200, origin);
   }
 };
