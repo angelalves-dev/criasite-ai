@@ -153,7 +153,9 @@ Descrição e necessidades do cliente: ${prompt}`;
           const candidate = extractHtml(repairResult);
           if (candidate && /^<!doctype html/i.test(candidate) && /<html[\s>]/i.test(candidate) && candidate.length >= 500) {
             const candidateQuality = inspectHtml(candidate);
-            if (candidateQuality.issues.length <= quality.issues.length) {
+            const originalScore = quality.issues.length * 10 + Math.max(0, 8 - quality.sections) * 4;
+            const candidateScore = candidateQuality.issues.length * 10 + Math.max(0, 8 - candidateQuality.sections) * 4;
+            if (candidateScore < originalScore) {
               html = candidate;
               quality = candidateQuality;
               repairApplied = true;
