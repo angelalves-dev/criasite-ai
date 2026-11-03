@@ -35,7 +35,7 @@ function inspectHtml(html) {
   if (/perguntas frequentes|\bfaq\b|d[uú]vidas frequentes/i.test(html) && !/aria-expanded/i.test(html) && !/<details\b/i.test(html)) issues.push('Torne as perguntas frequentes acessíveis com details/summary ou aria-expanded nos botões.');
   if (/<form\b/i.test(html) && /placeholder=/i.test(html) && !/<label\b/i.test(html)) issues.push('Adicione labels acessíveis aos campos do formulário; placeholder não substitui label.');
   if (/<form\b/i.test(html) && /enviado com sucesso|mensagem enviada|formulário enviado/i.test(html) && !/wa\.me\/|mailto:/i.test(html)) issues.push('O formulário aparenta confirmar envio sem um destino real; substitua por aviso claro de demonstração/configuração necessária.');
-  return { sections, issues: issues.slice(0, 8) };
+  return { sections, issues: issues.slice(0, 12) };
 }
 
 function extractHtml(result) {
