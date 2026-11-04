@@ -88,7 +88,42 @@ function inspectHtml(html) {
   if (/<button\b/i.test(html) && !/:focus-visible|:focus\b/i.test(html)) issues.push("Adicione estados de foco visíveis para navegação por teclado.");
   if (/R\$\s*(?:XXX|X{2,}|0{2,}|\[.*?preço.*?\])/i.test(html)) issues.push("Remova preços provisórios; use somente valores informados.");
   if (/alert\s*\(.*(?:pronto para integração|configure o endpoint|não configurado)/i.test(html)) issues.push("Remova alertas que simulam integração; deixe claro quando algo é demonstrativo.");
-  return { sections, issues: issues.slice(0, 16) };
+  const sectionBlocks = Array.from(html.matchAll(/<section\b([^>]*)>([\s\S]*?)<\/section>/gi), m => ({ attrs: m[1], body: m[2] }));
+  const sparseSections = sectionBlocks.filter(section => {
+    const id = (section.attrs.match(/\bid=["']([^"']+)["']/i) || [])[1] || "";
+    if (/hero|galeria|gallery|faq/i.test(id)) return false;
+    const readable = section.body
+      .replace(/<(script|style|svg)\b[\s\S]*?<\/\1>/gi, " ")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/&(?:nbsp|amp|quot|#39|lt|gt);/gi, " ")
+      .replace(/\s+/g, " ").trim();
+    return readable.length < 65;
+  });
+  if (sparseSections.length) {
+    const names = sparseSections.map(section => (section.attrs.match(/\bid=["']([^"']+)["']/i) || [])[1] || "sem-id");
+    issues.push("Seções superficiais ou quase vazias: " + names.slice(0, 5).join(", ") + ". Desenvolva cada seção com conteúdo específico, contexto útil e composição própria.");
+  }
+  const gallerySvgs = galleryMatch ? Array.from(galleryMatch[0].matchAll(/<svg\b[\s\S]*?<\/svg>/gi), m => m[0]) : [];
+  const underdevelopedGallerySvgs = gallerySvgs.filter(svg => (svg.match(/<(?:path|line|polyline|polygon|rect|circle|ellipse)\b/gi) || []).length < 4);
+  if (hasGallery && underdevelopedGallerySvgs.length >= 2) {
+    issues.push("Galeria com desenhos esquemáticos: pelo menos duas ilustrações têm menos de quatro elementos visuais. Redesenhe cada objeto com silhueta, partes e detalhes reconhecíveis.");
+  }
+  if (hero && /grid-template-columns\s*:\s*(?:repeat\()?\s*2|grid-template-columns\s*:\s*1fr\s+1fr/i.test(hero) &&
+      !/@media[\s\S]{0,900}(?:hero|#hero)[^{]*\{[^}]*grid-template-columns\s*:\s*1fr/i.test(html)) {
+    issues.push("Hero sem adaptação responsiva comprovada: empilhe texto e ilustração em uma coluna em telas pequenas.");
+  }
+  if (/id=["'](?:modalidades|servicos|services)["']/i.test(html)) {
+    const block = sectionBlocks.find(section => /id=["'](?:modalidades|servicos|services)["']/i.test(section.attrs));
+    if (block) {
+      const bodyText = block.body.replace(/<(script|style|svg)\b[\s\S]*?<\/\1>/gi, " ").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+      const itemCount = (block.body.match(/<(?:article|li)\b|class=["'][^"']*(?:service|modalidade|servico)[^"']*["']/gi) || []).length;
+      if (bodyText.length < 110 || itemCount < 2) issues.push("Seção de modalidades/serviços sem opções concretas suficientes: apresente pelo menos três opções ou explique claramente os serviços com conteúdo útil, sem inventar fatos.");
+    }
+  }
+  if (/id=["']contato["']/i.test(html) && !hasRealContact && /canal de contato a configurar|contato a configurar|configure seu (?:whatsapp|telefone|e-mail)|adicionar (?:whatsapp|telefone|e-mail)/i.test(html)) {
+    issues.push("Contato ainda parece um placeholder de edição: transforme a seção em um encerramento profissional e transparente, sem inventar canais ou criar botões falsos.");
+  }
+  return { sections, issues: issues.slice(0, 24) };
 }
 function extractHtml(result) {
   return (result?.candidates?.[0]?.content?.parts || []).map(p => p.text || '').join('\n').replace(/^\s*```(?:html)?\s*/i, '').replace(/\s*```\s*$/i, '').trim();
@@ -125,7 +160,7 @@ export default {
 
     const instructions = `Você é uma equipe sênior de design UX/UI, desenvolvimento front-end, conversão e SEO. Crie um site comercial realmente profissional, rico e personalizado para o negócio descrito, em português do Brasil. Entregue SOMENTE um documento HTML completo começando com <!doctype html>, com CSS dentro de <style> e JavaScript puro dentro de <script>. Tudo deve funcionar em um único arquivo, sem frameworks, bibliotecas externas, fontes externas ou scripts de terceiros. Não faça uma página genérica curta.
 
-DIREÇÃO DE ARTE E QUALIDADE VISUAL OBRIGATÓRIA: aja como um estúdio digital profissional. Escolha um conceito visual específico do segmento e mantenha consistência em cores, tipografia, formas, ícones e fotografia/ilustração. Não entregue template genérico. Crie ritmo de página com alternância de fundos, largura controlada, respiro generoso, hierarquia tipográfica expressiva, títulos fortes, textos escaneáveis e CTAs claros. HERO: layout assimétrico, título grande com quebra intencional, etiqueta curta, CTA principal e ilustração SVG/CSS original com vários detalhes e camadas que conte algo sobre o negócio. Nunca use apenas um círculo, quadrado ou cruz como ilustração. Crie pelo menos DOIS momentos visuais memoráveis além do hero: mosaico assimétrico com quatro ilustrações SVG/CSS diferentes para negócios visuais; faixa editorial de destaque; timeline desenhada; manifesto tipográfico ou composição especial de serviços. Não use a mesma grade de cartões em todas as seções. Em cada painel SVG, desenhe objetos reconhecíveis e específicos do segmento com linhas, formas e detalhes próprios; formas geométricas soltas não contam como galeria. Use ícones SVG coerentes, estados hover/focus e microinterações discretas. Evite excesso de gradientes, emojis como ícones principais, sombras pesadas e bordas em todos os elementos. O resultado deve ter acabamento autoral e excelente adaptação a desktop e celular. Se não houver imagens reais fornecidas, crie visuais editoriais com CSS/SVG e cores/texturas adequadas ao segmento; NÃO use via.placeholder.com, placehold.co, placekitten.com, URLs inventadas, imagens quebradas ou URLs externas aleatórias. Se usar imagem remota, ela deve ser uma URL pública real e estável que você conheça; caso contrário, não use imagem remota. O resultado deve ser visualmente rico e excelente em desktop e celular. Em telas pequenas, o menu deve abrir como painel vertical legível, com links empilhados, espaçamento de toque adequado, fundo sólido e z-index correto; nunca deixe links em linha espremida ou sobrepostos. O botão deve atualizar aria-expanded e aria-controls, fechar ao selecionar link e ao pressionar Escape. Inclua :focus-visible em links, botões e campos. PROIBIDO deixar retângulos pretos/cinzas vazios ou caixas que pareçam imagens ausentes: crie uma ilustração SVG/CSS completa dentro delas, ou remova o bloco e reorganize o layout. Nunca deixe navegação escondida no celular sem botão hambúrguer acessível e funcional. Não publique preços como R$ XXX,XX nem frases como 'unidade a definir'; se os dados faltarem, omita-os ou use um aviso de edição discreto que não pareça conteúdo final.
+DIREÇÃO DE ARTE E QUALIDADE VISUAL OBRIGATÓRIA: aja como um estúdio digital profissional. Escolha um conceito visual específico do segmento e mantenha consistência em cores, tipografia, formas, ícones e fotografia/ilustração. Não entregue template genérico. Crie ritmo de página com alternância de fundos, largura controlada, respiro generoso, hierarquia tipográfica expressiva, títulos fortes, textos escaneáveis e CTAs claros. HERO: layout assimétrico, título grande com quebra intencional, etiqueta curta, CTA principal e ilustração SVG/CSS original com vários detalhes e camadas que conte algo sobre o negócio. Nunca use apenas um círculo, quadrado ou cruz como ilustração. Crie pelo menos DOIS momentos visuais memoráveis além do hero: mosaico assimétrico com quatro ilustrações SVG/CSS diferentes para negócios visuais; faixa editorial de destaque; timeline desenhada; manifesto tipográfico ou composição especial de serviços. Não use a mesma grade de cartões em todas as seções. Em cada painel SVG, desenhe objetos reconhecíveis e específicos do segmento com linhas, formas e detalhes próprios; formas geométricas soltas não contam como galeria. Use ícones SVG coerentes, estados hover/focus e microinterações discretas. Evite excesso de gradientes, emojis como ícones principais, sombras pesadas e bordas em todos os elementos. O resultado deve ter acabamento autoral e excelente adaptação a desktop e celular. Se não houver imagens reais fornecidas, crie visuais editoriais com CSS/SVG e cores/texturas adequadas ao segmento; NÃO use via.placeholder.com, placehold.co, placekitten.com, URLs inventadas, imagens quebradas ou URLs externas aleatórias. Se usar imagem remota, ela deve ser uma URL pública real e estável que você conheça; caso contrário, não use imagem remota. O resultado deve ser visualmente rico e excelente em desktop e celular. Não basta cumprir contagem de seções: nenhuma seção pode ser apenas um título e uma frase genérica. Desenvolva cada seção com um bloco informativo específico, exemplos de opções/etapas quando cabíveis e hierarquia visual própria. Em serviços/modalidades, mostre pelo menos três opções claramente distintas, sem inventar disponibilidade ou estrutura. O hero deve empilhar texto e arte no celular. A seção de contato sem dados confirmados deve parecer uma conclusão editorial profissional e transparente, não uma mensagem técnica de placeholder; não invente telefone, e-mail ou WhatsApp. Em telas pequenas, o menu deve abrir como painel vertical legível, com links empilhados, espaçamento de toque adequado, fundo sólido e z-index correto; nunca deixe links em linha espremida ou sobrepostos. O botão deve atualizar aria-expanded e aria-controls, fechar ao selecionar link e ao pressionar Escape. Inclua :focus-visible em links, botões e campos. PROIBIDO deixar retângulos pretos/cinzas vazios ou caixas que pareçam imagens ausentes: crie uma ilustração SVG/CSS completa dentro delas, ou remova o bloco e reorganize o layout. Nunca deixe navegação escondida no celular sem botão hambúrguer acessível e funcional. Não publique preços como R$ XXX,XX nem frases como 'unidade a definir'; se os dados faltarem, omita-os ou use um aviso de edição discreto que não pareça conteúdo final.
 
 ESTRUTURA OBRIGATÓRIA: entregue de 8 a 12 elementos <section> reais, cada um com conteúdo útil e id único. Para academia, use exatamente esta sequência adaptada: hero, sobre, modalidades, benefícios, método/etapas, galeria visual, planos (sem inventar preços), depoimentos somente se fornecidos (caso contrário substitua por manifesto/experiência), FAQ e contato. Para outros segmentos, adapte a mesma profundidade ao negócio. Não conte header, footer ou div como seção. Não esconda seções com display:none. Cada seção deve ter composição própria e não repetir a mesma grade de cartões. Negócios visuais exigem galeria com quatro cenas/painéis ilustrados detalhados e distintos, não formas abstratas.
 
@@ -198,6 +233,10 @@ Descrição e necessidades do cliente: ${prompt}`;
         "GALERIA: para segmentos visuais, crie 4 painéis ilustrados distintos em SVG/CSS original. Desenhe objetos reconhecíveis do segmento com linhas, detalhes e composição própria. Quatro círculos/quadrados soltos não contam. Nunca use caixas vazias com rótulos. Não invente fotos nem URLs.",
         'Cada SVG ilustrativo deve ter role="img" e aria-label ou <title> descritivo que identifique claramente o objeto/cena (ex.: "Halteres e anilhas em composição", "Esteira de corrida", "Corda naval em movimento", "Atleta fazendo agachamento"). Não conte ícones decorativos sem descrição como ilustrações. Cada painel deve ter pelo menos 4 elementos SVG combinados e detalhes internos.',
         "VARIEDADE: entre 8 e 12 seções úteis e pelo menos dois momentos visuais memoráveis além do hero: mosaico assimétrico, faixa editorial, timeline ou manifesto tipográfico. Evite repetir cartões iguais.",
+        "CONTEÚDO: nenhuma seção pode ficar em título + frase genérica. Desenvolva serviços/modalidades com pelo menos três opções úteis e distintas, método com etapas claras, benefícios contextualizados e FAQ com respostas completas. Sem inventar fatos.",
+        "CONTATO: sem canais fornecidos, não invente telefone/e-mail/WhatsApp nem crie botão falso. Substitua texto técnico de placeholder por encerramento editorial claro e profissional, informando discretamente que os canais oficiais serão adicionados após confirmação.",
+        "RESPONSIVIDADE: se hero usar duas colunas no desktop, crie regra mobile explícita para empilhar texto e ilustração em uma coluna; revise grids e tipografia para telas estreitas.",
+        'SVG: cada ilustração da galeria deve ter pelo menos quatro elementos gráficos combinados, silhueta reconhecível e detalhes internos específicos; não basta adicionar aria-label a um círculo ou retângulo.',
         "ACABAMENTO: tipografia hierárquica, espaçamento generoso, grid consistente, contraste, ícones SVG coerentes, microinterações discretas e visual profissional em desktop e celular.",
         "MOBILE: menu em painel vertical, fundo sólido, position fixed/absolute, z-index alto, links empilhados com flex-direction: column e boa área de toque. Botão com aria-label, aria-controls e aria-expanded atualizado. Fechar ao clicar em qualquer link e ao pressionar Escape. Nav com aria-label, :focus-visible e prefers-reduced-motion.",
         "FAQ acessível com details/summary ou botões que atualizem aria-expanded. Formulário só se houver destino real; caso contrário, remova-o e deixe aviso discreto sem campos nem botão falso.",
@@ -218,11 +257,14 @@ Descrição e necessidades do cliente: ${prompt}`;
           const candidate = extractHtml(repairResult);
           if (candidate && /^<!doctype html/i.test(candidate) && /<html[\s>]/i.test(candidate) && candidate.length >= 500) {
             const candidateQuality = inspectHtml(candidate);
-            const score = q => q.issues.length * 12 + Math.max(0, 8 - q.sections) * 5 + Math.max(0, q.sections - 12) * 5;
+            const weight = issue => /IDs duplicados|Links internos sem destino|Seções superficiais|Seção de modalidades|Contato ainda parece|Galeria sem ilustrações identificáveis|Hero sem composição detalhada|adaptação responsiva comprovada/i.test(issue) ? 18 : 8;
+            const score = q => q.issues.reduce((total, issue) => total + weight(issue), 0) + Math.max(0, 8 - q.sections) * 12 + Math.max(0, q.sections - 12) * 12;
             const originalScore = score(quality);
             const candidateScore = score(candidateQuality);
-            const candidateHasRequiredArt = !candidateQuality.issues.some(issue => issue.startsWith("Galeria sem ilustrações identificáveis") || issue.startsWith("Hero sem composição detalhada"));
-            const candidateIsValid = candidateQuality.sections >= 8 && candidateQuality.sections <= 12 && candidateQuality.issues.length < quality.issues.length && candidateScore < originalScore && candidateHasRequiredArt;
+            const criticalPatterns = /IDs duplicados|Links internos sem destino|Seções superficiais|Seção de modalidades|Contato ainda parece|Galeria sem ilustrações identificáveis|Hero sem composição detalhada|adaptação responsiva comprovada/;
+            const candidateHasRequiredArt = !candidateQuality.issues.some(issue => /Galeria sem ilustrações identificáveis|Hero sem composição detalhada|desenhos esquemáticos/.test(issue));
+            const candidateHasNoCriticalIssues = !candidateQuality.issues.some(issue => criticalPatterns.test(issue));
+            const candidateIsValid = candidateQuality.sections >= 8 && candidateQuality.sections <= 12 && candidateScore < originalScore && candidateHasRequiredArt && candidateHasNoCriticalIssues;
             if (candidateIsValid) {
               html = candidate;
               quality = candidateQuality;
