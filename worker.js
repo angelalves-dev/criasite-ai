@@ -66,7 +66,7 @@ function inspectHtml(html) {
   if (hero && heroVisuals === 0) issues.push("O hero não tem elemento visual próprio; crie composição editorial com ilustração SVG/CSS original relacionada ao segmento.");
   if (hero && heroVisuals === 1 && !hasVisualStyling) issues.push("O hero tem apenas um visual simples e sem tratamento; adicione camadas, recortes, profundidade e composição editorial.");
   if (hasGallery && gallerySvgCount < 3 && imageCount < 3) issues.push("A galeria precisa de pelo menos quatro painéis visuais distintos em SVG/CSS, não apenas cartões ou formas geométricas básicas.");
-  if (cardCount >= 5 && !/(?:masonry|grid-template-areas|:nth-child\\()/i.test(html)) issues.push("A composição repete cartões sem hierarquia; crie mosaico assimétrico ou destaque visual com tamanhos variados.");
+  if (cardCount >= 5 && !/(?:masonry|grid-template-areas|:nth-child\()/i.test(html)) issues.push("A composição repete cartões sem hierarquia; crie mosaico assimétrico ou destaque visual com tamanhos variados.");
   if (!hasVisualStyling) issues.push("Falta direção de arte visual: use recursos gráficos CSS/SVG, texturas, recortes, camadas e detalhes consistentes.");
   if (deadLinks >= 2) issues.push("Há links sem destino ou links javascript:void; conecte cada ação a uma seção real ou remova a ação.");
   if (/agende uma visita|fale conosco|entre em contato|solicite um or[cç]amento/i.test(html) && !hasRealContact && !/Canal de contato a configurar/i.test(html)) issues.push("A chamada comercial não tem destino de contato funcional; conecte WhatsApp/e-mail informado ou deixe aviso discreto de configuração.");
