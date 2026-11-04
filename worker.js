@@ -108,8 +108,9 @@ function inspectHtml(html) {
   if (hasGallery && underdevelopedGallerySvgs.length >= 2) {
     issues.push("Galeria com desenhos esquemáticos: pelo menos duas ilustrações têm menos de quatro elementos visuais. Redesenhe cada objeto com silhueta, partes e detalhes reconhecíveis.");
   }
-  if (hero && /grid-template-columns\s*:\s*(?:repeat\()?\s*2|grid-template-columns\s*:\s*1fr\s+1fr/i.test(hero) &&
-      !/@media[\s\S]{0,900}(?:hero|#hero)[^{]*\{[^}]*grid-template-columns\s*:\s*1fr/i.test(html)) {
+  const heroUsesTwoColumns = /(?:\.hero|#hero)[^{]*\{[^}]*grid-template-columns\s*:\s*(?:1fr\s+1fr|repeat\(\s*2)/i.test(html);
+  const heroHasMobileStack = /@media[\s\S]{0,1400}(?:\.hero|#hero)[^{]*\{[^}]*grid-template-columns\s*:\s*1fr/i.test(html);
+  if (heroUsesTwoColumns && !heroHasMobileStack) {
     issues.push("Hero sem adaptação responsiva comprovada: empilhe texto e ilustração em uma coluna em telas pequenas.");
   }
   if (/id=["'](?:modalidades|servicos|services)["']/i.test(html)) {
