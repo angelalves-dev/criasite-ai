@@ -52,7 +52,7 @@ function inspectHtml(html) {
   if (hasMenuButton && !/aria-expanded=["'](?:true|false)["']/i.test(html)) issues.push("O botão do menu precisa expor aria-expanded.");
   if (hasMenuButton && !/keydown/i.test(html)) issues.push("O menu móvel deve fechar ao pressionar Escape.");
   if (hasMenuButton && !/(?:querySelectorAll|querySelector)\(["'][^"']*a[^"']*["']\)[\s\S]{0,900}addEventListener\(["']click|addEventListener\(["']click[\s\S]{0,900}(?:querySelectorAll|querySelector)\(["'][^"']*a/i.test(html)) issues.push("Feche o painel mobile depois que qualquer link do menu for selecionado.");
-  const mobileCss = (html.match(/@media\s*\([^)]*(?:max-width|max-inline-size)[^)]*\)\s*\{[\s\S]*?(?=\n\s*@media|\n\s*\}\s*\n|$)/gi) || []).join("\n");
+  const mobileCss = Array.from(html.matchAll(/@media\s*\([^)]*\)([\s\S]{0,5000})/gi), match => match[1]).join("\n");
   const mobileNavIsVertical = /(?:nav\s+ul|nav\s+\.?(?:nav-links|menu-links)|\.?(?:nav-links|menu-links)|nav)[^{]*\{[^}]*flex-direction\s*:\s*column/i.test(mobileCss);
   if (hasMenuButton && hasMobileRules && !mobileNavIsVertical) issues.push("No celular, os próprios links da lista de navegação precisam ficar empilhados verticalmente; não basta transformar o contêiner nav em coluna.");
   if (hasMenuButton && !/:focus-visible/i.test(html)) issues.push("Adicione estados :focus-visible claros para links e botões.");
@@ -265,8 +265,8 @@ Descrição e necessidades do cliente: ${prompt}`;
             const score = q => q.issues.reduce((total, issue) => total + weight(issue), 0) + Math.max(0, 8 - q.sections) * 12 + Math.max(0, q.sections - 12) * 12;
             const originalScore = score(quality);
             const candidateScore = score(candidateQuality);
-            const criticalPatterns = /IDs duplicados|Links internos sem destino|Seções superficiais|Seção de modalidades|Contato ainda parece|Galeria sem ilustrações identificáveis|Hero sem composição detalhada|adaptação responsiva comprovada/;
-            const candidateHasRequiredArt = !candidateQuality.issues.some(issue => /Galeria sem ilustrações identificáveis|Hero sem composição detalhada|desenhos esquemáticos/.test(issue));
+            const criticalPatterns = /IDs duplicados|Links internos sem destino|Seções superficiais|Seção de modalidades|Contato ainda contém|Galeria sem quatro ilustrações|Galeria incompleta|Hero sem composição detalhada|adaptação responsiva comprovada|próprios links da lista de navegação/;
+            const candidateHasRequiredArt = !candidateQuality.issues.some(issue => /Galeria sem quatro ilustrações|Galeria incompleta|Hero sem composição detalhada|desenhos esquemáticos/.test(issue));
             const candidateHasNoCriticalIssues = !candidateQuality.issues.some(issue => criticalPatterns.test(issue));
             const candidateIsValid = candidateQuality.sections >= 8 && candidateQuality.sections <= 12 && candidateScore < originalScore && candidateHasRequiredArt && candidateHasNoCriticalIssues;
             if (candidateIsValid) {
