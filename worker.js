@@ -20,51 +20,51 @@ function inspectHtml(html) {
   const ids = new Set(Array.from(html.matchAll(/\bid=["']([^"']+)["']/gi), m => m[1]));
   const anchors = Array.from(html.matchAll(/href=["']#([^"']+)["']/gi), m => m[1]);
   const broken = [...new Set(anchors.filter(id => id && !ids.has(id)))];
-  if (sections < 8) issues.push('Poucas seções: crie pelo menos 8 seções úteis, específicas e sem repetição.');
-  if (!/<meta\s+name=["']viewport["']/i.test(html)) issues.push('Falta meta viewport para celular.');
-  if (!/<title>\s*[^<]+<\/title>/i.test(html) || !/<meta\s+name=["']description["']/i.test(html)) issues.push('Complete title e meta description para SEO básico.');
-  if (!/@media\s*\(/i.test(html)) issues.push('Falta CSS responsivo com media query.');
-  if (!/<nav\b/i.test(html) || !/<header[\s\S]*?<nav\b/i.test(html)) issues.push('Falta navegação semântica nav dentro do cabeçalho.');
-  if (!/aria-expanded|aria-label=["'][^"']*(menu|navega)|menu-toggle|nav-toggle|hamburger/i.test(html)) issues.push('Adicione um controle acessível e funcional para o menu móvel.');
-  if (/perguntas frequentes|\bfaq\b|d[uú]vidas frequentes/i.test(html) && !/aria-expanded|<details\b|addEventListener\s*\(\s*["']click|onclick=/i.test(html)) issues.push('FAQ sem interação aparente para abrir e fechar respostas.');
-  if (/<form\b/i.test(html) && !/addEventListener\s*\(\s*["']submit|onsubmit=|mailto:|wa\.me\//i.test(html)) issues.push('Formulário sem tratamento de envio aparente; não finja que enviou dados.');
-  if (/<form\b/i.test(html) && /onsubmit\s*=\s*["'][^"']*return\s+false|type\s*=\s*["']button["'][^>]*onclick\s*=\s*["'][^"']*alert/i.test(html)) issues.push('Formulário bloqueia o envio ou usa alerta falso; remova-o ou configure um destino real.');
-  if (/<form\b/i.test(html) && !/<label\b/i.test(html)) issues.push('Formulário sem labels acessíveis; associe label e id a cada campo.');
-  if (broken.length) issues.push('Links internos sem destino: ' + broken.slice(0, 6).map(id => '#' + id).join(', '));
-  if (/<img\b/i.test(html) && /<img\b(?![^>]*\balt=)/i.test(html)) issues.push('Adicione alt às imagens.');
-  if (/via\.placeholder\.com|placehold\.co|placekitten\.com/i.test(html)) issues.push('Remova imagens de placeholder que podem falhar; use composição visual em CSS ou imagens reais fornecidas e estáveis.');
-  if (/©\s*202[0-5]\b/i.test(html)) issues.push('Atualize o ano antigo do rodapé dinamicamente com JavaScript ou use o ano atual.');
-  if (/perguntas frequentes|\bfaq\b|d[uú]vidas frequentes/i.test(html) && !/aria-expanded/i.test(html) && !/<details\b/i.test(html)) issues.push('Torne as perguntas frequentes acessíveis com details/summary ou aria-expanded nos botões.');
-  if (/<form\b/i.test(html) && /placeholder=/i.test(html) && !/<label\b/i.test(html)) issues.push('Adicione labels acessíveis aos campos do formulário; placeholder não substitui label.');
-  if (/<form\b/i.test(html) && /enviado com sucesso|mensagem enviada|formulário enviado/i.test(html) && !/wa\.me\/|mailto:/i.test(html)) issues.push('O formulário aparenta confirmar envio sem um destino real; substitua por aviso claro de demonstração/configuração necessária.');
-  if ((html.includes("wa.me/") || html.includes("api.whatsapp.com/send")) && /00000000000|123456789|5511999999999|55555555555/i.test(html)) issues.push('Link de WhatsApp com número fictício; remover o link e orientar configuração de número real.');
-  if (/monitoramento 24.?h|climatiza[cç][aã]o|profissionais certificados|mais de [0-9]+ clientes|milhares de alunos/i.test(html)) issues.push('Possíveis alegações comerciais não fornecidas; remover ou marcar como conteúdo editável.');
-  if (sections >= 8 && !/svg|<img|background-image|linear-gradient/i.test(html)) issues.push('Composição visual pouco rica; adicionar ilustrações próprias em CSS/SVG, sem placeholders.');
-  if (sections >= 8 && (html.match(/class=["'][^"']*card[^"']*["']/gi) || []).length >= 6 && !/svg/i.test(html)) issues.push('Layout repetitivo de cartões; variar a composição das seções e adicionar detalhes gráficos.');
-  if (!/<h1\b/i.test(html)) issues.push('Falta um título principal h1 claro no hero.');
-  if (!/<nav\\b[^>]*aria-label|<nav\\b[^>]*aria-labelledby/i.test(html)) issues.push('Identifique a navegação principal com aria-label ou aria-labelledby.');
-  if (/menu-toggle|nav-toggle|hamburger/i.test(html) && !/aria-controls=/i.test(html)) issues.push('Associe o botão do menu à navegação usando aria-controls.');
-  if (/menu-toggle|nav-toggle|hamburger/i.test(html) && !/keydown|key\s*===?\s*["']escape["']|keycode\s*===?\s*27/i.test(html)) issues.push('O menu móvel deve fechar também ao pressionar Escape.');
-  if (/menu-toggle|nav-toggle|hamburger/i.test(html) && !/addEventListener\s*\(\s*["']click["'][\s\S]{0,1200}(?:querySelectorAll|querySelector)\s*\(\s*["']a|\.addEventListener\s*\(\s*["']click["']/i.test(html)) issues.push('Confira se os links do menu fecham o painel após a navegação.');
-  if (/id=["'](?:galeria|gallery|portfolio|estrutura)["']/i.test(html) && /gallery-item[^}]*background:\s*(?:#(?:111|121212|1a1a1a|222)|var\(--surface\))/i.test(html) && !/<svg\b|<img\b|background-image\s*:/i.test(html)) issues.push('A galeria parece conter caixas vazias; substitua-as por ilustrações SVG/CSS originais com composição visual real.');
-  if (/hero/i.test(html) && /width:\s*300px[\s\S]{0,100}height:\s*300px[\s\S]{0,100}border:\s*20px/i.test(html)) issues.push('O hero usa apenas um quadrado decorativo simples; crie uma composição editorial mais marcante com SVG/CSS original, camadas e detalhes.');
-  if (!/prefers-reduced-motion/i.test(html) && /scroll-behavior\s*:\s*smooth/i.test(html)) issues.push('Respeite prefers-reduced-motion para usuários que reduzem animações.');
-  if (/@media\\s*\\(max-width:\\s*(?:768|767|800|900)px\\)/i.test(html) && /nav\\s*\\{[^}]*display\\s*:\\s*none/i.test(html) && !/nav(?:\\.active|\\[aria-expanded=["']true["']\\])\\s*\\{/i.test(html)) issues.push('Menu mobile pode ficar oculto sem regra de abertura consistente.');
-  if (/<section\\b[^>]*(?:galeria|gallery|portfolio|estrutura)/i.test(html) === false && !/id=["'](?:galeria|gallery|portfolio|estrutura)["']/i.test(html)) issues.push('Considere uma seção visual de galeria, portfólio ou estrutura quando fizer sentido para o segmento.');
-  if (/equipamentos de última geração|equipamentos de ponta|estrutura de ponta|tecnologia de ponta|instrutores acompanham|profissionais certificados|manutenção constante|atendimento personalizado|resultados garantidos|líder no mercado|referência na região/i.test(html)) issues.push('Revise afirmações comerciais específicas não comprovadas pelos dados fornecidos; remova ou reescreva sem promessas ou fatos inventados.');
-  if (/\[[^\]]{2,80}\]|\b(?:inserir|adicionar|informar)\s+(?:aqui|horário|endereço|telefone|preço|valor)\b|(?:endereço|telefone|horário)\s+a\s+definir/i.test(html)) issues.push('Há placeholders ou instruções provisórias visíveis; remova-os. Quando faltar um dado comercial, omita-o ou use texto neutro como “Consulte a equipe”, sem colchetes.');
-  if (/<button[^>]*(?:menu|nav)[^>]*>/i.test(html) && !/addEventListener\s*\(\s*["']click|onclick=/i.test(html)) issues.push('Botão de menu sem comportamento de clique identificável.');
-  if (/onsubmit=["']return false;?["']/i.test(html)) issues.push('Formulário bloqueia o envio; substituir por contato funcional ou aviso claro de demonstração.');
-  if (/href=["']#contato["']/i.test(html) && !/id=["']contato["']/i.test(html)) issues.push('CTA aponta para #contato, mas a seção de contato não existe.');
-  if (/<button\b/i.test(html) && !/:focus-visible|:focus\b/i.test(html)) issues.push('Adicione estados de foco visíveis para navegação por teclado.');
-  if (/R\$\s*(?:XXX|X{2,}|0{2,}|\[.*?pre[cç]o.*?\])/i.test(html)) issues.push('Há preços provisórios como R$ XXX; remova os preços ou use apenas valores informados pelo cliente.');
-  if (/unidade a definir|endereço a definir|telefone a definir|inserir telefone|adicionar telefone/i.test(html)) issues.push('Há campos de configuração visíveis no rodapé; remover do site publicado ou apresentar uma instrução de edição discreta.');
-  if (/display\s*:\s*none/i.test(html) && /nav-links|navlinks|menu-links|navigation-links/i.test(html) && !/menu-toggle|nav-toggle|hamburger|aria-expanded/i.test(html)) issues.push('A navegação pode desaparecer no celular sem um menu alternativo funcional.');
-  if (/alert\s*\(.*(?:pronto para integração|configure o endpoint|não configurado)/i.test(html)) issues.push('O formulário ainda é apenas demonstrativo; deixe isso claro e ofereça um caminho de contato funcional se houver dados reais.');
+  const hasMenuButton = /aria-expanded|menu-toggle|nav-toggle|hamburger/i.test(html);
+  const hasMobileRules = /@media\s*\([^)]*(?:max-width|max-inline-size)/i.test(html);
+  const hasNav = /<nav\b/i.test(html);
+  const hasGallery = /id=["'](?:galeria|gallery|portfolio|estrutura)["']|class=["'][^"']*(?:gallery|galeria|portfolio)[^"']*["']/i.test(html);
+  const svgCount = (html.match(/<svg\b/gi) || []).length;
+  const imageCount = (html.match(/<img\b/gi) || []).length;
+  const cardCount = (html.match(/class=["'][^"']*\bcard\b[^"']*["']/gi) || []).length;
 
-  return { sections, issues: issues.slice(0, 12) };
+  if (sections < 8) issues.push("Poucas seções: crie pelo menos 8 seções úteis, específicas e sem repetição.");
+  if (sections > 12) issues.push("Há seções demais; reduza para 8 a 12 seções fortes, sem conteúdo de enchimento.");
+  if (!/<meta\s+name=["']viewport["']/i.test(html)) issues.push("Falta meta viewport para celular.");
+  if (!/<title>\s*[^<]+<\/title>/i.test(html) || !/<meta\s+name=["']description["']/i.test(html)) issues.push("Complete title e meta description para SEO básico.");
+  if (!hasMobileRules) issues.push("Falta uma media query real para adaptar o layout a telas pequenas.");
+  if (!hasNav || !/<header[\s\S]*?<nav\b/i.test(html)) issues.push("Inclua nav semântico dentro do cabeçalho.");
+  if (!/<nav\b[^>]*aria-label|<nav\b[^>]*aria-labelledby/i.test(html)) issues.push("Identifique a navegação principal com aria-label ou aria-labelledby.");
+  if (!hasMenuButton) issues.push("Adicione botão de menu móvel acessível e funcional.");
+  if (hasMenuButton && !/aria-controls=/i.test(html)) issues.push("Associe o botão do menu à navegação com aria-controls.");
+  if (hasMenuButton && !/aria-expanded=["'](?:true|false)["']/i.test(html)) issues.push("O botão do menu precisa expor aria-expanded.");
+  if (hasMenuButton && !/keydown/i.test(html)) issues.push("O menu móvel deve fechar ao pressionar Escape.");
+  if (hasMenuButton && !/(?:querySelectorAll|querySelector)\(["'][^"']*a[^"']*["']\)[\s\S]{0,900}addEventListener\(["']click|addEventListener\(["']click[\s\S]{0,900}(?:querySelectorAll|querySelector)\(["'][^"']*a/i.test(html)) issues.push("Feche o painel mobile depois que qualquer link do menu for selecionado.");
+  if (hasMenuButton && hasMobileRules && !/(?:nav|\.nav|\.menu|\.menu-links|\.nav-links)[^{]*\{[^}]*flex-direction\s*:\s*column/i.test(html)) issues.push("No celular, empilhe os links do menu verticalmente com flex-direction: column.");
+  if (hasMenuButton && !/:focus-visible/i.test(html)) issues.push("Adicione estados :focus-visible claros para links e botões.");
+  if (hasMenuButton && !/position\s*:\s*(?:fixed|absolute)/i.test(html)) issues.push("O painel mobile deve usar posicionamento e z-index que o mantenham legível acima do conteúdo.");
+  if (/perguntas frequentes|\bfaq\b|d[uú]vidas frequentes/i.test(html) && !/aria-expanded|<details\b|addEventListener\s*\(\s*["']click|onclick=/i.test(html)) issues.push("FAQ sem interação aparente para abrir e fechar respostas.");
+  if (/<form\b/i.test(html) && !/addEventListener\s*\(\s*["']submit|onsubmit=|mailto:|wa\.me\//i.test(html)) issues.push("Formulário sem tratamento de envio aparente; não finja que enviou dados.");
+  if (/<form\b/i.test(html) && /onsubmit\s*=\s*["'][^"']*return\s+false|type\s*=\s*["']button["'][^>]*onclick\s*=\s*["'][^"']*alert/i.test(html)) issues.push("Formulário bloqueia o envio ou usa alerta falso; remova-o ou configure um destino real.");
+  if (/<form\b/i.test(html) && !/<label\b/i.test(html)) issues.push("Formulário sem labels acessíveis.");
+  if (broken.length) issues.push("Links internos sem destino: " + broken.slice(0, 6).map(id => "#" + id).join(", "));
+  if (/<img\b/i.test(html) && /<img\b(?![^>]*\balt=)/i.test(html)) issues.push("Adicione alt útil às imagens.");
+  if (/via\.placeholder\.com|placehold\.co|placekitten\.com/i.test(html)) issues.push("Remova imagens placeholder; use imagens fornecidas ou ilustrações SVG/CSS originais.");
+  if (/©\s*202[0-5]\b/i.test(html)) issues.push("Atualize o ano do rodapé dinamicamente ou use o ano atual.");
+  if (hasGallery && svgCount + imageCount < 3) issues.push("A galeria não tem conteúdo visual suficiente: crie pelo menos três ilustrações SVG/CSS originais distintas, não caixas com rótulos.");
+  if (hasGallery && /(?:área pesos|area pesos|cardio|funcional)[\s\S]{0,100}(?:background:\s*(?:#(?:111|121212|1a1a1a|222)|var\(--surface\)))/i.test(html) && svgCount < 3) issues.push("A galeria parece formada por caixas escuras com texto; substitua por painéis ilustrados e diferentes.");
+  if (!hasGallery && /academia|restaurante|salão|salao|hotel|imobili[aá]ria|arquitetura|eventos/i.test(html)) issues.push("Inclua uma galeria visual adequada ao segmento, com ilustrações próprias se não houver fotos.");
+  if (cardCount >= 7 && svgCount < 2) issues.push("O layout está repetitivo em cartões; varie a composição com mosaico, faixa editorial, timeline ou tipografia.");
+  if (!/<h1\b/i.test(html)) issues.push("Falta um título principal h1 claro no hero.");
+  if (/width\s*:\s*300px[\s\S]{0,160}height\s*:\s*300px[\s\S]{0,160}border\s*:\s*20px/i.test(html)) issues.push("O hero parece usar apenas um quadrado decorativo simples; crie uma composição editorial relacionada ao segmento.");
+  if (/prefers-reduced-motion/i.test(html) === false && /scroll-behavior\s*:\s*smooth/i.test(html)) issues.push("Respeite prefers-reduced-motion para usuários que reduzem animações.");
+  if (/equipamentos de última geração|equipamentos de ponta|estrutura de ponta|tecnologia de ponta|instrutores acompanham|profissionais certificados|manutenção constante|atendimento personalizado|resultados garantidos|líder no mercado|referência na região|equipe especializada|ambiente climatizado|espaço amplo/i.test(html)) issues.push("Revise afirmações comerciais específicas não comprovadas pelos dados fornecidos.");
+  if (/\[[^\]]{2,80}\]|\b(?:inserir|adicionar|informar)\s+(?:aqui|horário|endereço|telefone|preço|valor)\b|(?:endereço|telefone|horário)\s+a\s+definir/i.test(html)) issues.push("Remova placeholders e instruções provisórias visíveis.");
+  if (/<button\b/i.test(html) && !/:focus-visible|:focus\b/i.test(html)) issues.push("Adicione estados de foco visíveis para navegação por teclado.");
+  if (/R\$\s*(?:XXX|X{2,}|0{2,}|\[.*?preço.*?\])/i.test(html)) issues.push("Remova preços provisórios; use somente valores informados.");
+  if (/alert\s*\(.*(?:pronto para integração|configure o endpoint|não configurado)/i.test(html)) issues.push("Remova alertas que simulam integração; deixe claro quando algo é demonstrativo.");
+  return { sections, issues: issues.slice(0, 16) };
 }
-
 function extractHtml(result) {
   return (result?.candidates?.[0]?.content?.parts || []).map(p => p.text || '').join('\n').replace(/^\s*```(?:html)?\s*/i, '').replace(/\s*```\s*$/i, '').trim();
 }
@@ -162,9 +162,34 @@ Descrição e necessidades do cliente: ${prompt}`;
     let repairApplied = false;
     if (quality.issues.length) {
       repairAttempted = true;
-      const repairPrompt = "Você é diretor de arte digital e engenheiro front-end sênior. Melhore substancialmente o HTML abaixo e devolva SOMENTE o documento completo começando por <!doctype html>, sem markdown. Não faça apenas uma correção superficial. Crie direção de arte personalizada e visivelmente premium. HERO: construa uma composição marcante, não um quadrado vazio ou forma geométrica solta; use SVG inline original com silhuetas/linhas/elementos relacionados ao segmento, camadas, tipografia editorial e CTA. GALERIA: nunca use caixas vazias com palavras como ÁREA PESOS, CARDIO ou FUNCIONAL; crie 3-5 painéis ilustrados diferentes com SVG/CSS originais, cada um com formas, detalhes e legenda visual integrada. MENU MOBILE: painel fixo/absoluto com fundo sólido, z-index alto, links empilhados verticalmente e espaçamento de toque; botão atualiza aria-expanded e aria-controls; ao clicar em qualquer link fecha o menu e restaura aria-expanded=false; pressionar Escape também fecha; não deixe nav ou ul em linha no celular. Adicione estados :focus-visible e respeite prefers-reduced-motion. Crie pelo menos dois momentos visuais memoráveis além do hero, com layouts variados e sem repetir cartões. Faça auditoria das afirmações comerciais: qualquer alegação sobre instalações, equipamentos, equipe, certificações, resultados, tecnologia, atendimento ou reputação que não esteja nos dados deve ser removida ou convertida em linguagem neutra. O cabeçalho deve conter <nav> semântico. Se não houver destino real de contato, remova o formulário e use aviso de demonstração sem botão de envio. Não invente fotos nem URLs externas. Corrija obrigatoriamente estes problemas: \\n- " +
-        quality.issues.join("\\n- ") +
-        "\\nNão invente endereço, telefone, preços, avaliações, depoimentos, certificações, instalações ou resultados. Sem WhatsApp real fornecido, não crie link wa.me; indique que o número precisa ser configurado. Não use imagens placeholder nem URLs aleatórias. Garanta responsividade, menu acessível, links internos válidos, FAQ acessível e não finja que backend existe. O resultado deve ficar visivelmente mais elaborado que o original. Pedido original: \\n" + prompt + "\\nHTML a melhorar:\\n" + html;
+      const repairPrompt = \`Você é um diretor de arte digital premiado e engenheiro front-end sênior. Sua tarefa é RECONSTRUIR E MELHORAR VISIVELMENTE o site, não apenas trocar palavras. Retorne SOMENTE um HTML completo válido começando com <!doctype html>.
+
+PRIORIDADE MÁXIMA — DESIGN:
+1) HERO de alto impacto: layout editorial assimétrico, título grande com quebras intencionais, subtítulo curto, CTA destacado e uma ilustração SVG inline original relacionada ao negócio. Use camadas, recortes, linhas, formas e profundidade. Proibido um quadrado solitário, círculo genérico ou bloco vazio.
+2) GALERIA: se o segmento for visual, crie 4 painéis ilustrados distintos com SVG/CSS original (cada um com composição própria, detalhes e legenda). Nunca use caixas vazias com palavras como ÁREA PESOS, CARDIO ou FUNCIONAL. Não invente fotos nem URLs. Se o negócio não for visual, crie uma seção editorial/portfólio apropriada.
+3) VARIEDADE: 8 a 12 seções úteis. Pelo menos dois momentos visuais memoráveis além do hero: mosaico assimétrico, faixa editorial, timeline, manifesto tipográfico ou composição de processo. Não repita cartões iguais em todas as seções.
+4) ACABAMENTO: tipografia hierárquica, espaçamento generoso, grid consistente, cores com contraste, bordas e sombras sutis, ícones SVG coerentes, microinterações discretas e aparência profissional em desktop e celular.
+
+PRIORIDADE MÁXIMA — MOBILE E ACESSIBILIDADE:
+- Menu móvel abre em painel vertical com fundo sólido, position fixed/absolute, z-index alto e links empilhados (flex-direction: column), com área de toque confortável.
+- Botão com aria-label, aria-controls e aria-expanded atualizado em cada abertura/fechamento.
+- Fechar ao clicar em qualquer link e ao pressionar Escape; restaurar aria-expanded=false.
+- Navegação principal com aria-label; foco :focus-visible visível; respeitar prefers-reduced-motion.
+- FAQ funcional com details/summary ou botões acessíveis.
+
+INTEGRIDADE:
+- Remova qualquer afirmação não comprovada sobre equipamentos, instalações, equipe, certificações, tecnologia, atendimento, reputação ou resultados. Não transforme desejos do cliente em fatos.
+- Não invente endereço, telefone, horário, preço, avaliações, depoimentos, clientes ou credenciais.
+- Sem destino real de envio, remova formulários e use apenas aviso discreto de canal a configurar, sem campos nem botão falso.
+- Não use placeholders, colchetes, imagens quebradas, URLs aleatórias, alertas falsos ou mensagens de sucesso falsas.
+- Mantenha links internos válidos, IDs únicos, HTML semântico, title, meta description e responsividade.
+
+Corrija obrigatoriamente os problemas detectados:
+- \${quality.issues.map(x => "- " + x).join("\\n")}
+Pedido original do cliente: \${prompt}
+
+HTML atual para reconstrução:
+\${html}\`;
       try {
         const repairResponse = await fetch(endpoint, {
           method: "POST",
@@ -178,7 +203,8 @@ Descrição e necessidades do cliente: ${prompt}`;
             const candidateQuality = inspectHtml(candidate);
             const originalScore = quality.issues.length * 12 + Math.max(0, 8 - quality.sections) * 5;
             const candidateScore = candidateQuality.issues.length * 12 + Math.max(0, 8 - candidateQuality.sections) * 5;
-            if (candidateScore < originalScore) {
+            const candidateIsValid = candidateQuality.sections >= 8 && candidateQuality.sections <= 12 && candidateQuality.issues.length < quality.issues.length;
+            if (candidateIsValid && candidateScore < originalScore) {
               html = candidate;
               quality = candidateQuality;
               repairApplied = true;
