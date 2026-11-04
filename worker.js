@@ -73,8 +73,8 @@ function inspectHtml(html) {
   if (hasGallery && gallerySvgCount < 3 && imageCount < 3) issues.push("A galeria precisa de pelo menos quatro painéis visuais distintos em SVG/CSS, não apenas cartões ou formas geométricas básicas.");
   if (hasGallery && semanticSvgCount < 4) issues.push('Galeria sem ilustrações identificáveis: inclua ao menos quatro SVGs com role="img" e aria-label ou title descritivo, representando objetos ou cenas reais do segmento.');
   if (hasGallery && svgShapeCount < 18) issues.push("Ilustrações pouco detalhadas: desenvolva os SVGs com múltiplas formas, linhas e detalhes específicos, não formas geométricas isoladas.");
-  const heroSvg = (hero.match(/<svg\\b[\\s\\S]*?<\\/svg>/i) || [""])[0];
-  const heroShapeCount = (heroSvg.match(/<(?:path|line|polyline|polygon|rect|circle|ellipse)\\b/gi) || []).length;
+  const heroSvg = (hero.match(/<svg\b[\s\S]*?<\/svg>/i) || [""])[0];
+  const heroShapeCount = (heroSvg.match(/<(?:path|line|polyline|polygon|rect|circle|ellipse)\b/gi) || []).length;
   if (heroSvg && heroShapeCount < 5) issues.push("Hero sem composição detalhada: a ilustração principal precisa combinar ao menos cinco elementos SVG e ter descrição acessível.");
   if (cardCount >= 5 && !/(?:masonry|grid-template-areas|:nth-child\()/i.test(html)) issues.push("A composição repete cartões sem hierarquia; crie mosaico assimétrico ou destaque visual com tamanhos variados.");
   if (!hasVisualStyling) issues.push("Falta direção de arte visual: use recursos gráficos CSS/SVG, texturas, recortes, camadas e detalhes consistentes.");
