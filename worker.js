@@ -27,14 +27,14 @@ function inspectHtml(html) {
   const svgCount = (html.match(/<svg\b/gi) || []).length;
   const imageCount = (html.match(/<img\b/gi) || []).length;
   const cardCount = (html.match(/class=["'][^"']*\bcard\b[^"']*["']/gi) || []).length;
-  const heroMatch = html.match(/<section\\b[^>]*class=["'][^"']*hero[^"']*["'][^>]*>[\\s\\S]*?<\\/section>/i) || html.match(/<header\\b[\\s\\S]*?<\\/header>/i);
+  const heroMatch = html.match(/<section\b[^>]*class=["'][^"']*hero[^"']*["'][^>]*>[\s\S]*?<\/section>/i) || html.match(/<header\b[\s\S]*?<\/header>/i);
   const hero = heroMatch ? heroMatch[0] : "";
-  const heroVisuals = (hero.match(/<svg\\b|<img\\b|<picture\\b/gi) || []).length;
-  const galleryMatch = html.match(/<(?:section|div)\\b[^>]*(?:galeria|gallery|portfolio|estrutura)[^>]*>[\\s\\S]*?<\\/(?:section|div)>/i);
-  const gallerySvgCount = galleryMatch ? (galleryMatch[0].match(/<svg\\b/gi) || []).length : 0;
-  const hasVisualStyling = /(?:clip-path|mask-image|background-image|linear-gradient|radial-gradient|filter:\\s*drop-shadow|::before|::after)/i.test(html);
-  const hasRealContact = /wa\\.me\\/|mailto:|tel:/i.test(html);
-  const deadLinks = (html.match(/href=["'](?:#|javascript:void\\(0\\)|javascript:;)["']/gi) || []).length;
+  const heroVisuals = (hero.match(/<svg\b|<img\b|<picture\b/gi) || []).length;
+  const galleryMatch = html.match(/<(?:section|div)\b[^>]*(?:galeria|gallery|portfolio|estrutura)[^>]*>[\s\S]*?<\/(?:section|div)>/i);
+  const gallerySvgCount = galleryMatch ? (galleryMatch[0].match(/<svg\b/gi) || []).length : 0;
+  const hasVisualStyling = /(?:clip-path|mask-image|background-image|linear-gradient|radial-gradient|filter:\s*drop-shadow|::before|::after)/i.test(html);
+  const hasRealContact = /wa\.me\/|mailto:|tel:/i.test(html);
+  const deadLinks = (html.match(/href=["'](?:#|javascript:void\(0\)|javascript:;)["']/gi) || []).length;
 
   if (sections < 8) issues.push("Poucas seções: crie pelo menos 8 seções úteis, específicas e sem repetição.");
   if (sections > 12) issues.push("Há seções demais; reduza para 8 a 12 seções fortes, sem conteúdo de enchimento.");
