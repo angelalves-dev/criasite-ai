@@ -221,7 +221,7 @@ Descrição e necessidades do cliente: ${prompt}`;
             const score = q => q.issues.length * 12 + Math.max(0, 8 - q.sections) * 5 + Math.max(0, q.sections - 12) * 5;
             const originalScore = score(quality);
             const candidateScore = score(candidateQuality);
-            const candidateIsValid = candidateQuality.sections >= 8 && candidateQuality.sections <= 12 && candidateQuality.issues.length <= quality.issues.length && candidateScore < originalScore;            const candidateHasRequiredArt = !candidateQuality.issues.some(issue => issue.startsWith("Galeria sem ilustrações identificáveis") || issue.startsWith("Hero sem composição detalhada"));
+            const candidateHasRequiredArt = !candidateQuality.issues.some(issue => issue.startsWith("Galeria sem ilustrações identificáveis") || issue.startsWith("Hero sem composição detalhada"));
             const candidateIsValid = candidateQuality.sections >= 8 && candidateQuality.sections <= 12 && candidateQuality.issues.length < quality.issues.length && candidateScore < originalScore && candidateHasRequiredArt;
             if (candidateIsValid) {
               html = candidate;
