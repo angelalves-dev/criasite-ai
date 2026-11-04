@@ -18,6 +18,8 @@ function inspectHtml(html) {
   const issues = [];
   const sections = (html.match(/<section\b/gi) || []).length;
   const ids = new Set(Array.from(html.matchAll(/\bid=["']([^"']+)["']/gi), m => m[1]));
+  const idValues = Array.from(html.matchAll(/\bid=["']([^"']+)["']/gi), m => m[1]);
+  const duplicateIds = [...new Set(idValues.filter((id, index) => idValues.indexOf(id) !== index))];
   const anchors = Array.from(html.matchAll(/href=["']#([^"']+)["']/gi), m => m[1]);
   const broken = [...new Set(anchors.filter(id => id && !ids.has(id)))];
   const hasMenuButton = /aria-expanded|menu-toggle|nav-toggle|hamburger/i.test(html);
@@ -25,6 +27,8 @@ function inspectHtml(html) {
   const hasNav = /<nav\b/i.test(html);
   const hasGallery = /id=["'](?:galeria|gallery|portfolio|estrutura)["']|class=["'][^"']*(?:gallery|galeria|portfolio)[^"']*["']/i.test(html);
   const svgCount = (html.match(/<svg\b/gi) || []).length;
+  const semanticSvgCount = (html.match(/<svg\b(?=[^>]*(?:role=["']img["']|aria-label=["']))[^>]*>/gi) || []).length;
+  const svgShapeCount = (html.match(/<(?:path|line|polyline|polygon|rect|circle|ellipse)\b/gi) || []).length;
   const imageCount = (html.match(/<img\b/gi) || []).length;
   const cardCount = (html.match(/class=["'][^"']*\bcard\b[^"']*["']/gi) || []).length;
   const heroMatch = html.match(/<section\b[^>]*class=["'][^"']*hero[^"']*["'][^>]*>[\s\S]*?<\/section>/i) || html.match(/<header\b[\s\S]*?<\/header>/i);
@@ -56,6 +60,7 @@ function inspectHtml(html) {
   if (/<form\b/i.test(html) && /onsubmit\s*=\s*["'][^"']*return\s+false|type\s*=\s*["']button["'][^>]*onclick\s*=\s*["'][^"']*alert/i.test(html)) issues.push("Formulário bloqueia o envio ou usa alerta falso; remova-o ou configure um destino real.");
   if (/<form\b/i.test(html) && !/<label\b/i.test(html)) issues.push("Formulário sem labels acessíveis.");
   if (broken.length) issues.push("Links internos sem destino: " + broken.slice(0, 6).map(id => "#" + id).join(", "));
+  if (duplicateIds.length) issues.push("IDs duplicados: " + duplicateIds.slice(0, 5).join(", ") + ". Cada seção e controle precisa de um ID único.");
   if (/<img\b/i.test(html) && /<img\b(?![^>]*\balt=)/i.test(html)) issues.push("Adicione alt útil às imagens.");
   if (/via\.placeholder\.com|placehold\.co|placekitten\.com/i.test(html)) issues.push("Remova imagens placeholder; use imagens fornecidas ou ilustrações SVG/CSS originais.");
   if (/©\s*202[0-5]\b/i.test(html)) issues.push("Atualize o ano do rodapé dinamicamente ou use o ano atual.");
@@ -66,6 +71,11 @@ function inspectHtml(html) {
   if (hero && heroVisuals === 0) issues.push("O hero não tem elemento visual próprio; crie composição editorial com ilustração SVG/CSS original relacionada ao segmento.");
   if (hero && heroVisuals === 1 && !hasVisualStyling) issues.push("O hero tem apenas um visual simples e sem tratamento; adicione camadas, recortes, profundidade e composição editorial.");
   if (hasGallery && gallerySvgCount < 3 && imageCount < 3) issues.push("A galeria precisa de pelo menos quatro painéis visuais distintos em SVG/CSS, não apenas cartões ou formas geométricas básicas.");
+  if (hasGallery && semanticSvgCount < 4) issues.push('Galeria sem ilustrações identificáveis: inclua ao menos quatro SVGs com role="img" e aria-label ou title descritivo, representando objetos ou cenas reais do segmento.');
+  if (hasGallery && svgShapeCount < 18) issues.push("Ilustrações pouco detalhadas: desenvolva os SVGs com múltiplas formas, linhas e detalhes específicos, não formas geométricas isoladas.");
+  const heroSvg = (hero.match(/<svg\\b[\\s\\S]*?<\\/svg>/i) || [""])[0];
+  const heroShapeCount = (heroSvg.match(/<(?:path|line|polyline|polygon|rect|circle|ellipse)\\b/gi) || []).length;
+  if (heroSvg && heroShapeCount < 5) issues.push("Hero sem composição detalhada: a ilustração principal precisa combinar ao menos cinco elementos SVG e ter descrição acessível.");
   if (cardCount >= 5 && !/(?:masonry|grid-template-areas|:nth-child\()/i.test(html)) issues.push("A composição repete cartões sem hierarquia; crie mosaico assimétrico ou destaque visual com tamanhos variados.");
   if (!hasVisualStyling) issues.push("Falta direção de arte visual: use recursos gráficos CSS/SVG, texturas, recortes, camadas e detalhes consistentes.");
   if (deadLinks >= 2) issues.push("Há links sem destino ou links javascript:void; conecte cada ação a uma seção real ou remova a ação.");
@@ -184,7 +194,9 @@ Descrição e necessidades do cliente: ${prompt}`;
         "SEÇÕES OBRIGATÓRIAS: entregue 8 a 12 elementos <section> reais, não conte header/footer/div. Para academia inclua hero, sobre, modalidades, benefícios, método, galeria, planos, manifesto ou experiência, FAQ e contato. Cada seção precisa ter conteúdo e id próprio.",
         "SEGMENTO ACADEMIA: use linguagem visual esportiva premium. Se não houver fotos fornecidas, desenhe SVGs detalhados e reconhecíveis de halteres, anilhas, esteira, corda naval ou atleta em movimento, sem alegar que esses equipamentos existem na academia. Não use ícones geométricos genéricos como ilustração principal.",
         "HERO: composição editorial assimétrica, título grande com quebra intencional, etiqueta curta, CTA destacado e ilustração SVG inline original com vários elementos reconhecíveis e detalhes do segmento. Use camadas, recortes, escala e profundidade. Proibido quadrado solitário, círculo genérico, cruz simples ou bloco vazio.",
+        'A ilustração do hero deve conter ao menos cinco elementos SVG combinados e um <title> ou aria-label que descreva a cena. Para academia, represente equipamento/atividade reconhecível, não apenas formas abstratas.',
         "GALERIA: para segmentos visuais, crie 4 painéis ilustrados distintos em SVG/CSS original. Desenhe objetos reconhecíveis do segmento com linhas, detalhes e composição própria. Quatro círculos/quadrados soltos não contam. Nunca use caixas vazias com rótulos. Não invente fotos nem URLs.",
+        'Cada SVG ilustrativo deve ter role="img" e aria-label ou <title> descritivo que identifique claramente o objeto/cena (ex.: "Halteres e anilhas em composição", "Esteira de corrida", "Corda naval em movimento", "Atleta fazendo agachamento"). Não conte ícones decorativos sem descrição como ilustrações. Cada painel deve ter pelo menos 4 elementos SVG combinados e detalhes internos.',
         "VARIEDADE: entre 8 e 12 seções úteis e pelo menos dois momentos visuais memoráveis além do hero: mosaico assimétrico, faixa editorial, timeline ou manifesto tipográfico. Evite repetir cartões iguais.",
         "ACABAMENTO: tipografia hierárquica, espaçamento generoso, grid consistente, contraste, ícones SVG coerentes, microinterações discretas e visual profissional em desktop e celular.",
         "MOBILE: menu em painel vertical, fundo sólido, position fixed/absolute, z-index alto, links empilhados com flex-direction: column e boa área de toque. Botão com aria-label, aria-controls e aria-expanded atualizado. Fechar ao clicar em qualquer link e ao pressionar Escape. Nav com aria-label, :focus-visible e prefers-reduced-motion.",
@@ -209,7 +221,8 @@ Descrição e necessidades do cliente: ${prompt}`;
             const score = q => q.issues.length * 12 + Math.max(0, 8 - q.sections) * 5 + Math.max(0, q.sections - 12) * 5;
             const originalScore = score(quality);
             const candidateScore = score(candidateQuality);
-            const candidateIsValid = candidateQuality.sections >= 8 && candidateQuality.sections <= 12 && candidateQuality.issues.length <= quality.issues.length && candidateScore < originalScore;
+            const candidateIsValid = candidateQuality.sections >= 8 && candidateQuality.sections <= 12 && candidateQuality.issues.length <= quality.issues.length && candidateScore < originalScore;            const candidateHasRequiredArt = !candidateQuality.issues.some(issue => issue.startsWith("Galeria sem ilustrações identificáveis") || issue.startsWith("Hero sem composição detalhada"));
+            const candidateIsValid = candidateQuality.sections >= 8 && candidateQuality.sections <= 12 && candidateQuality.issues.length < quality.issues.length && candidateScore < originalScore && candidateHasRequiredArt;
             if (candidateIsValid) {
               html = candidate;
               quality = candidateQuality;
