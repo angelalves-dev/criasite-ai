@@ -162,34 +162,21 @@ Descrição e necessidades do cliente: ${prompt}`;
     let repairApplied = false;
     if (quality.issues.length) {
       repairAttempted = true;
-      const repairPrompt = \`Você é um diretor de arte digital premiado e engenheiro front-end sênior. Sua tarefa é RECONSTRUIR E MELHORAR VISIVELMENTE o site, não apenas trocar palavras. Retorne SOMENTE um HTML completo válido começando com <!doctype html>.
-
-PRIORIDADE MÁXIMA — DESIGN:
-1) HERO de alto impacto: layout editorial assimétrico, título grande com quebras intencionais, subtítulo curto, CTA destacado e uma ilustração SVG inline original relacionada ao negócio. Use camadas, recortes, linhas, formas e profundidade. Proibido um quadrado solitário, círculo genérico ou bloco vazio.
-2) GALERIA: se o segmento for visual, crie 4 painéis ilustrados distintos com SVG/CSS original (cada um com composição própria, detalhes e legenda). Nunca use caixas vazias com palavras como ÁREA PESOS, CARDIO ou FUNCIONAL. Não invente fotos nem URLs. Se o negócio não for visual, crie uma seção editorial/portfólio apropriada.
-3) VARIEDADE: 8 a 12 seções úteis. Pelo menos dois momentos visuais memoráveis além do hero: mosaico assimétrico, faixa editorial, timeline, manifesto tipográfico ou composição de processo. Não repita cartões iguais em todas as seções.
-4) ACABAMENTO: tipografia hierárquica, espaçamento generoso, grid consistente, cores com contraste, bordas e sombras sutis, ícones SVG coerentes, microinterações discretas e aparência profissional em desktop e celular.
-
-PRIORIDADE MÁXIMA — MOBILE E ACESSIBILIDADE:
-- Menu móvel abre em painel vertical com fundo sólido, position fixed/absolute, z-index alto e links empilhados (flex-direction: column), com área de toque confortável.
-- Botão com aria-label, aria-controls e aria-expanded atualizado em cada abertura/fechamento.
-- Fechar ao clicar em qualquer link e ao pressionar Escape; restaurar aria-expanded=false.
-- Navegação principal com aria-label; foco :focus-visible visível; respeitar prefers-reduced-motion.
-- FAQ funcional com details/summary ou botões acessíveis.
-
-INTEGRIDADE:
-- Remova qualquer afirmação não comprovada sobre equipamentos, instalações, equipe, certificações, tecnologia, atendimento, reputação ou resultados. Não transforme desejos do cliente em fatos.
-- Não invente endereço, telefone, horário, preço, avaliações, depoimentos, clientes ou credenciais.
-- Sem destino real de envio, remova formulários e use apenas aviso discreto de canal a configurar, sem campos nem botão falso.
-- Não use placeholders, colchetes, imagens quebradas, URLs aleatórias, alertas falsos ou mensagens de sucesso falsas.
-- Mantenha links internos válidos, IDs únicos, HTML semântico, title, meta description e responsividade.
-
-Corrija obrigatoriamente os problemas detectados:
-- \${quality.issues.map(x => "- " + x).join("\\n")}
-Pedido original do cliente: \${prompt}
-
-HTML atual para reconstrução:
-\${html}\`;
+      const repairPrompt = [
+        "Você é diretor de arte digital e engenheiro front-end sênior. RECONSTRUA o site para elevar muito a qualidade visual. Retorne SOMENTE um HTML completo válido começando com <!doctype html>.",
+        "",
+        "HERO: composição editorial assimétrica e memorável, título forte, CTA destacado e ilustração SVG inline original relacionada ao negócio. Use camadas, recortes, detalhes e profundidade. Proibido quadrado solitário, círculo genérico ou bloco vazio.",
+        "GALERIA: para segmentos visuais, crie 4 painéis ilustrados distintos em SVG/CSS original, com composição e detalhes próprios. Nunca use caixas vazias com rótulos como ÁREA PESOS, CARDIO ou FUNCIONAL. Não invente fotos nem URLs.",
+        "VARIEDADE: entre 8 e 12 seções úteis e pelo menos dois momentos visuais memoráveis além do hero: mosaico assimétrico, faixa editorial, timeline ou manifesto tipográfico. Evite repetir cartões iguais.",
+        "ACABAMENTO: tipografia hierárquica, espaçamento generoso, grid consistente, contraste, ícones SVG coerentes, microinterações discretas e visual profissional em desktop e celular.",
+        "MOBILE: menu em painel vertical, fundo sólido, position fixed/absolute, z-index alto, links empilhados com flex-direction: column e boa área de toque. Botão com aria-label, aria-controls e aria-expanded atualizado. Fechar ao clicar em qualquer link e ao pressionar Escape. Nav com aria-label, :focus-visible e prefers-reduced-motion.",
+        "FAQ acessível com details/summary ou botões que atualizem aria-expanded. Formulário só se houver destino real; caso contrário, remova-o e deixe aviso discreto sem campos nem botão falso.",
+        "INTEGRIDADE: remova afirmações não comprovadas sobre instalações, equipamentos, equipe, certificações, tecnologia, atendimento, reputação ou resultados. Não invente endereço, telefone, horário, preço, avaliações, depoimentos, clientes ou credenciais. Não use placeholders, colchetes, imagens quebradas, URLs aleatórias, alertas falsos ou mensagens de sucesso falsas.",
+        "Mantenha links internos válidos, IDs únicos, HTML semântico, title, meta description e responsividade.",
+        "Problemas detectados que precisam ser corrigidos:\n- " + quality.issues.join("\n- "),
+        "Pedido original do cliente: " + prompt,
+        "HTML atual para reconstrução:\n" + html
+      ].join("\n");
       try {
         const repairResponse = await fetch(endpoint, {
           method: "POST",
