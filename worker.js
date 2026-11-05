@@ -140,14 +140,14 @@ function inspectHtml(html) {
   if (isFitnessSite && sections < 10) issues.push("Estrutura incompleta para academia: entregue as dez seções solicitadas, incluindo benefícios e manifesto.");
   const plansBlock = sectionBlocks.find(section => /id=["']planos["']/i.test(section.attrs));
   if (isFitnessSite && plansBlock) {
-    const planItems = (plansBlock.body.match(/<(?:article|li)\\b|class=["'][^"']*(?:plan-card|pricing-card|plano-card)[^"']*["']/gi) || []).length;
+    const planItems = (plansBlock.body.match(/<(?:article|li)\b|class=["'][^"']*(?:plan-card|pricing-card|plano-card)[^"']*["']/gi) || []).length;
     if (planItems < 2) issues.push("Planos sem hierarquia visual: organize as informações em painéis claros, sem inventar preços ou condições.");
   }
   const faqBlock = sectionBlocks.find(section => /id=["']faq["']/i.test(section.attrs));
   if (faqBlock) {
     const faqText = faqBlock.body.replace(/<[^>]+>/g, " ");
-    const questionCount = (faqText.match(/\\?/g) || []).length;
-    const detailCount = (faqBlock.body.match(/<details\\b/gi) || []).length;
+    const questionCount = (faqText.match(/\?/g) || []).length;
+    const detailCount = (faqBlock.body.match(/<details\b/gi) || []).length;
     if (Math.max(questionCount, detailCount) < 5) issues.push("FAQ superficial: inclua pelo menos cinco perguntas úteis com respostas completas.");
   }
   if (isFitnessSite) {
@@ -302,7 +302,7 @@ Descrição e necessidades do cliente: ${prompt}`;
         const repairResponse = await fetch(endpoint, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ contents: [{ parts: [{ text: repairPrompt }] }], generationConfig: { temperature: 0.35, maxOutputTokens: 12000 } })
+          body: JSON.stringify({ contents: [{ parts: [{ text: repairPrompt }] }], generationConfig: { temperature: 0.30, maxOutputTokens: 16000 } })
         });
         const repairResult = await repairResponse.json().catch(() => ({}));
         if (repairResponse.ok) {
@@ -315,15 +315,15 @@ Descrição e necessidades do cliente: ${prompt}`;
             const candidateScore = score(candidateQuality);
             // Só bloqueia falhas estruturais graves. Avisos editoriais/visuais continuam
             // sendo contabilizados, mas não devem descartar uma reconstrução claramente melhor.
-            const criticalPatterns = /IDs duplicados|Links internos sem destino|Falta meta viewport|Falta um título principal h1|Poucas seções|Há seções demais|FAQ superficial|Planos sem hierarquia visual/;
-            const candidateHasRequiredArt = !candidateQuality.issues.some(issue => /A galeria precisa de quatro painéis|Galeria sem quatro ilustrações|Galeria incompleta ou esquemática|Hero sem composição detalhada/.test(issue));
+            const criticalPatterns = /IDs duplicados|Links internos sem destino|Falta meta viewport|Falta um título principal h1|Poucas seções|Há seções demais|FAQ superficial|Planos sem hierarquia visual|Seções superficiais|Estrutura incompleta para academia|Seção obrigatória ausente|lista nav ul|links da lista de navegação|Seção de modalidades\/serviços sem opções|Galeria incompleta ou esquemática|Galeria da academia não comprova|Hero sem composição detalhada/;
+            const candidateHasRequiredArt = !candidateQuality.issues.some(issue => /A galeria precisa de quatro painéis|Galeria sem quatro ilustrações|Galeria incompleta ou esquemática|Galeria da academia não comprova|Hero sem composição detalhada/.test(issue));
             const candidateHasNoCriticalIssues = !candidateQuality.issues.some(issue => criticalPatterns.test(issue));
             const improvement = originalScore - candidateScore;
             const candidateIsValid = candidateQuality.sections >= 8 &&
               candidateQuality.sections <= 12 &&
               candidateHasNoCriticalIssues &&
               candidateHasRequiredArt &&
-              improvement >= 12;
+              improvement > 0;
             if (candidateIsValid) {
               html = candidate;
               quality = candidateQuality;
