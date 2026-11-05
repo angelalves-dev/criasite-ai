@@ -127,7 +127,7 @@ function inspectHtml(html) {
   if (/id=["']contato["']/i.test(html) && !hasRealContact && /canal de contato a configurar|contato a configurar|configure seu (?:whatsapp|telefone|e-mail)|adicionar (?:whatsapp|telefone|e-mail)|canais oficiais ser[aã]o adicionados|informa[cç][oõ]es de contato ser[aã]o/i.test(html)) {
     issues.push("Contato ainda contém instrução técnica ou placeholder: substitua por um encerramento editorial elegante, sem inventar canais nem criar botões falsos.");
   }
-  const sectionText = sectionBlocks.map(section => section.body.replace(/<(script|style|svg)\\b[\\s\\S]*?<\\/\\1>/gi, " ").replace(/<[^>]+>/g, " ").replace(/\\s+/g, " ").trim());
+  const sectionText = sectionBlocks.map(section => section.body.replace(/<(script|style|svg)\b[\s\S]*?<\/\1>/gi, " ").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim());
   const substantialSections = sectionText.filter(text => text.length >= 150).length;
   if (sections >= 8 && substantialSections < 6) issues.push("Profundidade editorial insuficiente: desenvolva pelo menos seis seções com conteúdo útil, não apenas títulos e frases curtas.");
   const normalizedHtml = html.toLowerCase();
