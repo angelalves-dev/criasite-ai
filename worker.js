@@ -138,6 +138,18 @@ function inspectHtml(html) {
   }
   const isFitnessSite = /academia|muscula[cç][aã]o|powerfit|treinamento f[ií]sico/i.test(normalizedHtml);
   if (isFitnessSite && sections < 10) issues.push("Estrutura incompleta para academia: entregue as dez seções solicitadas, incluindo benefícios e manifesto.");
+  const plansBlock = sectionBlocks.find(section => /id=["']planos["']/i.test(section.attrs));
+  if (isFitnessSite && plansBlock) {
+    const planItems = (plansBlock.body.match(/<(?:article|li)\\b|class=["'][^"']*(?:plan-card|pricing-card|plano-card)[^"']*["']/gi) || []).length;
+    if (planItems < 2) issues.push("Planos sem hierarquia visual: organize as informações em painéis claros, sem inventar preços ou condições.");
+  }
+  const faqBlock = sectionBlocks.find(section => /id=["']faq["']/i.test(section.attrs));
+  if (faqBlock) {
+    const faqText = faqBlock.body.replace(/<[^>]+>/g, " ");
+    const questionCount = (faqText.match(/\\?/g) || []).length;
+    const detailCount = (faqBlock.body.match(/<details\\b/gi) || []).length;
+    if (Math.max(questionCount, detailCount) < 5) issues.push("FAQ superficial: inclua pelo menos cinco perguntas úteis com respostas completas.");
+  }
   if (isFitnessSite) {
     const requiredTopics = [
       [/id=["']beneficios["']|>\s*benef[ií]cios\b/i, "benefícios"],
@@ -274,7 +286,7 @@ Descrição e necessidades do cliente: ${prompt}`;
         'Cada SVG ilustrativo da galeria deve ter role="img" e aria-label descritivo que identifique claramente o objeto/cena (ex.: "Halteres e anilhas em composição", "Esteira de corrida", "Corda naval em movimento", "Atleta fazendo agachamento"). Não conte ícones decorativos sem descrição como ilustrações. Cada painel deve ter pelo menos 4 elementos SVG combinados e detalhes internos.',
         "VARIEDADE: entre 9 e 12 seções úteis, com pelo menos seis seções realmente desenvolvidas (150+ caracteres de conteúdo útil cada, sem contar código SVG). Para academia, não omita benefícios, método/etapas e manifesto/filosofia da marca. Inclua pelo menos dois momentos visuais memoráveis além do hero: mosaico assimétrico, faixa editorial, timeline ou manifesto tipográfico. Evite repetir cartões iguais.",
         "CONTEÚDO: nenhuma seção pode ficar em título + frase genérica. Desenvolva serviços/modalidades com pelo menos três opções úteis e distintas, método com etapas claras, benefícios contextualizados e FAQ com respostas completas. Sem inventar fatos.",
-        "CONTATO: sem canais fornecidos, não invente telefone/e-mail/WhatsApp nem crie botão falso. Remova qualquer menção a “a configurar”, “adicionar contato” ou “canais serão adicionados”. Faça uma seção final editorial, elegante e visualmente forte, com convite neutro para conhecer o negócio.",
+        "CONTATO: use WhatsApp funcional apenas quando um número válido for fornecido; caso contrário, não invente contato nem crie botão falso. Remova qualquer menção a “a configurar”, “adicionar contato” ou “canais serão adicionados”. Faça uma seção final editorial, elegante e visualmente forte, com convite neutro para conhecer o negócio.",
         "RESPONSIVIDADE: se hero usar duas colunas no desktop, crie regra mobile explícita para empilhar texto e ilustração em uma coluna; revise grids e tipografia para telas estreitas.",
         'SVG: cada ilustração da galeria deve ter pelo menos quatro elementos gráficos combinados, silhueta reconhecível e detalhes internos específicos; não basta adicionar aria-label a um círculo ou retângulo.',
         "ACABAMENTO: tipografia hierárquica, espaçamento generoso, grid consistente, contraste, ícones SVG coerentes, microinterações discretas e visual profissional em desktop e celular.",
@@ -303,7 +315,7 @@ Descrição e necessidades do cliente: ${prompt}`;
             const candidateScore = score(candidateQuality);
             // Só bloqueia falhas estruturais graves. Avisos editoriais/visuais continuam
             // sendo contabilizados, mas não devem descartar uma reconstrução claramente melhor.
-            const criticalPatterns = /IDs duplicados|Links internos sem destino|Falta meta viewport|Falta um título principal h1|Poucas seções|Há seções demais/;
+            const criticalPatterns = /IDs duplicados|Links internos sem destino|Falta meta viewport|Falta um título principal h1|Poucas seções|Há seções demais|FAQ superficial|Planos sem hierarquia visual/;
             const candidateHasRequiredArt = !candidateQuality.issues.some(issue => /A galeria precisa de quatro painéis|Galeria sem quatro ilustrações|Galeria incompleta ou esquemática|Hero sem composição detalhada/.test(issue));
             const candidateHasNoCriticalIssues = !candidateQuality.issues.some(issue => criticalPatterns.test(issue));
             const improvement = originalScore - candidateScore;
