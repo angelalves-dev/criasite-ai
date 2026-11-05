@@ -301,11 +301,17 @@ Descrição e necessidades do cliente: ${prompt}`;
             const score = q => q.issues.reduce((total, issue) => total + weight(issue), 0) + Math.max(0, 8 - q.sections) * 12 + Math.max(0, q.sections - 12) * 12;
             const originalScore = score(quality);
             const candidateScore = score(candidateQuality);
-            const criticalPatterns = /IDs duplicados|Links internos sem destino|Seções superficiais|Profundidade editorial|Estrutura incompleta|Seção obrigatória ausente|Galeria da academia|afirmações sobre equipe|lista nav ul|Seção de modalidades|Contato ainda contém|A galeria precisa de quatro painéis|Galeria sem quatro ilustrações|Galeria incompleta|Hero sem composição detalhada|adaptação responsiva comprovada|próprios links da lista de navegação|Falta uma seção de benefícios|Falta explicar o método|Falta um momento de identidade|Direção de arte sem variedade/;
-            const candidateHasRequiredArt = !candidateQuality.issues.some(issue => /A galeria precisa de quatro painéis|Galeria sem quatro ilustrações|Galeria incompleta|Hero sem composição detalhada|desenhos esquemáticos/.test(issue));
+            // Só bloqueia falhas estruturais graves. Avisos editoriais/visuais continuam
+            // sendo contabilizados, mas não devem descartar uma reconstrução claramente melhor.
+            const criticalPatterns = /IDs duplicados|Links internos sem destino|Falta meta viewport|Falta um título principal h1|Poucas seções|Há seções demais/;
+            const candidateHasRequiredArt = !candidateQuality.issues.some(issue => /A galeria precisa de quatro painéis|Galeria sem quatro ilustrações|Galeria incompleta ou esquemática|Hero sem composição detalhada/.test(issue));
             const candidateHasNoCriticalIssues = !candidateQuality.issues.some(issue => criticalPatterns.test(issue));
-            const minimumImprovement = Math.max(12, Math.ceil(originalScore * 0.15));
-            const candidateIsValid = candidateQuality.sections >= 8 && candidateQuality.sections <= 12 && candidateScore <= originalScore - minimumImprovement && candidateHasRequiredArt && candidateHasNoCriticalIssues;
+            const improvement = originalScore - candidateScore;
+            const candidateIsValid = candidateQuality.sections >= 8 &&
+              candidateQuality.sections <= 12 &&
+              candidateHasNoCriticalIssues &&
+              candidateHasRequiredArt &&
+              improvement >= 12;
             if (candidateIsValid) {
               html = candidate;
               quality = candidateQuality;
