@@ -127,6 +127,17 @@ function inspectHtml(html) {
   if (/id=["']contato["']/i.test(html) && !hasRealContact && /canal de contato a configurar|contato a configurar|configure seu (?:whatsapp|telefone|e-mail)|adicionar (?:whatsapp|telefone|e-mail)|canais oficiais ser[aã]o adicionados|informa[cç][oõ]es de contato ser[aã]o/i.test(html)) {
     issues.push("Contato ainda contém instrução técnica ou placeholder: substitua por um encerramento editorial elegante, sem inventar canais nem criar botões falsos.");
   }
+  const sectionText = sectionBlocks.map(section => section.body.replace(/<(script|style|svg)\\b[\\s\\S]*?<\\/\\1>/gi, " ").replace(/<[^>]+>/g, " ").replace(/\\s+/g, " ").trim());
+  const substantialSections = sectionText.filter(text => text.length >= 150).length;
+  if (sections >= 8 && substantialSections < 6) issues.push("Profundidade editorial insuficiente: desenvolva pelo menos seis seções com conteúdo útil, não apenas títulos e frases curtas.");
+  const normalizedHtml = html.toLowerCase();
+  if (/academia|muscula[cç][aã]o|powerfit|treinamento f[ií]sico/i.test(normalizedHtml)) {
+    if (!/benef[ií]cios|vantagens|diferenciais/i.test(normalizedHtml)) issues.push("Falta uma seção de benefícios com conteúdo específico.");
+    if (!/m[eé]todo|etapas|como funciona|jornada/i.test(normalizedHtml)) issues.push("Falta explicar o método ou as etapas da experiência.");
+    if (!/manifesto|filosofia|no que acreditamos|experi[eê]ncia/i.test(normalizedHtml)) issues.push("Falta um momento de identidade da marca, como manifesto ou filosofia.");
+  }
+  const visualMoments = [/manifesto|faixa[- ]editorial|statement/i, /timeline|etapas|processo/i, /masonry|grid-template-areas|bento|assim[eé]tric/i, /clip-path|mask-image|background-image|radial-gradient|linear-gradient/i].filter(pattern => pattern.test(normalizedHtml)).length;
+  if (visualMoments < 2) issues.push("Direção de arte sem variedade: crie pelo menos dois momentos visuais especiais além do hero.");
   return { sections, issues: issues.slice(0, 24) };
 }
 function extractHtml(result) {
