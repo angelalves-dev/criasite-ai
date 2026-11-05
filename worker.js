@@ -137,7 +137,15 @@ function inspectHtml(html) {
     if (!/manifesto|filosofia|no que acreditamos|experi[eê]ncia/i.test(normalizedHtml)) issues.push("Falta um momento de identidade da marca, como manifesto ou filosofia.");
   }
   const isFitnessSite = /academia|muscula[cç][aã]o|powerfit|treinamento f[ií]sico/i.test(normalizedHtml);
-  if (isFitnessSite && sections < 10) issues.push("Estrutura incompleta para academia: entregue as dez seções solicitadas, incluindo benefícios e manifesto.");
+  if (isFitnessSite && sections !== 10) issues.push("Estrutura de academia incorreta: entregue exatamente dez seções reais.");
+  if (isFitnessSite) {
+    const expectedOrder = ["hero", "sobre", "modalidades", "beneficios", "metodo", "galeria", "planos", "manifesto", "faq", "contato"];
+    const actualOrder = sectionBlocks.map(section => ((section.attrs.match(/\\bid=["']([^"']+)["']/i) || [])[1] || "").toLowerCase());
+    const normalizedOrder = actualOrder.map(id => id.includes("etapa") ? "metodo" : id.includes("filosofia") ? "manifesto" : id.includes("gallery") ? "galeria" : id);
+    if (expectedOrder.some((id, index) => normalizedOrder[index] !== id)) {
+      issues.push("As dez seções da academia precisam seguir a ordem obrigatória: hero, sobre, modalidades, benefícios, método, galeria, planos, manifesto, FAQ e contato.");
+    }
+  }
   const plansBlock = sectionBlocks.find(section => /id=["']planos["']/i.test(section.attrs));
   if (isFitnessSite && plansBlock) {
     const planItems = (plansBlock.body.match(/<(?:article|li)\b|class=["'][^"']*(?:plan-card|pricing-card|plano-card)[^"']*["']/gi) || []).length;
@@ -315,15 +323,17 @@ Descrição e necessidades do cliente: ${prompt}`;
             const candidateScore = score(candidateQuality);
             // Só bloqueia falhas estruturais graves. Avisos editoriais/visuais continuam
             // sendo contabilizados, mas não devem descartar uma reconstrução claramente melhor.
-            const criticalPatterns = /IDs duplicados|Links internos sem destino|Falta meta viewport|Falta um título principal h1|Poucas seções|Há seções demais|FAQ superficial|Planos sem hierarquia visual|Seções superficiais|Estrutura incompleta para academia|Seção obrigatória ausente|lista nav ul|links da lista de navegação|Seção de modalidades\/serviços sem opções|Galeria incompleta ou esquemática|Galeria da academia não comprova|Hero sem composição detalhada/;
+            const criticalPatterns = /IDs duplicados|Links internos sem destino|Falta meta viewport|Falta um título principal h1|Poucas seções|Há seções demais|FAQ superficial|Planos sem hierarquia visual|Seções superficiais|Estrutura incompleta para academia|Estrutura de academia incorreta|dez seções da academia precisam seguir a ordem|Seção obrigatória ausente|lista nav ul|links da lista de navegação|Seção de modalidades\/serviços sem opções|Galeria incompleta ou esquemática|Galeria da academia não comprova|Hero sem composição detalhada/;
             const candidateHasRequiredArt = !candidateQuality.issues.some(issue => /A galeria precisa de quatro painéis|Galeria sem quatro ilustrações|Galeria incompleta ou esquemática|Galeria da academia não comprova|Hero sem composição detalhada/.test(issue));
             const candidateHasNoCriticalIssues = !candidateQuality.issues.some(issue => criticalPatterns.test(issue));
             const improvement = originalScore - candidateScore;
+            // A reconstrução não deve ser descartada só porque a pontuação estática
+            // empatou: a validação estrutural e visual é o critério decisivo.
             const candidateIsValid = candidateQuality.sections >= 8 &&
               candidateQuality.sections <= 12 &&
               candidateHasNoCriticalIssues &&
               candidateHasRequiredArt &&
-              improvement > 0;
+              (improvement > 0 || candidateQuality.issues.length <= quality.issues.length);
             if (candidateIsValid) {
               html = candidate;
               quality = candidateQuality;
