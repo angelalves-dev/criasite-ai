@@ -90,8 +90,8 @@ function inspectHtml(html, business = {}) {
   if (fakeContact) issues.push("Contato contém e-mail ou domínio fictício. Remova o mailto inventado; só use um canal de contato fornecido pelo cliente.");
   if (whatsappDigits.length >= 10 && whatsappDigits.length <= 15 && !hasWhatsAppContact) issues.push("O WhatsApp informado pelo cliente precisa estar conectado em um link https://wa.me/ com o número correto.");
   if (/agende uma visita|fale conosco|entre em contato|solicite um or[cç]amento/i.test(contactBlock || html) && !hasRealContact && whatsappDigits.length > 0) issues.push("A chamada comercial precisa usar o WhatsApp real informado pelo cliente.");
-  if (/<img\\b/i.test(html) && /<img\\b(?![^>]*\\bloading=["']lazy["'])/i.test(html)) issues.push("Imagens fora do hero devem usar loading=lazy para melhorar o carregamento.");
-  if (/(?:min-width\\s*:\\s*(?:280|300|320|350)px|width\\s*:\\s*(?:300|320|350)px)/i.test(html) && !/overflow-x\\s*:\\s*hidden|overflow-x\\s*:\\s*clip/i.test(html)) issues.push("Revise larguras mínimas fixas que podem causar rolagem horizontal em celulares; use grids fluidos com minmax(0, 1fr).");
+  if (/<img\b/i.test(html) && /<img\b(?![^>]*\bloading=["']lazy["'])/i.test(html)) issues.push("Imagens fora do hero devem usar loading=lazy para melhorar o carregamento.");
+  if (/(?:min-width\s*:\s*(?:280|300|320|350)px|width\s*:\s*(?:300|320|350)px)/i.test(html) && !/overflow-x\s*:\s*hidden|overflow-x\s*:\s*clip/i.test(html)) issues.push("Revise larguras mínimas fixas que podem causar rolagem horizontal em celulares; use grids fluidos com minmax(0, 1fr).");
   if (!/<h1\b/i.test(html)) issues.push("Falta um título principal h1 claro no hero.");
   if (/width\s*:\s*300px[\s\S]{0,160}height\s*:\s*300px[\s\S]{0,160}border\s*:\s*20px/i.test(html)) issues.push("O hero parece usar apenas um quadrado decorativo simples; crie uma composição editorial relacionada ao segmento.");
   if (/prefers-reduced-motion/i.test(html) === false && /scroll-behavior\s*:\s*smooth/i.test(html)) issues.push("Respeite prefers-reduced-motion para usuários que reduzem animações.");
