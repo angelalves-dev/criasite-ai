@@ -41,8 +41,8 @@ function inspectHtml(html, business = {}) {
   const hasWhatsAppContact = whatsappDigits.length >= 10 && whatsappDigits.length <= 15 &&
     new RegExp("wa\\.me/" + whatsappDigits + "(?:[?\\\"'])?", "i").test(html);
   const hasRealContact = hasWhatsAppContact;
-  const contactBlock = (html.match(/<section\\b(?=[^>]*\\bid=["']contato["'])[^>]*>[\\s\\S]*?<\\/section>/i) || [""])[0];
-  const fakeContact = /(?:mailto:|href=["'][^"']*(?:example\\.com|powerfit\\.com|seudominio|seuemail)|contato@(?:powerfit|exemplo|example)\\.)/i.test(contactBlock);
+  const contactBlock = (html.match(/<section\b(?=[^>]*\bid=["']contato["'])[^>]*>[\s\S]*?<\/section>/i) || [""])[0];
+  const fakeContact = /(?:mailto:|href=["'][^"']*(?:example\.com|powerfit\.com|seudominio|seuemail)|contato@(?:powerfit|exemplo|example)\.)/i.test(contactBlock);
   const deadLinks = (html.match(/href=["'](?:#|javascript:void\(0\)|javascript:;)["']/gi) || []).length;
 
   if (sections < 8) issues.push("Poucas seções: crie pelo menos 8 seções úteis, específicas e sem repetição.");
