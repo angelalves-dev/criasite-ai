@@ -333,9 +333,11 @@ Descrição e necessidades do cliente: ${prompt}`;
             const candidateIsValid = candidateQuality.sections >= 8 &&
               candidateQuality.sections <= 12 &&
               candidateHasNoCriticalIssues &&
-              candidateHasRequiredArt &&
-              (improvement > 0 || candidateQuality.issues.length < quality.issues.length);
-            if (candidateIsValid) {
+              candidateHasRequiredArt;
+            const candidateImproves = improvement > 0 || candidateQuality.issues.length < quality.issues.length;
+            // Mesmo uma reconstrução ainda imperfeita vira a base da segunda tentativa
+            // quando melhora a anterior; não descartamos progresso parcial.
+            if (candidateIsValid || candidateImproves) {
               html = candidate;
               quality = candidateQuality;
               repairApplied = true;
