@@ -205,6 +205,27 @@ function inspectHtml(html, business = {}) {
   if (visualMoments < 2) issues.push("Direção de arte sem variedade: crie pelo menos dois momentos visuais especiais além do hero.");
   return { sections, issues: issues.slice(0, 24) };
 }
+function polishHtml(html) {
+  let output = String(html || "");
+  // Corrige padrões responsivos comuns sem alterar o conteúdo comercial.
+  output = output.replace(/minmax\\(\\s*(?:280|300|320|350)px\\s*,\\s*1fr\\s*\\)/gi, "minmax(min(100%, 16rem), 1fr)");
+  output = output.replace(/(min-width\\s*:\\s*)(?:280|300|320|350)px/gi, "$1min(100%, 16rem)");
+  // Atualiza automaticamente anos antigos no rodapé.
+  output = output.replace(/©\\s*20(?:1[8-9]|2[0-5])\\b/g, "© <span data-current-year></span>");
+  // Melhora carregamento e segurança de links externos.
+  output = output.replace(/<img\\b(?![^>]*\\bdecoding=)([^>]*)>/gi, '<img decoding="async"$1>');
+  output = output.replace(/<a\\b([^>]*\\btarget=["']_blank["'][^>]*)>/gi, (tag, attrs) => {
+    if (/\\brel=["'][^"']*["']/i.test(attrs)) {
+      return tag.replace(/rel=["']([^"']*)["']/i, (whole, rel) => 'rel="' + [...new Set((rel + " noopener noreferrer").trim().split(/\\s+/))].join(" ") + '"');
+    }
+    return "<a" + attrs + ' rel="noopener noreferrer">';
+  });
+  if (/data-current-year/.test(output) && !/querySelectorAll\\(['"]\\[data-current-year\\]/.test(output)) {
+    output = output.replace(/<\\/body>/i, '<script>document.querySelectorAll("[data-current-year]").forEach(function(node){node.textContent=String(new Date().getFullYear())});</script></body>');
+  }
+  return output;
+}
+
 function extractHtml(result) {
   return (result?.candidates?.[0]?.content?.parts || []).map(p => p.text || '').join('\n').replace(/^\s*```(?:html)?\s*/i, '').replace(/\s*```\s*$/i, '').trim();
 }
@@ -292,7 +313,7 @@ Descrição e necessidades do cliente: ${prompt}`;
       }, status, origin);
     }
 
-    let html = extractHtml(result);
+    let html = polishHtml(extractHtml(result));
     if (!html || !/^<!doctype html/i.test(html) || !/<html[\s>]/i.test(html) || html.length < 500) {
       return json({ error: "A IA não retornou um HTML completo. Tente uma descrição mais específica." }, 502, origin);
     }
@@ -300,13 +321,13 @@ Descrição e necessidades do cliente: ${prompt}`;
     let quality = inspectHtml(html, business);
     let repairAttempted = false;
     let repairApplied = false;
-    for (let repairPass = 0; repairPass < 2 && quality.issues.length; repairPass++) {
+    for (let repairPass = 0; repairPass < 3 && quality.issues.length; repairPass++) {
       repairAttempted = true;
       const repairPrompt = [
-        "Você é diretor de arte digital e engenheiro front-end sênior. RECONSTRUA o site para elevar muito a qualidade visual. Retorne SOMENTE um HTML completo válido começando com <!doctype html>.",
-        "Esta é a tentativa de correção " + (repairPass + 1) + " de 2. Corrija TODOS os problemas listados, não apenas parte deles. Não preserve componentes fracos só para manter o HTML anterior.",
+        "Você é um estúdio digital sênior. REFAÇA o que estiver fraco, não maquie o HTML. O objetivo é um site comercial publicável, com direção de arte autoral, conteúdo confiável e acabamento de produto. Retorne SOMENTE um HTML completo válido começando com <!doctype html>.",
+        "Esta é a tentativa de reconstrução " + (repairPass + 1) + " de 3. Corrija TODOS os problemas listados e faça uma revisão geral de qualidade. Não preserve componentes fracos só para manter o HTML anterior.",
         "",
-        "DIREÇÃO DE ARTE: reconstrua como estúdio digital profissional, não faça apenas correções pontuais. Escolha conceito visual próprio do segmento e aplique sistema consistente de cores, tipografia, espaçamento, formas, ícones e fundos alternados. Dê ritmo à página; não repita cartões. Priorize uma primeira dobra memorável, hierarquia visual clara, conteúdo editorial específico e CTAs verdadeiros. Remova qualquer elemento decorativo que pareça imagem quebrada ou bloco vazio.",
+        "DIREÇÃO DE ARTE: reconstrua como estúdio digital profissional. Antes de escrever, defina um conceito visual específico, uma paleta curta, uma escala tipográfica e uma composição própria. A primeira dobra deve ter impacto e hierarquia; alterne seções editoriais, mosaicos, faixas e listas visuais. Não repita o mesmo cartão em todas as seções. Cada seção deve parecer desenhada para este negócio, não um template trocando cores. Não use emoji como ícone principal, nem formas aleatórias para fingir fotografia. Se não houver fotos reais fornecidas, assuma honestamente uma direção ilustrada premium e crie cenas SVG/CSS detalhadas e reconhecíveis.",
         "SEÇÕES OBRIGATÓRIAS: para academia entregue exatamente 10 elementos <section> reais, nesta ordem: hero, sobre, modalidades, benefícios, método/etapas, galeria, planos, manifesto/filosofia, FAQ e contato. Não omita nem funda seções. Cada seção precisa ter conteúdo desenvolvido e id próprio. Para outros segmentos, entregue 8 a 12 seções úteis.",
         "SEGMENTO ACADEMIA: use linguagem visual esportiva premium. Se não houver fotos fornecidas, desenhe quatro SVGs detalhados e reconhecíveis: halteres, anilhas, esteira e corda naval. Cada aria-label deve identificar um objeto diferente e cada SVG deve conter pelo menos quatro elementos gráficos que formem sua silhueta. São ilustrações conceituais; não afirme que esses equipamentos existem na academia. Não use ícones geométricos genéricos como ilustração principal.",
         "HERO: composição editorial assimétrica, título grande com quebra intencional, etiqueta curta, CTA destacado e ilustração SVG inline original com vários elementos reconhecíveis e detalhes do segmento. Use camadas, recortes, escala e profundidade. Proibido quadrado solitário, círculo genérico, cruz simples ou bloco vazio.",
@@ -315,7 +336,7 @@ Descrição e necessidades do cliente: ${prompt}`;
         'Cada SVG ilustrativo da galeria deve ter role="img" e aria-label descritivo que identifique claramente o objeto/cena (ex.: "Halteres e anilhas em composição", "Esteira de corrida", "Corda naval em movimento", "Atleta fazendo agachamento"). Não conte ícones decorativos sem descrição como ilustrações. Cada painel deve ter pelo menos 4 elementos SVG combinados e detalhes internos.',
         "VARIEDADE: entre 9 e 12 seções úteis, com pelo menos seis seções realmente desenvolvidas (150+ caracteres de conteúdo útil cada, sem contar código SVG). Para academia, não omita benefícios, método/etapas e manifesto/filosofia da marca. Inclua pelo menos dois momentos visuais memoráveis além do hero: mosaico assimétrico, faixa editorial, timeline ou manifesto tipográfico. Evite repetir cartões iguais.",
         "CONTEÚDO: nenhuma seção pode ficar em título + frase genérica. Desenvolva serviços/modalidades com pelo menos três opções úteis e distintas, método com etapas claras e benefícios contextualizados. Na seção planos, crie no mínimo três cards HTML distintos (article), cada um com nome do plano, descrição e lista de itens; se o cliente não informou preços, escreva 'Consulte condições' sem inventar valores. Na FAQ, crie no mínimo cinco perguntas em details/summary, mas NÃO invente idade mínima, horários, regras de cancelamento, exigência de toalha, políticas ou condições operacionais. Se esses dados não foram fornecidos, faça perguntas neutras sobre conhecer serviços, escolher modalidade ou iniciar uma conversa.",
-        "CONTATO: crie uma seção visualmente forte. Se houver WhatsApp no cadastro, use exatamente https://wa.me/ seguido dos dígitos fornecidos. Se não houver canal real fornecido, NÃO use mailto, tel, contato@, example.com ou botão falso; faça encerramento editorial sem link de contato. Remova qualquer menção a “a configurar”, “adicionar contato” ou “canais serão adicionados”. Não prometa agendamento, visita marcada, orçamento enviado ou resposta imediata sem canal real; use convite editorial neutro. Não deixe a seção como um parágrafo isolado.",
+        "CONTATO: crie uma seção final com composição própria. Se houver WhatsApp no cadastro, use exatamente https://wa.me/ seguido dos dígitos fornecidos, com mensagem inicial contextual. Se não houver canal real, não invente e-mail, telefone, formulário ou botão; encerre com convite editorial sem ação enganosa. Nunca simule envio ou agendamento.",
         "RESPONSIVIDADE: se hero usar duas colunas no desktop, crie regra mobile explícita para empilhar texto e ilustração em uma coluna; revise grids e tipografia para telas estreitas. Não use minmax(300px, 1fr), min-width:300px ou larguras fixas em cards; prefira minmax(0,1fr) e minmax(min(100%, 16rem), 1fr).",
         'SVG: cada ilustração da galeria deve ter pelo menos quatro elementos gráficos combinados, silhueta reconhecível e detalhes internos específicos; não basta adicionar aria-label a um círculo ou retângulo.',
         "ACABAMENTO: tipografia hierárquica, espaçamento generoso, grid consistente, contraste, ícones SVG coerentes, microinterações discretas e visual profissional em desktop e celular. Use pelo menos dois layouts de seção diferentes, planos em cards com destaque visual, galeria em mosaico e manifesto com composição tipográfica. Evite fundo escuro idêntico em todas as seções, cartões repetidos e textos genéricos como “transforme seu corpo” sem explicar como.",
@@ -335,7 +356,7 @@ Descrição e necessidades do cliente: ${prompt}`;
         });
         const repairResult = await repairResponse.json().catch(() => ({}));
         if (repairResponse.ok) {
-          const candidate = extractHtml(repairResult);
+          const candidate = polishHtml(extractHtml(repairResult));
           if (candidate && /^<!doctype html/i.test(candidate) && /<html[\s>]/i.test(candidate) && candidate.length >= 500) {
             const candidateQuality = inspectHtml(candidate, business);
             const weight = issue => /IDs duplicados|Links internos sem destino|Seções superficiais|Estrutura incompleta|Seção obrigatória ausente|Galeria da academia|afirmações sobre equipe|lista nav ul|Seção de modalidades|Contato ainda parece|Hero sem composição detalhada|adaptação responsiva comprovada/i.test(issue) ? 30 : 12;
@@ -370,7 +391,7 @@ Descrição e necessidades do cliente: ${prompt}`;
     }
     return json({
       html,
-      quality: { checked: true, autoRepairAttempted: repairAttempted, autoRepairApplied: repairApplied, repairStatus: !repairAttempted ? "not-needed" : repairApplied ? "applied" : "not-applied", sectionCount: quality.sections, warnings: quality.issues, note: "A verificação é estática; confira a prévia e teste os controles no navegador." }
+      quality: { checked: true, autoRepairAttempted: repairAttempted, autoRepairApplied: repairApplied, repairStatus: !repairAttempted ? "not-needed" : repairApplied ? "applied" : "not-applied", sectionCount: quality.sections, warnings: quality.issues, note: "A verificação é estática e a página recebeu ajustes automáticos seguros; confira a prévia, dados do negócio e controles no navegador." }
     }, 200, origin);
   }
 };
