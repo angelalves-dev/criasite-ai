@@ -75,17 +75,6 @@ function inspectHtml(html, business = {}) {
   if (hasGallery && /(?:área pesos|area pesos|cardio|funcional)[\s\S]{0,100}(?:background:\s*(?:#(?:111|121212|1a1a1a|222)|var\(--surface\)))/i.test(html) && svgCount < 3) issues.push("A galeria parece formada por caixas escuras com texto; substitua por painéis ilustrados e diferentes.");
   if (!hasGallery && /academia|restaurante|salão|salao|hotel|imobili[aá]ria|arquitetura|eventos/i.test(html)) issues.push("Inclua uma galeria visual adequada ao segmento, com ilustrações próprias se não houver fotos.");
   if (cardCount >= 7 && svgCount < 2) issues.push("O layout está repetitivo em cartões; varie a composição com mosaico, faixa editorial, timeline ou tipografia.");
-  const visibleText = html.replace(/<(script|style|svg)\b[\s\S]*?<\/\1>/gi, " ").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
-  if (/\*\*[^*]{2,80}\*\*|(?<!\*)\*[^*\n]{2,80}\*(?!\*)/.test(visibleText)) issues.push("Há marcação Markdown visível no texto; converta para tags HTML.");
-  if (/minmax\(\s*(?:280|300|320|350)px\s*,/i.test(html)) issues.push("Há colunas com largura mínima rígida que podem estourar a tela; use grids fluidos.");
-  if (/(?:agende|marque)\s+(?:uma\s+)?(?:visita|avaliação|aula experimental)/i.test(html) && !hasWhatsAppContact && !/<form\b/i.test(contactBlock)) issues.push("A chamada promete agendamento, mas não há canal funcional; troque por convite neutro.");
-  if (faqBlock && /(?:a partir de\s*\d{1,2}\s*anos|segunda.{0,30}sexta|\b(?:abre|aberto|funciona|funcionamento)\b.{0,50}\b(?:h\b|horário|\d{1,2}:\d{2})|cancelamento.{0,80}(?:presencial|multa|aviso prévio)|\b(?:obrigatório|permitido|proibido)\b)/i.test(faqBlock.body)) issues.push("O FAQ contém regras, horários ou políticas específicas não confirmadas; substitua por perguntas neutras.");
-  if (faqBlock && (faqBlock.body.match(/<details\b/gi) || []).length < 5) issues.push("O FAQ precisa de cinco perguntas em details/summary, com respostas úteis e sem regras inventadas.");
-  if (isFitnessSite && plansBlock && (plansBlock.body.match(/<article\b/gi) || []).length < 3) issues.push("A seção de planos precisa de três cards article reais; itens de lista isolados não contam.");
-  if (galleryMatch) {
-    const svgShapes = Array.from(galleryMatch[0].matchAll(/<svg\b[\s\S]*?<\/svg>/gi), match => (match[0].match(/<(?:path|line|polyline|polygon|rect|circle|ellipse)\b/gi) || []).length);
-    if (svgShapes.length >= 4 && svgShapes.some(count => count < 4)) issues.push("Cada painel da galeria precisa de SVG desenvolvido com pelo menos quatro formas ou detalhes.");
-  }
   if (hero && heroVisuals === 0) issues.push("O hero não tem elemento visual próprio; crie composição editorial com ilustração SVG/CSS original relacionada ao segmento.");
   if (hero && heroVisuals === 1 && !hasVisualStyling) issues.push("O hero tem apenas um visual simples e sem tratamento; adicione camadas, recortes, profundidade e composição editorial.");
   if (hasGallery && gallerySvgCount + (galleryMatch ? (galleryMatch[0].match(/<img\b/gi) || []).length : 0) < 4) issues.push("A galeria precisa de quatro painéis visuais distintos dentro da própria seção; textos, cartões vazios e ícones soltos não contam.");
@@ -177,6 +166,17 @@ function inspectHtml(html, business = {}) {
     const questionCount = (faqText.match(/\?/g) || []).length;
     const detailCount = (faqBlock.body.match(/<details\b/gi) || []).length;
     if (Math.max(questionCount, detailCount) < 5) issues.push("FAQ superficial: inclua pelo menos cinco perguntas úteis com respostas completas.");
+  }
+  const visibleText = html.replace(/<(script|style|svg)\b[\s\S]*?<\/\1>/gi, " ").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
+  if (/\*\*[^*]{2,80}\*\*|(?<!\*)\*[^*\n]{2,80}\*(?!\*)/.test(visibleText)) issues.push("Há marcação Markdown visível no texto; converta para tags HTML.");
+  if (/minmax\(\s*(?:280|300|320|350)px\s*,/i.test(html)) issues.push("Há colunas com largura mínima rígida que podem estourar a tela; use grids fluidos.");
+  if (/(?:agende|marque)\s+(?:uma\s+)?(?:visita|avaliação|aula experimental)/i.test(html) && !hasWhatsAppContact && !/<form\b/i.test(contactBlock)) issues.push("A chamada promete agendamento, mas não há canal funcional; troque por convite neutro.");
+  if (faqBlock && /(?:a partir de\s*\d{1,2}\s*anos|segunda.{0,30}sexta|\b(?:abre|aberto|funciona|funcionamento)\b.{0,50}\b(?:h\b|horário|\d{1,2}:\d{2})|cancelamento.{0,80}(?:presencial|multa|aviso prévio)|\b(?:obrigatório|permitido|proibido)\b)/i.test(faqBlock.body)) issues.push("O FAQ contém regras, horários ou políticas específicas não confirmadas; substitua por perguntas neutras.");
+  if (faqBlock && (faqBlock.body.match(/<details\b/gi) || []).length < 5) issues.push("O FAQ precisa de cinco perguntas em details/summary, com respostas úteis e sem regras inventadas.");
+  if (isFitnessSite && plansBlock && (plansBlock.body.match(/<article\b/gi) || []).length < 3) issues.push("A seção de planos precisa de três cards article reais; itens de lista isolados não contam.");
+  if (galleryMatch) {
+    const svgShapes = Array.from(galleryMatch[0].matchAll(/<svg\b[\s\S]*?<\/svg>/gi), match => (match[0].match(/<(?:path|line|polyline|polygon|rect|circle|ellipse)\b/gi) || []).length);
+    if (svgShapes.length >= 4 && svgShapes.some(count => count < 4)) issues.push("Cada painel da galeria precisa de SVG desenvolvido com pelo menos quatro formas ou detalhes.");
   }
   if (isFitnessSite) {
     const requiredTopics = [
