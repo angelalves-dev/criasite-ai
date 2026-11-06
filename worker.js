@@ -208,20 +208,20 @@ function inspectHtml(html, business = {}) {
 function polishHtml(html) {
   let output = String(html || "");
   // Corrige padrões responsivos comuns sem alterar o conteúdo comercial.
-  output = output.replace(/minmax\\(\\s*(?:280|300|320|350)px\\s*,\\s*1fr\\s*\\)/gi, "minmax(min(100%, 16rem), 1fr)");
-  output = output.replace(/(min-width\\s*:\\s*)(?:280|300|320|350)px/gi, "$1min(100%, 16rem)");
+  output = output.replace(/minmax\(\s*(?:280|300|320|350)px\s*,\s*1fr\s*\)/gi, "minmax(min(100%, 16rem), 1fr)");
+  output = output.replace(/(min-width\s*:\s*)(?:280|300|320|350)px/gi, "$1min(100%, 16rem)");
   // Atualiza automaticamente anos antigos no rodapé.
-  output = output.replace(/©\\s*20(?:1[8-9]|2[0-5])\\b/g, "© <span data-current-year></span>");
+  output = output.replace(/©\s*20(?:1[8-9]|2[0-5])\b/g, "© <span data-current-year></span>");
   // Melhora carregamento e segurança de links externos.
-  output = output.replace(/<img\\b(?![^>]*\\bdecoding=)([^>]*)>/gi, '<img decoding="async"$1>');
-  output = output.replace(/<a\\b([^>]*\\btarget=["']_blank["'][^>]*)>/gi, (tag, attrs) => {
-    if (/\\brel=["'][^"']*["']/i.test(attrs)) {
-      return tag.replace(/rel=["']([^"']*)["']/i, (whole, rel) => 'rel="' + [...new Set((rel + " noopener noreferrer").trim().split(/\\s+/))].join(" ") + '"');
+  output = output.replace(/<img\b(?![^>]*\bdecoding=)([^>]*)>/gi, '<img decoding="async"$1>');
+  output = output.replace(/<a\b([^>]*\btarget=["']_blank["'][^>]*)>/gi, (tag, attrs) => {
+    if (/\brel=["'][^"']*["']/i.test(attrs)) {
+      return tag.replace(/rel=["']([^"']*)["']/i, (whole, rel) => 'rel="' + [...new Set((rel + " noopener noreferrer").trim().split(/\s+/))].join(" ") + '"');
     }
     return "<a" + attrs + ' rel="noopener noreferrer">';
   });
-  if (/data-current-year/.test(output) && !/querySelectorAll\\(['"]\\[data-current-year\\]/.test(output)) {
-    output = output.replace(/<\\/body>/i, '<script>document.querySelectorAll("[data-current-year]").forEach(function(node){node.textContent=String(new Date().getFullYear())});</script></body>');
+  if (/data-current-year/.test(output) && !/querySelectorAll\(['"]\[data-current-year\]/.test(output)) {
+    output = output.replace(/<\/body>/i, '<script>document.querySelectorAll("[data-current-year]").forEach(function(node){node.textContent=String(new Date().getFullYear())});</script></body>');
   }
   return output;
 }
