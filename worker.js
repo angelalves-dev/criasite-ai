@@ -43,6 +43,9 @@ function inspectHtml(html, business = {}) {
   const hasRealContact = hasWhatsAppContact;
   const contactBlock = (html.match(/<section\b(?=[^>]*\bid=["']contato["'])[^>]*>[\s\S]*?<\/section>/i) || [""])[0];
   const fakeContact = /(?:mailto:|href=["'][^"']*(?:example\.com|powerfit\.com|seudominio|seuemail)|contato@(?:powerfit|exemplo|example)\.)/i.test(contactBlock);
+  const waLinks = Array.from(contactBlock.matchAll(/https?:\/\/(?:www\.)?wa\.me\/([0-9+]+)/gi), match => match[1].replace(/\D/g, ""));
+  const hasDummyWhatsApp = waLinks.some(number => number.length < 10 || number.length > 15 || /^0+$/.test(number) || /^(1234567890|11999999999|5511999999999)$/.test(number));
+  const unsupportedCommercialClaims = /(?:acesso livre|avaliação inicial|avaliação mensal|acompanhamento total|horário de funcionamento|horário de atendimento|nossa equipe|equipe técnica|equipe especializada|treino supervisionado|avaliação periódica|reavaliação periódica|planilha de treino personalizada|visita guiada|tour guiado)/i.test(html);
   const deadLinks = (html.match(/href=["'](?:#|javascript:void\(0\)|javascript:;)["']/gi) || []).length;
 
   if (sections < 8) issues.push("Poucas seções: crie pelo menos 8 seções úteis, específicas e sem repetição.");
@@ -88,6 +91,10 @@ function inspectHtml(html, business = {}) {
   if (!hasVisualStyling) issues.push("Falta direção de arte visual: use recursos gráficos CSS/SVG, texturas, recortes, camadas e detalhes consistentes.");
   if (deadLinks >= 2) issues.push("Há links sem destino ou links javascript:void; conecte cada ação a uma seção real ou remova a ação.");
   if (fakeContact) issues.push("Contato contém e-mail ou domínio fictício. Remova o mailto inventado; só use um canal de contato fornecido pelo cliente.");
+  if (hasDummyWhatsApp) issues.push("O site contém um WhatsApp fictício, incompleto ou de exemplo. Remova imediatamente esse link e qualquer botão de contato associado; nunca use números com zeros ou números de demonstração.");
+  if (waLinks.length && !hasWhatsAppContact) issues.push("Existe link wa.me que não corresponde exatamente ao WhatsApp fornecido pelo cliente. Remova o link incorreto.");
+  if (unsupportedCommercialClaims) issues.push("O conteúdo apresenta como fatos serviços, equipe, horários, avaliações ou benefícios de planos que não foram confirmados. Reescreva como explicações neutras e convites para consultar condições, sem afirmar que o negócio oferece algo não informado.");
+  if (!whatsappDigits && /(?:wa\.me\/|tel:|mailto:)/i.test(contactBlock)) issues.push("Não foi fornecido canal de contato: remova links de WhatsApp, telefone e e-mail que não vieram dos dados do cliente.");
   if (whatsappDigits.length >= 10 && whatsappDigits.length <= 15 && !hasWhatsAppContact) issues.push("O WhatsApp informado pelo cliente precisa estar conectado em um link https://wa.me/ com o número correto.");
   if (/agende uma visita|fale conosco|entre em contato|solicite um or[cç]amento/i.test(contactBlock || html) && !hasRealContact && whatsappDigits.length > 0) issues.push("A chamada comercial precisa usar o WhatsApp real informado pelo cliente.");
   if (/<img\b/i.test(html) && /<img\b(?![^>]*\bloading=["']lazy["'])/i.test(html)) issues.push("Imagens fora do hero devem usar loading=lazy para melhorar o carregamento.");
