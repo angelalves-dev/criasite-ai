@@ -140,7 +140,7 @@ function inspectHtml(html) {
   if (isFitnessSite && sections !== 10) issues.push("Estrutura de academia incorreta: entregue exatamente dez seções reais.");
   if (isFitnessSite) {
     const expectedOrder = ["hero", "sobre", "modalidades", "beneficios", "metodo", "galeria", "planos", "manifesto", "faq", "contato"];
-    const actualOrder = sectionBlocks.map(section => ((section.attrs.match(/\\bid=["']([^"']+)["']/i) || [])[1] || "").toLowerCase());
+    const actualOrder = sectionBlocks.map(section => ((section.attrs.match(/\bid=["']([^"']+)["']/i) || [])[1] || "").toLowerCase());
     const normalizedOrder = actualOrder.map(id => id.includes("etapa") ? "metodo" : id.includes("filosofia") ? "manifesto" : id.includes("gallery") ? "galeria" : id);
     if (expectedOrder.some((id, index) => normalizedOrder[index] !== id)) {
       issues.push("As dez seções da academia precisam seguir a ordem obrigatória: hero, sobre, modalidades, benefícios, método, galeria, planos, manifesto, FAQ e contato.");
@@ -149,7 +149,7 @@ function inspectHtml(html) {
   const plansBlock = sectionBlocks.find(section => /id=["']planos["']/i.test(section.attrs));
   if (isFitnessSite && plansBlock) {
     const planItems = (plansBlock.body.match(/<(?:article|li)\b|class=["'][^"']*(?:plan-card|pricing-card|plano-card)[^"']*["']/gi) || []).length;
-    if (planItems < 2) issues.push("Planos sem hierarquia visual: organize as informações em painéis claros, sem inventar preços ou condições.");
+    if (planItems < 3) issues.push("Planos sem hierarquia visual: crie pelo menos três cards article distintos, cada um com nome, descrição e lista de itens, sem inventar preços ou condições.");
   }
   const faqBlock = sectionBlocks.find(section => /id=["']faq["']/i.test(section.attrs));
   if (faqBlock) {
@@ -280,10 +280,11 @@ Descrição e necessidades do cliente: ${prompt}`;
     let quality = inspectHtml(html);
     let repairAttempted = false;
     let repairApplied = false;
-    if (quality.issues.length) {
+    for (let repairPass = 0; repairPass < 2 && quality.issues.length; repairPass++) {
       repairAttempted = true;
       const repairPrompt = [
         "Você é diretor de arte digital e engenheiro front-end sênior. RECONSTRUA o site para elevar muito a qualidade visual. Retorne SOMENTE um HTML completo válido começando com <!doctype html>.",
+        "Esta é a tentativa de correção " + (repairPass + 1) + " de 2. Corrija TODOS os problemas listados, não apenas parte deles. Não preserve componentes fracos só para manter o HTML anterior.",
         "",
         "DIREÇÃO DE ARTE: reconstrua como estúdio digital profissional, não faça apenas correções pontuais. Escolha conceito visual próprio do segmento e aplique sistema consistente de cores, tipografia, espaçamento, formas, ícones e fundos alternados. Dê ritmo à página; não repita cartões. Priorize uma primeira dobra memorável, hierarquia visual clara, conteúdo editorial específico e CTAs verdadeiros. Remova qualquer elemento decorativo que pareça imagem quebrada ou bloco vazio.",
         "SEÇÕES OBRIGATÓRIAS: para academia entregue exatamente 10 elementos <section> reais, nesta ordem: hero, sobre, modalidades, benefícios, método/etapas, galeria, planos, manifesto/filosofia, FAQ e contato. Não omita nem funda seções. Cada seção precisa ter conteúdo desenvolvido e id próprio. Para outros segmentos, entregue 8 a 12 seções úteis.",
@@ -333,7 +334,7 @@ Descrição e necessidades do cliente: ${prompt}`;
               candidateQuality.sections <= 12 &&
               candidateHasNoCriticalIssues &&
               candidateHasRequiredArt &&
-              (improvement > 0 || candidateQuality.issues.length <= quality.issues.length);
+              (improvement > 0 || candidateQuality.issues.length < quality.issues.length);
             if (candidateIsValid) {
               html = candidate;
               quality = candidateQuality;
