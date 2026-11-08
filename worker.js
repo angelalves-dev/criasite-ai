@@ -45,9 +45,17 @@ function inspectHtml(html, business = {}) {
   const fakeContact = /(?:mailto:|href=["'][^"']*(?:example\.com|powerfit\.com|seudominio|seuemail)|contato@(?:powerfit|exemplo|example)\.)/i.test(contactBlock);
   const waLinks = Array.from(contactBlock.matchAll(/https?:\/\/(?:www\.)?wa\.me\/([0-9+]+)/gi), match => match[1].replace(/\D/g, ""));
   const hasDummyWhatsApp = waLinks.some(number => number.length < 10 || number.length > 15 || /^0+$/.test(number) || /^(1234567890|11999999999|5511999999999)$/.test(number));
-  const unsupportedCommercialClaims = /(?:acesso livre|avaliação inicial|avaliação mensal|acompanhamento total|horário de funcionamento|horário de atendimento|nossa equipe|equipe técnica|equipe especializada|treino supervisionado|avaliação periódica|reavaliação periódica|planilha de treino personalizada|visita guiada|tour guiado)/i.test(html);
+  const unsupportedCommercialClaims = /(?:acesso livre|acesso total|avaliação inicial|avaliação mensal|acompanhamento total|acompanhamento individual|horário de funcionamento|horário de atendimento|nossa equipe|equipe técnica|equipe especializada|treino supervisionado|avaliação periódica|reavaliação periódica|planilha de treino personalizada|visita guiada|tour guiado|suporte técnico|prioridade em agendamentos|processo realizado presencialmente|visite nossa unidade|nossa recepção|recepção da academia|profissionais certificados|instrutores acompanham|atendimento personalizado)/i.test(html);
   const deadLinks = (html.match(/href=["'](?:#|javascript:void\(0\)|javascript:;)["']/gi) || []).length;
 
+  const structureSource = html.replace(/<!--[\\s\\S]*?-->/g, "");
+  const structuralTags = ["html", "head", "body", "header", "nav", "main", "section", "article", "aside", "footer", "div", "ul", "ol", "li", "details", "summary", "form", "button", "script", "style"];
+  const unbalancedTags = structuralTags.filter(tag => {
+    const opened = (structureSource.match(new RegExp("<" + tag + "\\b(?![^>]*\\/>)", "gi")) || []).length;
+    const closed = (structureSource.match(new RegExp("</" + tag + "\\s*>", "gi")) || []).length;
+    return opened !== closed;
+  });
+  if (unbalancedTags.length) issues.push("HTML com estrutura inválida: tags sem abertura ou fechamento correspondente (" + unbalancedTags.join(", ") + "). Corrija toda a hierarquia antes de entregar.");
   if (sections < 8) issues.push("Poucas seções: crie pelo menos 8 seções úteis, específicas e sem repetição.");
   if (sections > 12) issues.push("Há seções demais; reduza para 8 a 12 seções fortes, sem conteúdo de enchimento.");
   if (!/<meta\s+name=["']viewport["']/i.test(html)) issues.push("Falta meta viewport para celular.");
@@ -372,7 +380,7 @@ Descrição e necessidades do cliente: ${prompt}`;
             const candidateScore = score(candidateQuality);
             // Só bloqueia falhas estruturais graves. Avisos editoriais/visuais continuam
             // sendo contabilizados, mas não devem descartar uma reconstrução claramente melhor.
-            const criticalPatterns = /IDs duplicados|Links internos sem destino|Falta meta viewport|Falta um título principal h1|Poucas seções|Há seções demais|FAQ superficial|FAQ precisa de cinco perguntas|Planos sem hierarquia visual|três cards article reais|FAQ contém regras|chamada promete agendamento|Markdown visível|largura mínima rígida|Seções superficiais|Estrutura incompleta para academia|Estrutura de academia incorreta|dez seções da academia precisam seguir a ordem|Seção obrigatória ausente|lista nav ul|links da lista de navegação|Seção de modalidades\/serviços sem opções|Galeria incompleta ou esquemática|Galeria da academia não comprova|Hero sem composição detalhada|Contato contém e-mail ou domínio fictício|WhatsApp informado pelo cliente precisa estar conectado/;
+            const criticalPatterns = /HTML com estrutura inválida|IDs duplicados|Links internos sem destino|Falta meta viewport|Falta um título principal h1|Poucas seções|Há seções demais|FAQ superficial|FAQ precisa de cinco perguntas|Planos sem hierarquia visual|três cards article reais|FAQ contém regras|chamada promete agendamento|Markdown visível|largura mínima rígida|Seções superficiais|Estrutura incompleta para academia|Estrutura de academia incorreta|dez seções da academia precisam seguir a ordem|Seção obrigatória ausente|lista nav ul|links da lista de navegação|Seção de modalidades\/serviços sem opções|Galeria incompleta ou esquemática|Galeria da academia não comprova|Hero sem composição detalhada|Contato contém e-mail ou domínio fictício|WhatsApp informado pelo cliente precisa estar conectado/;
             const candidateHasRequiredArt = !candidateQuality.issues.some(issue => /A galeria precisa de quatro painéis|Galeria sem quatro ilustrações|Galeria incompleta ou esquemática|Galeria da academia não comprova|Hero sem composição detalhada/.test(issue));
             const candidateHasNoCriticalIssues = !candidateQuality.issues.some(issue => criticalPatterns.test(issue));
             const improvement = originalScore - candidateScore;
