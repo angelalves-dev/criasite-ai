@@ -48,7 +48,7 @@ function inspectHtml(html, business = {}) {
   const unsupportedCommercialClaims = /(?:acesso livre|acesso total|avaliação inicial|avaliação mensal|acompanhamento total|acompanhamento individual|horário de funcionamento|horário de atendimento|nossa equipe|equipe técnica|equipe especializada|treino supervisionado|avaliação periódica|reavaliação periódica|planilha de treino personalizada|visita guiada|tour guiado|suporte técnico|prioridade em agendamentos|processo realizado presencialmente|visite nossa unidade|nossa recepção|recepção da academia|profissionais certificados|instrutores acompanham|atendimento personalizado)/i.test(html);
   const deadLinks = (html.match(/href=["'](?:#|javascript:void\(0\)|javascript:;)["']/gi) || []).length;
 
-  const structureSource = html.replace(/<!--[\\s\\S]*?-->/g, "");
+  const structureSource = html.replace(/<!--[\s\S]*?-->/g, "");
   const structuralTags = ["html", "head", "body", "header", "nav", "main", "section", "article", "aside", "footer", "div", "ul", "ol", "li", "details", "summary", "form", "button", "script", "style"];
   const unbalancedTags = structuralTags.filter(tag => {
     const opened = (structureSource.match(new RegExp("<" + tag + "\\b(?![^>]*\\/>)", "gi")) || []).length;
