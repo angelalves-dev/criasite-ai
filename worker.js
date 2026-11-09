@@ -204,7 +204,8 @@ function inspectHtml(html, business = {}) {
   if (!/<nav\b[^>]*aria-label|<nav\b[^>]*aria-labelledby/i.test(html)) issues.push("Identifique a navegação principal com aria-label ou aria-labelledby.");
   if (!hasMenuButton) issues.push("Adicione botão de menu móvel acessível e funcional.");
   if (hasMenuButton && !/aria-controls=/i.test(html)) issues.push("Associe o botão do menu à navegação com aria-controls.");
-  if (hasMenuButton && /id=["']menu-toggle["']/i.test(html) && !/@media[^{]*\{[\s\S]{0,1200}#menu-toggle[^{]*\{[^}]*display\s*:\s*none/i.test(html)) issues.push("O botão do menu móvel deve ficar oculto no desktop e aparecer somente no breakpoint mobile.");
+  const baseCss = (html.match(/<style\b[^>]*>([\s\S]*?)<\/style>/i) || ["", ""])[1].split(/@media/i)[0];
+  if (hasMenuButton && /id=["']menu-toggle["']/i.test(html) && !/#menu-toggle[^{]*\{[^}]*display\s*:\s*none/i.test(baseCss)) issues.push("O botão do menu móvel deve ficar oculto no desktop e aparecer somente no breakpoint mobile.");
   if (hasMenuButton && !/aria-expanded=["'](?:true|false)["']/i.test(html)) issues.push("O botão do menu precisa expor aria-expanded.");
   if (hasMenuButton && !/keydown/i.test(html)) issues.push("O menu móvel deve fechar ao pressionar Escape.");
   if (hasMenuButton && !/(?:querySelectorAll|querySelector)\(["'][^"']*a[^"']*["']\)[\s\S]{0,900}addEventListener\(["']click|addEventListener\(["']click[\s\S]{0,900}(?:querySelectorAll|querySelector)\(["'][^"']*a/i.test(html)) issues.push("Feche o painel mobile depois que qualquer link do menu for selecionado.");
@@ -426,7 +427,7 @@ function enforceBusinessIntegrity(html, business = {}) {
 
 function qualityReport(quality) {
   const criticalPattern = /HTML com estrutura inválida|IDs duplicados|Links internos sem destino|Falta meta viewport|Falta um título principal h1|Contato contém e-mail|chamada sem ação funcional|Foto principal do hero incompatível|Galeria usa fotos ausentes ou incompatíveis|WhatsApp fictício|WhatsApp informado pelo cliente precisa estar conectado|afirmações sobre equipe|afirmações comerciais específicas|afirmações não comprovadas|placeholder|instrução provisória|Formulário sem tratamento|Formulário bloqueia|Markdown visível|script externo|dependência externa/i;
-  const majorPattern = /Poucas seções|Há seções demais|Seções superficiais|Profundidade editorial|Falta uma media query|adaptação responsiva|Galeria|Hero sem|direção de arte|composição|FAQ|Planos|modalidades|lista nav ul|menu móvel|Seção obrigatória|benefícios|manifesto|método|links sem destino/i;
+  const majorPattern = /Falta um rodapé completo|botão do menu móvel deve ficar oculto|afirmações comerciais específicas|Poucas seções|Há seções demais|Seções superficiais|Profundidade editorial|Falta uma media query|adaptação responsiva|Galeria|Hero sem|direção de arte|composição|FAQ|Planos|modalidades|lista nav ul|menu móvel|Seção obrigatória|benefícios|manifesto|método|links sem destino/i;
   const criticalIssues = quality.issues.filter(issue => criticalPattern.test(issue));
   const majorIssues = quality.issues.filter(issue => majorPattern.test(issue) && !criticalPattern.test(issue));
   const minorIssues = quality.issues.filter(issue => !criticalPattern.test(issue) && !majorPattern.test(issue));
