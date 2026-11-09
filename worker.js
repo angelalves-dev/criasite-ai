@@ -48,8 +48,8 @@ function segmentVisualBrief(type) {
 function enforceSegmentPhotography(html, business = {}) {
   let output = String(html || "");
   const key = String(business.type || "servicos").trim().toLowerCase()
-    .normalize("NFD").replace(/[\\u0300-\\u036f]/g, "")
-    .replace(/[_-]+/g, " ").replace(/\\s+/g, " ");
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[_-]+/g, " ").replace(/\s+/g, " ");
   const profiles = {
     academia: ["photo-1534438327276-14e5300c3a48", "photo-1571019613454-1cb2f99b2d8b", "photo-1583454110551-21f2fa2afe61", "photo-1517836357463-d25dfeac3438"],
     restaurante: ["photo-1517248135467-4c7edcad34c4", "photo-1414235077428-338989a2e8c0", "photo-1515003197210-e0cd7184f8b2", "photo-1559339352-11d035aa65de"],
@@ -70,27 +70,27 @@ function enforceSegmentPhotography(html, business = {}) {
   const makeUrl = (id, index) => "https://images.unsplash.com/" + id + "?auto=format&fit=crop&w=" + (index === 0 ? "1500" : "900") + "&q=85";
   const replaceImage = (tag, url, alt, eager) => {
     let next = tag;
-    if (/\\bsrc\\s*=\\s*["'][^"']*["']/i.test(next)) next = next.replace(/\\bsrc\\s*=\\s*["'][^"']*["']/i, 'src="' + url + '"');
-    else next = next.replace(/<img\\b/i, '<img src="' + url + '"');
-    if (/\\balt\\s*=\\s*["'][^"']*["']/i.test(next)) next = next.replace(/\\balt\\s*=\\s*["'][^"']*["']/i, 'alt="' + alt + '"');
-    else next = next.replace(/<img\\b/i, '<img alt="' + alt + '"');
-    next = next.replace(/\\sloading\\s*=\\s*["'][^"']*["']/i, "");
-    next = next.replace(/\\sdecoding\\s*=\\s*["'][^"']*["']/i, "");
-    next = next.replace(/<img\\b/i, '<img loading="' + (eager ? "eager" : "lazy") + '" decoding="async"');
+    if (/\bsrc\s*=\s*["'][^"']*["']/i.test(next)) next = next.replace(/\bsrc\s*=\s*["'][^"']*["']/i, 'src="' + url + '"');
+    else next = next.replace(/<img\b/i, '<img src="' + url + '"');
+    if (/\balt\s*=\s*["'][^"']*["']/i.test(next)) next = next.replace(/\balt\s*=\s*["'][^"']*["']/i, 'alt="' + alt + '"');
+    else next = next.replace(/<img\b/i, '<img alt="' + alt + '"');
+    next = next.replace(/\sloading\s*=\s*["'][^"']*["']/i, "");
+    next = next.replace(/\sdecoding\s*=\s*["'][^"']*["']/i, "");
+    next = next.replace(/<img\b/i, '<img loading="' + (eager ? "eager" : "lazy") + '" decoding="async"');
     return next;
   };
-  const heroRe = /<section\\b(?=[^>]*\\bid=["']hero["'])[^>]*>[\\s\\S]*?<\\/section>/i;
+  const heroRe = /<section\b(?=[^>]*\bid=["']hero["'])[^>]*>[\s\S]*?<\/section>/i;
   output = output.replace(heroRe, section => {
     let used = false;
-    return section.replace(/<img\\b[^>]*>/i, tag => {
+    return section.replace(/<img\b[^>]*>/i, tag => {
       used = true;
       return replaceImage(tag, makeUrl(ids[0], 0), "Imagem ilustrativa do segmento " + selected, true);
     });
   });
-  const galleryRe = /<section\\b(?=[^>]*\\bid=["'](?:galeria|gallery|estrutura)["'])[^>]*>[\\s\\S]*?<\\/section>/i;
+  const galleryRe = /<section\b(?=[^>]*\bid=["'](?:galeria|gallery|estrutura)["'])[^>]*>[\s\S]*?<\/section>/i;
   output = output.replace(galleryRe, section => {
     let index = 0;
-    section = section.replace(/<img\\b[^>]*>/gi, tag => {
+    section = section.replace(/<img\b[^>]*>/gi, tag => {
       if (index >= 4) return tag;
       const i = index++;
       return replaceImage(tag, makeUrl(ids[i], i), "Imagem ilustrativa " + (i + 1) + " do segmento " + selected, false);
@@ -98,8 +98,8 @@ function enforceSegmentPhotography(html, business = {}) {
     while (index < 4) {
       const i = index++;
       const image = '<figure class="gallery-item" style="margin:0;overflow:hidden;border-radius:12px;aspect-ratio:4/3"><img src="' + makeUrl(ids[i], i) + '" alt="Imagem ilustrativa ' + (i + 1) + ' do segmento ' + selected + '" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:cover"></figure>';
-      if (/<svg\\b[\\s\\S]*?<\\/svg>/i.test(section)) section = section.replace(/<svg\\b[\\s\\S]*?<\\/svg>/i, image);
-      else section = section.replace(/<\\/section>/i, image + "</section>");
+      if (/<svg\b[\s\S]*?<\/svg>/i.test(section)) section = section.replace(/<svg\b[\s\S]*?<\/svg>/i, image);
+      else section = section.replace(/<\/section>/i, image + "</section>");
     }
     return section;
   });
