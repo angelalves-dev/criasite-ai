@@ -247,25 +247,24 @@ function enforceBusinessIntegrity(html, business = {}) {
   const digits = String(business.whatsapp || "").replace(/[^0-9]/g, "");
   const validWhatsApp = digits.length >= 10 && digits.length <= 15 && !/^0+$/.test(digits);
 
-  // O HTML entregue é autônomo: remove dependências executáveis externas.
-  output = output.replace(/<script\\b(?=[^>]*\\bsrc\\s*=)[^>]*>[\\s\\S]*?<\\/script>/gi, "");
-  output = output.replace(/<link\\b(?=[^>]*\\brel\\s*=\\s*["'][^"']*stylesheet)(?=[^>]*\\bhref\\s*=\\s*["']https?:)[^>]*>/gi, "");
-  output = output.replace(/@import\\s+(?:url\\()?\\s*["']?https?:[^;]+;?/gi, "");
+  // Mantém o arquivo autônomo, sem scripts ou folhas de estilo externas.
+  output = output.replace(/<script\b(?=[^>]*\bsrc\s*=)[^>]*>[\s\S]*?<\/script>/gi, "");
+  output = output.replace(/<link\b(?=[^>]*\brel\s*=\s*["'][^"']*stylesheet)(?=[^>]*\bhref\s*=\s*["']https?:)[^>]*>/gi, "");
+  output = output.replace(/@import\s+(?:url\()?\s*["']?https?:[^;]+;?/gi, "");
 
   // Nunca permite que a IA invente o canal de contato do cliente.
-  output = output.replace(/<a\\b([^>]*\\bhref\\s*=\\s*["'](?:https?:\\/\\/(?:www\\.)?wa\\.me\\/[^"']*|tel:[^"']*|mailto:[^"']*)["'][^>]*)>([\\s\\S]*?)<\\/a>/gi,
+  output = output.replace(/<a\b([^>]*\bhref\s*=\s*["'](?:https?:\/\/(?:www\.)?wa\.me\/[^"']*|tel:[^"']*|mailto:[^"']*)["'][^>]*)>([\s\S]*?)<\/a>/gi,
     (whole, attrs, inner) => {
-      const isWhatsApp = /wa\\.me\\//i.test(attrs);
+      const isWhatsApp = /wa\.me\//i.test(attrs);
       if (isWhatsApp && validWhatsApp) {
         const message = "Olá! Gostaria de saber mais sobre " + String(business.name || "seus serviços").slice(0, 80) + ".";
-        return whole.replace(/href\\s*=\\s*["'][^"']*["']/i, 'href="https://wa.me/' + digits + '?text=' + encodeURIComponent(message) + '"');
+        return whole.replace(/href\s*=\s*["'][^"']*["']/i, 'href="https://wa.me/' + digits + '?text=' + encodeURIComponent(message) + '"');
       }
       return '<span class="contact-link-neutral">' + inner + '</span>';
     });
 
-  // Corrige também links wa.me escritos fora de uma âncora ou em atributos alternativos.
   if (validWhatsApp) {
-    output = output.replace(/https?:\\/\\/(?:www\\.)?wa\\.me\\/\\d{6,20}(?:\\?[^"'\\s<>]*)?/gi, "https://wa.me/" + digits);
+    output = output.replace(/https?:\/\/(?:www\.)?wa\.me\/\d{6,20}(?:\?[^"'\s<>]*)?/gi, "https://wa.me/" + digits);
   }
   return output;
 }
