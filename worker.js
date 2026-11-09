@@ -236,7 +236,7 @@ function inspectHtml(html, business = {}) {
   const correctSegmentPhotos = galleryPhotoIds.filter(id => expectedPhotoIds.includes(id)).length;
   if (hasGallery && galleryImagesWithAlt < 4) issues.push("Galeria precisa conter quatro fotografias reais com texto alternativo útil.");
   if (hasGallery && expectedPhotoIds.length && correctSegmentPhotos < 4) issues.push("Galeria usa fotos ausentes ou incompatíveis com o segmento. Use exatamente as quatro URLs de fotografia fornecidas para este tipo de negócio.");
-  const heroPhotoId = ((hero.match(/<img\\b[^>]*src=["\'][^"\']*images\\.unsplash\\.com\\/(photo-[^?]+)/i) || [])[1] || "");
+  const heroPhotoId = ((hero.match(/<img\b[^>]*src=["'][^"']*images\.unsplash\.com\/(photo-[^?]+)/i) || [])[1] || "");
   if (expectedPhotoIds.length && !expectedPhotoIds.includes(heroPhotoId)) issues.push("Foto principal do hero incompatível com o segmento selecionado. Substitua pela primeira fotografia oficial do perfil do negócio.");
   if (hasGallery && gallerySemanticSvgs + galleryImagesWithAlt < 4) issues.push("Galeria precisa de quatro imagens com alt útil ou ilustrações SVG acessíveis.");
   if (hasGallery && gallerySvgCount > 0 && svgShapeCount < 18 && (galleryMatch ? (galleryMatch[0].match(/<img\b/gi) || []).length : 0) < 4) issues.push("Ilustrações pouco detalhadas: desenvolva os SVGs com múltiplas formas, linhas e detalhes específicos, não formas geométricas isoladas.");
