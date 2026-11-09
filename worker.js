@@ -109,15 +109,20 @@ function enforceSegmentPhotography(html, business = {}) {
     next = next.replace(/<img\b/i, '<img loading="' + (eager ? "eager" : "lazy") + '" decoding="async"');
     return next;
   };
-  const heroRe = /<section\b(?=[^>]*\bid=["']hero["'])[^>]*>[\s\S]*?<\/section>/i;
+  const heroRe = /<section\b(?=[^>]*(?:\bid=["']hero["']|\bclass=["'][^"']*\bhero\b))[^>]*>[\s\S]*?<\/section>/i;
   output = output.replace(heroRe, section => {
-    let used = false;
-    return section.replace(/<img\b[^>]*>/i, tag => {
-      used = true;
+    let found = false;
+    section = section.replace(/<img\b[^>]*>/i, tag => {
+      found = true;
       return replaceImage(tag, makeUrl(ids[0], 0), "Imagem ilustrativa do segmento " + selected, true);
     });
+    if (!found) {
+      const image = '<img src="' + makeUrl(ids[0], 0) + '" alt="Imagem ilustrativa do segmento ' + selected + '" loading="eager" decoding="async" style="width:100%;height:100%;object-fit:cover">';
+      section = section.replace(/<\/section>/i, image + "</section>");
+    }
+    return section;
   });
-  const galleryRe = /<section\b(?=[^>]*\bid=["'](?:galeria|gallery|estrutura)["'])[^>]*>[\s\S]*?<\/section>/i;
+  const galleryRe = /<section\b(?=[^>]*(?:\bid=["'](?:galeria|gallery|estrutura)["']|\bclass=["'][^"']*(?:galeria|gallery|portfolio)[^"']*["']))[^>]*>[\s\S]*?<\/section>/i;
   output = output.replace(galleryRe, section => {
     let index = 0;
     section = section.replace(/<img\b[^>]*>/gi, tag => {
@@ -133,6 +138,16 @@ function enforceSegmentPhotography(html, business = {}) {
     }
     return section;
   });
+  if (!galleryRe.test(output)) {
+    const gallery = '<section id="galeria" aria-label="Galeria ilustrativa" style="padding:72px 6%;max-width:1200px;margin:auto"><h2>Conheça o universo ' + String(business.name || "do negócio").replace(/[<>"]/g, "") + '</h2><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:16px">' +
+      ids.map((id, i) => '<img src="' + makeUrl(id, i) + '" alt="Imagem ilustrativa ' + (i + 1) + ' do segmento ' + selected + '" loading="lazy" decoding="async" style="width:100%;height:240px;object-fit:cover;border-radius:14px">').join("") +
+      '</div></section>';
+    if (/<section\b[^>]*\bid=["']contato["'][^>]*>/i.test(output)) output = output.replace(/<section\b[^>]*\bid=["']contato["'][^>]*>/i, gallery + "  return output;
+}
+
+function inspectHtml(html, business = {}) {");
+    else output = output.replace(/<\/body>/i, gallery + "</body>");
+  }
   return output;
 }
 
@@ -220,6 +235,8 @@ function inspectHtml(html, business = {}) {
   const correctSegmentPhotos = galleryPhotoIds.filter(id => expectedPhotoIds.includes(id)).length;
   if (hasGallery && galleryImagesWithAlt < 4) issues.push("Galeria precisa conter quatro fotografias reais com texto alternativo útil.");
   if (hasGallery && expectedPhotoIds.length && correctSegmentPhotos < 4) issues.push("Galeria usa fotos ausentes ou incompatíveis com o segmento. Use exatamente as quatro URLs de fotografia fornecidas para este tipo de negócio.");
+  const heroPhotoId = ((hero.match(/<img\\b[^>]*src=["\'][^"\']*images\\.unsplash\\.com\\/(photo-[^?]+)/i) || [])[1] || "");
+  if (expectedPhotoIds.length && !expectedPhotoIds.includes(heroPhotoId)) issues.push("Foto principal do hero incompatível com o segmento selecionado. Substitua pela primeira fotografia oficial do perfil do negócio.");
   if (hasGallery && gallerySemanticSvgs + galleryImagesWithAlt < 4) issues.push("Galeria precisa de quatro imagens com alt útil ou ilustrações SVG acessíveis.");
   if (hasGallery && gallerySvgCount > 0 && svgShapeCount < 18 && (galleryMatch ? (galleryMatch[0].match(/<img\b/gi) || []).length : 0) < 4) issues.push("Ilustrações pouco detalhadas: desenvolva os SVGs com múltiplas formas, linhas e detalhes específicos, não formas geométricas isoladas.");
   const heroSvg = (hero.match(/<svg\b[\s\S]*?<\/svg>/i) || [""])[0];
