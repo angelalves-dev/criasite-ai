@@ -153,11 +153,6 @@ function enforceSegmentPhotography(html, business = {}) {
 }
 
 function inspectHtml(html, business = {}) {
-    else output = output.replace(/<\/body>/i, gallery + "</body>");
-  }
-  return output;
-}
-
 function inspectHtml(html, business = {}) {
   const issues = [];
   const sections = (html.match(/<section\b/gi) || []).length;
