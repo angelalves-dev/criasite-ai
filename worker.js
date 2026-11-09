@@ -143,10 +143,8 @@ function enforceSegmentPhotography(html, business = {}) {
       ids.map((id, i) => '<img src="' + makeUrl(id, i) + '" alt="Imagem ilustrativa ' + (i + 1) + ' do segmento ' + selected + '" loading="lazy" decoding="async" style="width:100%;height:240px;object-fit:cover;border-radius:14px">').join("") +
       '</div></section>';
     if (/<section\b[^>]*\bid=["']contato["'][^>]*>/i.test(output)) {
-      output = output.replace(/<section\b[^>]*\bid=["']contato["'][^>]*>/i, gallery + "    if (/<section\b[^>]*\bid=["']contato["'][^>]*>/i.test(output)) output = output.replace(/<section\b[^>]*\bid=["']contato["'][^>]*>/i, gallery + "  return output;
-}
-
-function inspectHtml(html, business = {}) {");");
+      const contactStart = output.search(/<section\b[^>]*\bid=["']contato["'][^>]*>/i);
+      output = output.slice(0, contactStart) + gallery + output.slice(contactStart);
     } else {
       output = output.replace(/<\/body>/i, gallery + "</body>");
     }
