@@ -153,7 +153,6 @@ function enforceSegmentPhotography(html, business = {}) {
 }
 
 function inspectHtml(html, business = {}) {
-function inspectHtml(html, business = {}) {
   const issues = [];
   const sections = (html.match(/<section\b/gi) || []).length;
   const ids = new Set(Array.from(html.matchAll(/\bid=["']([^"']+)["']/gi), m => m[1]));
