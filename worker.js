@@ -18,7 +18,7 @@ function json(data, status, origin) {
 
 function inferBusinessType(business = {}, prompt = "") {
   const normalize = value => String(value || "").toLowerCase().normalize("NFD")
-    .replace(/[\\u0300-\\u036f]/g, "").replace(/[^a-z0-9 ]/g, " ").replace(/\\s+/g, " ").trim();
+    .replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
   const supplied = normalize(business.type);
   const text = normalize([prompt, business.name, business.tagline, business.offerings, business.description].join(" "));
   const signals = {
@@ -142,10 +142,19 @@ function enforceSegmentPhotography(html, business = {}) {
     const gallery = '<section id="galeria" aria-label="Galeria ilustrativa" style="padding:72px 6%;max-width:1200px;margin:auto"><h2>Conheça o universo ' + String(business.name || "do negócio").replace(/[<>"]/g, "") + '</h2><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:16px">' +
       ids.map((id, i) => '<img src="' + makeUrl(id, i) + '" alt="Imagem ilustrativa ' + (i + 1) + ' do segmento ' + selected + '" loading="lazy" decoding="async" style="width:100%;height:240px;object-fit:cover;border-radius:14px">').join("") +
       '</div></section>';
-    if (/<section\b[^>]*\bid=["']contato["'][^>]*>/i.test(output)) output = output.replace(/<section\b[^>]*\bid=["']contato["'][^>]*>/i, gallery + "  return output;
+    if (/<section\b[^>]*\bid=["']contato["'][^>]*>/i.test(output)) {
+      output = output.replace(/<section\b[^>]*\bid=["']contato["'][^>]*>/i, gallery + "    if (/<section\b[^>]*\bid=["']contato["'][^>]*>/i.test(output)) output = output.replace(/<section\b[^>]*\bid=["']contato["'][^>]*>/i, gallery + "  return output;
 }
 
-function inspectHtml(html, business = {}) {");
+function inspectHtml(html, business = {}) {");");
+    } else {
+      output = output.replace(/<\/body>/i, gallery + "</body>");
+    }
+  }
+  return output;
+}
+
+function inspectHtml(html, business = {}) {
     else output = output.replace(/<\/body>/i, gallery + "</body>");
   }
   return output;
