@@ -15,6 +15,36 @@ function json(data, status, origin) {
 }
 
 
+
+function inferBusinessType(business = {}, prompt = "") {
+  const normalize = value => String(value || "").toLowerCase().normalize("NFD")
+    .replace(/[\\u0300-\\u036f]/g, "").replace(/[^a-z0-9 ]/g, " ").replace(/\\s+/g, " ").trim();
+  const supplied = normalize(business.type);
+  const text = normalize([prompt, business.name, business.tagline, business.offerings, business.description].join(" "));
+  const signals = {
+    academia: ["academia", "musculacao", "treino", "treinamento", "fitness", "halteres", "esteira", "crossfit", "funcional"],
+    restaurante: ["restaurante", "lanchonete", "cardapio", "comida", "gastronomia", "delivery", "pizzaria", "hamburgueria"],
+    barbearia: ["barbearia", "barbeiro", "corte masculino", "barba"],
+    beleza: ["salao de beleza", "cabeleireiro", "manicure", "estetica", "unhas"],
+    clinica: ["clinica", "consultorio", "dentista", "odontologia", "fisioterapia", "medico"],
+    loja: ["loja", "roupas", "vestuario", "ecommerce", "produtos", "vitrine"],
+    petshop: ["pet shop", "petshop", "veterinaria", "banho e tosa", "animais"],
+    imobiliaria: ["imobiliaria", "imoveis", "corretor", "apartamentos", "aluguel de imoveis"],
+    fotografo: ["fotografo", "fotografia", "ensaio fotografico"],
+    construcao: ["construcao", "construtora", "reforma", "engenharia", "arquitetura"],
+    educacao: ["curso", "escola", "educacao", "aulas", "professor"]
+  };
+  const scores = Object.entries(signals).map(([type, words]) => ({
+    type, score: words.reduce((total, word) => total + (text.includes(normalize(word)) ? 1 : 0), 0)
+  })).sort((a,b) => b.score-a.score);
+  const best = scores[0];
+  const known = new Set(["academia","restaurante","barbearia","beleza","clinica","loja","petshop","imobiliaria","fotografo","construcao","educacao","servicos"]);
+  if (best && best.score >= 2 && (!known.has(supplied) || best.type !== supplied)) {
+    return { ...business, type: best.type, detectedType: best.type, originalType: supplied || "não informado" };
+  }
+  return { ...business, type: known.has(supplied) ? supplied : "servicos" };
+}
+
 function segmentVisualBrief(type) {
   const key = String(type || "servicos").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[_-]+/g, " ").replace(/\s+/g, " ");
   const profiles = {
@@ -425,7 +455,8 @@ export default {
     }
 
     const prompt = String(body.prompt || "").trim();
-    const business = body.business && typeof body.business === "object" ? body.business : {};
+    const businessInput = body.business && typeof body.business === "object" ? body.business : {};
+    const business = inferBusinessType(businessInput, prompt);
     if (prompt.length < 15) return json({ error: "Descreva o site com pelo menos 15 caracteres." }, 400, origin);
     if (prompt.length > 5000) return json({ error: "A descrição deve ter no máximo 5.000 caracteres." }, 400, origin);
 
