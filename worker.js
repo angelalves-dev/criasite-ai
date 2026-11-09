@@ -203,6 +203,8 @@ function inspectHtml(html, business = {}) {
   if (waLinks.length && !hasWhatsAppContact) issues.push("Existe link wa.me que não corresponde exatamente ao WhatsApp fornecido pelo cliente. Remova o link incorreto.");
   if (unsupportedCommercialClaims) issues.push("O conteúdo apresenta como fatos serviços, equipe, horários, avaliações ou benefícios de planos que não foram confirmados. Reescreva como explicações neutras e convites para consultar condições, sem afirmar que o negócio oferece algo não informado.");
   if (!whatsappDigits && /(?:wa\.me\/|tel:|mailto:)/i.test(contactBlock)) issues.push("Não foi fornecido canal de contato: remova links de WhatsApp, telefone e e-mail que não vieram dos dados do cliente.");
+  const fakeContactCta = /<(?:span|div|button)\b[^>]*class=["\'][^"\']*(?:btn|cta|contact-link)/i.test(contactBlock) && /falar com|fale conosco|entre em contato|iniciar jornada|solicite|agende/i.test(contactBlock);
+  if (!whatsappDigits && !/<form\b/i.test(contactBlock) && fakeContactCta) issues.push("A seção de contato apresenta uma chamada sem ação funcional. Sem canal real fornecido, transforme o encerramento em conteúdo editorial neutro e remova o falso botão.");
   if (whatsappDigits.length >= 10 && whatsappDigits.length <= 15 && !hasWhatsAppContact) issues.push("O WhatsApp informado pelo cliente precisa estar conectado em um link https://wa.me/ com o número correto.");
   if (/agende uma visita|fale conosco|entre em contato|solicite um or[cç]amento/i.test(contactBlock || html) && !hasRealContact && whatsappDigits.length > 0) issues.push("A chamada comercial precisa usar o WhatsApp real informado pelo cliente.");
   if (/<img\b/i.test(html) && /<img\b(?![^>]*\bloading=["']lazy["'])/i.test(html)) issues.push("Imagens fora do hero devem usar loading=lazy para melhorar o carregamento.");
@@ -373,7 +375,7 @@ function enforceBusinessIntegrity(html, business = {}) {
 }
 
 function qualityReport(quality) {
-  const criticalPattern = /HTML com estrutura inválida|IDs duplicados|Links internos sem destino|Falta meta viewport|Falta um título principal h1|Contato contém e-mail|WhatsApp fictício|WhatsApp informado pelo cliente precisa estar conectado|afirmações sobre equipe|afirmações comerciais específicas|afirmações não comprovadas|placeholder|instrução provisória|Formulário sem tratamento|Formulário bloqueia|Markdown visível|script externo|dependência externa/i;
+  const criticalPattern = /HTML com estrutura inválida|IDs duplicados|Links internos sem destino|Falta meta viewport|Falta um título principal h1|Contato contém e-mail|chamada sem ação funcional|WhatsApp fictício|WhatsApp informado pelo cliente precisa estar conectado|afirmações sobre equipe|afirmações comerciais específicas|afirmações não comprovadas|placeholder|instrução provisória|Formulário sem tratamento|Formulário bloqueia|Markdown visível|script externo|dependência externa/i;
   const majorPattern = /Poucas seções|Há seções demais|Seções superficiais|Profundidade editorial|Falta uma media query|adaptação responsiva|Galeria|Hero sem|direção de arte|composição|FAQ|Planos|modalidades|lista nav ul|menu móvel|Seção obrigatória|benefícios|manifesto|método|links sem destino/i;
   const criticalIssues = quality.issues.filter(issue => criticalPattern.test(issue));
   const majorIssues = quality.issues.filter(issue => majorPattern.test(issue) && !criticalPattern.test(issue));
