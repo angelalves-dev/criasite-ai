@@ -14,6 +14,36 @@ function json(data, status, origin) {
   return new Response(JSON.stringify(data), { status, headers: corsHeaders(origin) });
 }
 
+
+function segmentVisualBrief(type) {
+  const key = String(type || "servicos").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const profiles = {
+    academia: ["photo-1534438327276-14e5300c3a48", "photo-1571019613454-1cb2f99b2d8b", "photo-1583454110551-21f2fa2afe61", "photo-1517836357463-d25dfeac3438"],
+    restaurante: ["photo-1517248135467-4c7edcad34c4", "photo-1414235077428-338989a2e8c0", "photo-1515003197210-e0cd7184f8b2", "photo-1559339352-11d035aa65de"],
+    barbearia: ["photo-1503951914875-452162b0f3f1", "photo-1599351431202-1e0f0137899a", "photo-1621605815971-fbc98d665033", "photo-1503951914875-452162b0f3f1"],
+    beleza: ["photo-1560066984-138dadb4c035", "photo-1522337360788-8b13dee7a37e", "photo-1487412720507-e7ab37603c6f", "photo-1521590832167-7bcbfaa6381f"],
+    clinica: ["photo-1629909613654-28e377c37b09", "photo-1576091160399-112ba8d25d1d", "photo-1584982751601-97d4b6c8b6c5", "photo-1631815588090-d4bfec5b1ccb"],
+    loja: ["photo-1441986300917-64674bd600d8", "photo-1472851294608-062f824d29cc", "photo-1490481651871-ab68de25d43d", "photo-1523275335684-37898b6baf30"],
+    petshop: ["photo-1548199973-03cce0bbc87b", "photo-1583337130417-3346a1be7dee", "photo-1543466835-00a7907e9de1", "photo-1552053831-71594a27632d"],
+    imobiliaria: ["photo-1600596542815-ffad4c1539a9", "photo-1600607687939-ce8a6c25118c", "photo-1600566753086-00f18fb6b3ea", "photo-1600607687920-4e2a09cf159d"],
+    fotografo: ["photo-1452587925148-ce544e77e70d", "photo-1516035069371-29a1b244cc32", "photo-1492691527719-9d1e07e534b4", "photo-1500530855697-b586d89ba3ee"],
+    construcao: ["photo-1503387762-592deb58ef4e", "photo-1504307651254-35680f356dfd", "photo-1541888946425-d81bb19240f5", "photo-1503387762-592deb58ef4e"],
+    educacao: ["photo-1509062522246-3755977927d7", "photo-1523050854058-8df90110c9f1", "photo-1503676260728-1c00da094a0b", "photo-1509062522246-3755977927d7"],
+    servicos: ["photo-1497366754035-f200968a6e72", "photo-1497366216548-37526070297c", "photo-1497366811353-6870744d04b2", "photo-1497366754035-f200968a6e72"]
+  };
+  const aliases = { "salao": "beleza", "clinica": "clinica", "fotografo": "fotografo", "imobiliaria": "imobiliaria", "construcao": "construcao", "educacao": "educacao", "pet shop": "petshop" };
+  const selected = aliases[key] || key;
+  const ids = profiles[selected] || profiles.servicos;
+  const urls = ids.map((id, index) => "https://images.unsplash.com/" + id + "?auto=format&fit=crop&w=" + (index === 0 ? "1500" : "900") + "&q=85");
+  return [
+    "DIREÇÃO VISUAL ESPECÍFICA DO SEGMENTO (" + selected + "):",
+    "Priorize fotografia editorial real como base visual, não uma galeria de ícones ou quatro SVGs esquemáticos. URLs de fotografia pública selecionadas para este segmento:",
+    ...urls.map((url, index) => (index + 1) + ". " + url),
+    "Use as quatro imagens em painéis com object-fit:cover, proporções variadas, recortes editoriais e alt em português começando por 'Imagem ilustrativa'. Use a primeira imagem como visual principal do hero. Não afirme que as imagens mostram o estabelecimento, equipe ou clientes reais: são referências ilustrativas do segmento. Não invente imagens de pessoas identificáveis como funcionários ou clientes.",
+    "Crie composição premium: hero com foto grande + título e CTA; mosaico com pelo menos quatro fotos; alterne seções editoriais, listas e faixas com fundos diferentes. Não force seção de planos para negócios que não vendem planos/assinaturas. Não invente depoimentos, avaliações, números ou resultados."
+  ].join("\n");
+}
+
 function inspectHtml(html, business = {}) {
   const issues = [];
   const sections = (html.match(/<section\b/gi) || []).length;
@@ -90,7 +120,9 @@ function inspectHtml(html, business = {}) {
   if (hero && heroVisuals === 1 && !hasVisualStyling) issues.push("O hero tem apenas um visual simples e sem tratamento; adicione camadas, recortes, profundidade e composição editorial.");
   if (hasGallery && gallerySvgCount + (galleryMatch ? (galleryMatch[0].match(/<img\b/gi) || []).length : 0) < 4) issues.push("A galeria precisa de quatro painéis visuais distintos dentro da própria seção; textos, cartões vazios e ícones soltos não contam.");
   const gallerySemanticSvgs = galleryMatch ? (galleryMatch[0].match(/<svg\b(?=[^>]*(?:role=["']img["']|aria-label=["']))[^>]*>/gi) || []).length : 0;
-  if (hasGallery && gallerySemanticSvgs < 4) issues.push('Galeria sem quatro ilustrações acessíveis: cada painel SVG precisa de role="img" e aria-label descritivo.');
+  const galleryImageCount = galleryMatch ? (galleryMatch[0].match(/<img\b/gi) || []).length : 0;
+  const galleryImagesWithAlt = galleryMatch ? (galleryMatch[0].match(/<img\b(?=[^>]*\balt=["'][^"']+["'])[^>]*>/gi) || []).length : 0;
+  if (hasGallery && gallerySemanticSvgs + galleryImagesWithAlt < 4) issues.push("Galeria precisa de quatro imagens com alt útil ou ilustrações SVG acessíveis.");
   if (hasGallery && svgShapeCount < 18) issues.push("Ilustrações pouco detalhadas: desenvolva os SVGs com múltiplas formas, linhas e detalhes específicos, não formas geométricas isoladas.");
   const heroSvg = (hero.match(/<svg\b[\s\S]*?<\/svg>/i) || [""])[0];
   const heroShapeCount = (heroSvg.match(/<(?:path|line|polyline|polygon|rect|circle|ellipse)\b/gi) || []).length;
@@ -132,8 +164,11 @@ function inspectHtml(html, business = {}) {
   }
   const gallerySvgs = galleryMatch ? Array.from(galleryMatch[0].matchAll(/<svg\b[\s\S]*?<\/svg>/gi), m => m[0]) : [];
   const underdevelopedGallerySvgs = gallerySvgs.filter(svg => (svg.match(/<(?:path|line|polyline|polygon|rect|circle|ellipse)\b/gi) || []).length < 4);
-  if (hasGallery && (gallerySvgs.length < 4 || underdevelopedGallerySvgs.length > 0)) {
-    issues.push("Galeria incompleta ou esquemática: entregue quatro ilustrações SVG próprias, cada uma com silhueta reconhecível e pelo menos quatro elementos gráficos detalhados.");
+  const galleryPhotoCount = galleryMatch ? (galleryMatch[0].match(/<img\b/gi) || []).length : 0;
+  if (hasGallery && gallerySvgs.length + galleryPhotoCount < 4) {
+    issues.push("Galeria incompleta: apresente pelo menos quatro painéis visuais distintos, usando fotografias ilustrativas com alt ou SVGs detalhados.");
+  } else if (hasGallery && galleryPhotoCount < 4 && underdevelopedGallerySvgs.length > 0) {
+    issues.push("Algumas ilustrações SVG da galeria são esquemáticas; substitua por fotografias ilustrativas ou desenvolva as cenas.");
   }
   const heroUsesTwoColumns = /(?:\.hero|#hero)[^{]*\{[^}]*grid-template-columns\s*:\s*(?:1fr\s+1fr|repeat\(\s*2)/i.test(html);
   const heroHasMobileStack = /@media[\s\S]{0,1400}(?:\.hero|#hero)[^{]*\{[^}]*grid-template-columns\s*:\s*1fr/i.test(html);
@@ -208,10 +243,10 @@ function inspectHtml(html, business = {}) {
   const galleryObjectLabels = galleryMatch
     ? Array.from(galleryMatch[0].matchAll(/<svg\b(?=[^>]*aria-label=["']([^"']+)["'])[^>]*>/gi), match => match[1].toLowerCase())
     : [];
-  if (isFitnessSite) {
+  if (isFitnessSite && galleryPhotoCount < 4) {
     const objectGroups = [/halter|peso livre|dumbbell/, /anilha|disco de peso|weight plate/, /esteira|treadmill/, /corda naval|battle rope/];
     const representedObjects = objectGroups.filter(pattern => galleryObjectLabels.some(label => pattern.test(label))).length;
-    if (representedObjects < 4) issues.push("Galeria da academia não comprova quatro cenas diferentes: identifique ilustrações de halteres, anilhas, esteira e corda naval nos aria-labels.");
+    if (representedObjects < 4) issues.push("Galeria da academia precisa mostrar quatro cenas distintas: use fotografias ilustrativas ou SVGs identificados de halteres, anilhas, esteira e corda naval.");
   }
   const unsupportedClaims = /instrutores qualificados|acompanhamento di[aá]rio|equipe especializada|profissionais certificados|equipamentos de [úu]ltima gera[cç][aã]o|[áa]rea dedicada|estrutura completa|ambiente climatizado|resultados garantidos/i;
   if (unsupportedClaims.test(html)) issues.push("Há afirmações sobre equipe, equipamentos, instalações ou serviços que não foram confirmadas nos dados fornecidos.");
@@ -324,7 +359,10 @@ export default {
     if (prompt.length < 15) return json({ error: "Descreva o site com pelo menos 15 caracteres." }, 400, origin);
     if (prompt.length > 5000) return json({ error: "A descrição deve ter no máximo 5.000 caracteres." }, 400, origin);
 
+    const visualBrief = segmentVisualBrief(business.type);
     const instructions = `Você é uma equipe sênior de design UX/UI, desenvolvimento front-end, conversão e SEO. Crie um site comercial realmente profissional, rico e personalizado para o negócio descrito, em português do Brasil. Entregue SOMENTE um documento HTML completo começando com <!doctype html>, com CSS dentro de <style> e JavaScript puro dentro de <script>. Tudo deve funcionar em um único arquivo, sem frameworks, bibliotecas externas, fontes externas ou scripts de terceiros. Não faça uma página genérica curta.
+
+${visualBrief}
 
 DIREÇÃO DE ARTE E QUALIDADE VISUAL OBRIGATÓRIA: aja como um estúdio digital profissional. Não entregue apenas wireframe ou coleção de cards. O resultado deve parecer um site comercial pronto para apresentação ao cliente, com identidade visual própria, composição forte e acabamento consistente. Escolha um conceito visual específico do segmento e mantenha consistência em cores, tipografia, formas, ícones e fotografia/ilustração. Não entregue template genérico. Crie ritmo de página com alternância de fundos, largura controlada, respiro generoso, hierarquia tipográfica expressiva, títulos fortes, textos escaneáveis e CTAs claros. HERO: layout assimétrico, título grande com quebra intencional, etiqueta curta, CTA principal e ilustração SVG/CSS original com vários detalhes e camadas que conte algo sobre o negócio. Nunca use apenas um círculo, quadrado ou cruz como ilustração. Crie pelo menos DOIS momentos visuais memoráveis além do hero: mosaico assimétrico com quatro ilustrações SVG/CSS diferentes para negócios visuais; faixa editorial de destaque; timeline desenhada; manifesto tipográfico ou composição especial de serviços. Não use a mesma grade de cartões em todas as seções. Em cada painel SVG, desenhe objetos reconhecíveis e específicos do segmento com linhas, formas e detalhes próprios; formas geométricas soltas não contam como galeria. Use ícones SVG coerentes, estados hover/focus e microinterações discretas. Evite excesso de gradientes, emojis como ícones principais, sombras pesadas e bordas em todos os elementos. O resultado deve ter acabamento autoral e excelente adaptação a desktop e celular. Se não houver imagens reais fornecidas, crie visuais editoriais com CSS/SVG e cores/texturas adequadas ao segmento; NÃO use via.placeholder.com, placehold.co, placekitten.com, URLs inventadas, imagens quebradas ou URLs externas aleatórias. Nunca use e-mail fictício como contato@nomedonegocio.com, contato@powerfit.com ou exemplo@example.com. Se não houver telefone/WhatsApp/e-mail real fornecido, não crie mailto, tel ou botão de contato falso: use uma chamada editorial neutra sem ação enganosa. Se houver WhatsApp informado, use exatamente esse número em https://wa.me/NUMERO. Se usar imagem remota, ela deve ser uma URL pública real e estável que você conheça; caso contrário, não use imagem remota. O resultado deve ser visualmente rico e excelente em desktop e celular. Não basta cumprir contagem de seções: nenhuma seção pode ser apenas um título e uma frase genérica. Desenvolva cada seção com um bloco informativo específico, exemplos de opções/etapas quando cabíveis e hierarquia visual própria. Em serviços/modalidades, mostre pelo menos três opções claramente distintas, cada uma com título, explicação específica e benefício possível sem prometer resultados. Não deixe a seção apenas com três nomes e frases vagas. O hero deve empilhar texto e arte no celular. A seção de contato sem dados confirmados deve ser um encerramento editorial profissional e atraente, com convite neutro para conhecer o negócio. Não escreva “a configurar”, “adicionar contato”, “canais serão adicionados” nem qualquer instrução técnica visível; não invente telefone, e-mail ou WhatsApp. Em telas pequenas, o menu deve abrir como painel vertical legível; a própria lista nav ul deve usar display:flex e flex-direction:column, com links empilhados, espaçamento de toque adequado, fundo sólido e z-index correto; nunca deixe links em linha espremida ou sobrepostos. O botão deve atualizar aria-expanded e aria-controls, fechar ao selecionar link e ao pressionar Escape. Inclua :focus-visible em links, botões e campos. PROIBIDO deixar retângulos pretos/cinzas vazios ou caixas que pareçam imagens ausentes: crie uma ilustração SVG/CSS completa dentro delas, ou remova o bloco e reorganize o layout. Nunca deixe navegação escondida no celular sem botão hambúrguer acessível e funcional. Não publique preços como R$ XXX,XX nem frases como 'unidade a definir'; se os dados faltarem, omita-os ou use um aviso de edição discreto que não pareça conteúdo final.
 
@@ -393,6 +431,7 @@ Descrição e necessidades do cliente: ${prompt}`;
         "Esta é a tentativa de reconstrução " + (repairPass + 1) + " de 3. Corrija TODOS os problemas listados e faça uma revisão geral de qualidade. Não preserve componentes fracos só para manter o HTML anterior.",
         "",
         "DIREÇÃO DE ARTE: reconstrua como estúdio digital profissional. Antes de escrever, defina um conceito visual específico, uma paleta curta, uma escala tipográfica e uma composição própria. A primeira dobra deve ter impacto e hierarquia; alterne seções editoriais, mosaicos, faixas e listas visuais. Não repita o mesmo cartão em todas as seções. Cada seção deve parecer desenhada para este negócio, não um template trocando cores. Não use emoji como ícone principal, nem formas aleatórias para fingir fotografia. Se não houver fotos reais fornecidas, assuma honestamente uma direção ilustrada premium e crie cenas SVG/CSS detalhadas e reconhecíveis.",
+        visualBrief,
         "SEÇÕES OBRIGATÓRIAS: para academia entregue exatamente 10 elementos <section> reais, nesta ordem: hero, sobre, modalidades, benefícios, método/etapas, galeria, planos, manifesto/filosofia, FAQ e contato. Não omita nem funda seções. Cada seção precisa ter conteúdo desenvolvido e id próprio. Para outros segmentos, entregue 8 a 12 seções úteis.",
         "SEGMENTO ACADEMIA: use linguagem visual esportiva premium. Se não houver fotos fornecidas, desenhe quatro SVGs detalhados e reconhecíveis: halteres, anilhas, esteira e corda naval. Cada aria-label deve identificar um objeto diferente e cada SVG deve conter pelo menos quatro elementos gráficos que formem sua silhueta. São ilustrações conceituais; não afirme que esses equipamentos existem na academia. Não use ícones geométricos genéricos como ilustração principal.",
         "HERO: composição editorial assimétrica, título grande com quebra intencional, etiqueta curta, CTA destacado e ilustração SVG inline original com vários elementos reconhecíveis e detalhes do segmento. Use camadas, recortes, escala e profundidade. Proibido quadrado solitário, círculo genérico, cruz simples ou bloco vazio.",
