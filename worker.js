@@ -44,6 +44,68 @@ function segmentVisualBrief(type) {
   ].join("\n");
 }
 
+
+function enforceSegmentPhotography(html, business = {}) {
+  let output = String(html || "");
+  const key = String(business.type || "servicos").trim().toLowerCase()
+    .normalize("NFD").replace(/[\\u0300-\\u036f]/g, "")
+    .replace(/[_-]+/g, " ").replace(/\\s+/g, " ");
+  const profiles = {
+    academia: ["photo-1534438327276-14e5300c3a48", "photo-1571019613454-1cb2f99b2d8b", "photo-1583454110551-21f2fa2afe61", "photo-1517836357463-d25dfeac3438"],
+    restaurante: ["photo-1517248135467-4c7edcad34c4", "photo-1414235077428-338989a2e8c0", "photo-1515003197210-e0cd7184f8b2", "photo-1559339352-11d035aa65de"],
+    barbearia: ["photo-1503951914875-452162b0f3f1", "photo-1599351431202-1e0f0137899a", "photo-1621605815971-fbc98d665033", "photo-1503951914875-452162b0f3f1"],
+    beleza: ["photo-1560066984-138dadb4c035", "photo-1522337360788-8b13dee7a37e", "photo-1487412720507-e7ab37603c6f", "photo-1521590832167-7bcbfaa6381f"],
+    clinica: ["photo-1629909613654-28e377c37b09", "photo-1576091160399-112ba8d25d1d", "photo-1584982751601-97d4b6c8b6c5", "photo-1631815588090-d4bfec5b1ccb"],
+    loja: ["photo-1441986300917-64674bd600d8", "photo-1472851294608-062f824d29cc", "photo-1490481651871-ab68de25d43d", "photo-1523275335684-37898b6baf30"],
+    petshop: ["photo-1548199973-03cce0bbc87b", "photo-1583337130417-3346a1be7dee", "photo-1543466835-00a7907e9de1", "photo-1552053831-71594a27632d"],
+    imobiliaria: ["photo-1600596542815-ffad4c1539a9", "photo-1600607687939-ce8a6c25118c", "photo-1600566753086-00f18fb6b3ea", "photo-1600607687920-4e2a09cf159d"],
+    fotografo: ["photo-1452587925148-ce544e77e70d", "photo-1516035069371-29a1b244cc32", "photo-1492691527719-9d1e07e534b4", "photo-150053d89ba3ee"],
+    construcao: ["photo-1503387762-592deb58ef4e", "photo-1504307651254-35680f356dfd", "photo-1541888946425-d81bb19240f5", "photo-1503387762-592deb58ef4e"],
+    educacao: ["photo-1509062522246-3755977927d7", "photo-1523050854058-8df90110c9f1", "photo-1503676260728-1c00da094a0b", "photo-1509062522246-3755977927d7"],
+    servicos: ["photo-1497366754035-f200968a6e72", "photo-1497366216548-37526070297c", "photo-1497366811353-6870744d04b2", "photo-1497366754035-f200968a6e72"]
+  };
+  const aliases = { "gym": "academia", "fitness": "academia", "musculacao": "academia", "academia de ginastica": "academia", "restaurante / lanchonete": "restaurante", "pet shop": "petshop", "salao": "beleza", "salao de beleza": "beleza" };
+  const selected = aliases[key] || key;
+  const ids = profiles[selected] || profiles.servicos;
+  const makeUrl = (id, index) => "https://images.unsplash.com/" + id + "?auto=format&fit=crop&w=" + (index === 0 ? "1500" : "900") + "&q=85";
+  const replaceImage = (tag, url, alt, eager) => {
+    let next = tag;
+    if (/\\bsrc\\s*=\\s*["'][^"']*["']/i.test(next)) next = next.replace(/\\bsrc\\s*=\\s*["'][^"']*["']/i, 'src="' + url + '"');
+    else next = next.replace(/<img\\b/i, '<img src="' + url + '"');
+    if (/\\balt\\s*=\\s*["'][^"']*["']/i.test(next)) next = next.replace(/\\balt\\s*=\\s*["'][^"']*["']/i, 'alt="' + alt + '"');
+    else next = next.replace(/<img\\b/i, '<img alt="' + alt + '"');
+    next = next.replace(/\\sloading\\s*=\\s*["'][^"']*["']/i, "");
+    next = next.replace(/\\sdecoding\\s*=\\s*["'][^"']*["']/i, "");
+    next = next.replace(/<img\\b/i, '<img loading="' + (eager ? "eager" : "lazy") + '" decoding="async"');
+    return next;
+  };
+  const heroRe = /<section\\b(?=[^>]*\\bid=["']hero["'])[^>]*>[\\s\\S]*?<\\/section>/i;
+  output = output.replace(heroRe, section => {
+    let used = false;
+    return section.replace(/<img\\b[^>]*>/i, tag => {
+      used = true;
+      return replaceImage(tag, makeUrl(ids[0], 0), "Imagem ilustrativa do segmento " + selected, true);
+    });
+  });
+  const galleryRe = /<section\\b(?=[^>]*\\bid=["'](?:galeria|gallery|estrutura)["'])[^>]*>[\\s\\S]*?<\\/section>/i;
+  output = output.replace(galleryRe, section => {
+    let index = 0;
+    section = section.replace(/<img\\b[^>]*>/gi, tag => {
+      if (index >= 4) return tag;
+      const i = index++;
+      return replaceImage(tag, makeUrl(ids[i], i), "Imagem ilustrativa " + (i + 1) + " do segmento " + selected, false);
+    });
+    while (index < 4) {
+      const i = index++;
+      const image = '<figure class="gallery-item" style="margin:0;overflow:hidden;border-radius:12px;aspect-ratio:4/3"><img src="' + makeUrl(ids[i], i) + '" alt="Imagem ilustrativa ' + (i + 1) + ' do segmento ' + selected + '" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:cover"></figure>';
+      if (/<svg\\b[\\s\\S]*?<\\/svg>/i.test(section)) section = section.replace(/<svg\\b[\\s\\S]*?<\\/svg>/i, image);
+      else section = section.replace(/<\\/section>/i, image + "</section>");
+    }
+    return section;
+  });
+  return output;
+}
+
 function inspectHtml(html, business = {}) {
   const issues = [];
   const sections = (html.match(/<section\b/gi) || []).length;
@@ -422,7 +484,7 @@ Descrição e necessidades do cliente: ${prompt}`;
       }, status, origin);
     }
 
-    let html = enforceBusinessIntegrity(polishHtml(extractHtml(result)), business);
+    let html = enforceSegmentPhotography(enforceBusinessIntegrity(polishHtml(extractHtml(result)), business), business);
     if (!html || !/^<!doctype html/i.test(html) || !/<html[\s>]/i.test(html) || html.length < 500) {
       return json({ error: "A IA não retornou um HTML completo. Tente uma descrição mais específica." }, 502, origin);
     }
@@ -466,7 +528,7 @@ Descrição e necessidades do cliente: ${prompt}`;
         });
         const repairResult = await repairResponse.json().catch(() => ({}));
         if (repairResponse.ok) {
-          const candidate = enforceBusinessIntegrity(polishHtml(extractHtml(repairResult)), business);
+          const candidate = enforceSegmentPhotography(enforceBusinessIntegrity(polishHtml(extractHtml(repairResult)), business), business);
           if (candidate && /^<!doctype html/i.test(candidate) && /<html[\s>]/i.test(candidate) && candidate.length >= 500) {
             const candidateQuality = inspectHtml(candidate, business);
             const weight = issue => /IDs duplicados|Links internos sem destino|Seções superficiais|Estrutura incompleta|Seção obrigatória ausente|Galeria da academia|afirmações sobre equipe|lista nav ul|Seção de modalidades|Contato ainda parece|Hero sem composição detalhada|adaptação responsiva comprovada/i.test(issue) ? 30 : 12;
