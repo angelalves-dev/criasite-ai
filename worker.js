@@ -160,7 +160,8 @@ function inspectHtml(html, business = {}) {
     if (!/m[eé]todo|etapas|como funciona|jornada/i.test(normalizedHtml)) issues.push("Falta explicar o método ou as etapas da experiência.");
     if (!/manifesto|filosofia|no que acreditamos|experi[eê]ncia/i.test(normalizedHtml)) issues.push("Falta um momento de identidade da marca, como manifesto ou filosofia.");
   }
-  const isFitnessSite = /academia|muscula[cç][aã]o|powerfit|treinamento f[ií]sico/i.test(normalizedHtml);
+  const requestedType = String(business.type || "").trim().toLowerCase();
+  const isFitnessSite = requestedType === "academia" || (!requestedType && /academia|muscula[cç][aã]o|powerfit|treinamento f[ií]sico/i.test(normalizedHtml));
   if (isFitnessSite && sections !== 10) issues.push("Estrutura de academia incorreta: entregue exatamente dez seções reais.");
   if (isFitnessSite) {
     const expectedOrder = ["hero", "sobre", "modalidades", "beneficios", "metodo", "galeria", "planos", "manifesto", "faq", "contato"];
@@ -239,6 +240,56 @@ function polishHtml(html) {
     output = output.replace(/<\/body>/i, '<script>document.querySelectorAll("[data-current-year]").forEach(function(node){node.textContent=String(new Date().getFullYear())});</script></body>');
   }
   return output;
+}
+
+function enforceBusinessIntegrity(html, business = {}) {
+  let output = String(html || "");
+  const digits = String(business.whatsapp || "").replace(/[^0-9]/g, "");
+  const validWhatsApp = digits.length >= 10 && digits.length <= 15 && !/^0+$/.test(digits);
+
+  // O HTML entregue é autônomo: remove dependências executáveis externas.
+  output = output.replace(/<script\\b(?=[^>]*\\bsrc\\s*=)[^>]*>[\\s\\S]*?<\\/script>/gi, "");
+  output = output.replace(/<link\\b(?=[^>]*\\brel\\s*=\\s*["'][^"']*stylesheet)(?=[^>]*\\bhref\\s*=\\s*["']https?:)[^>]*>/gi, "");
+  output = output.replace(/@import\\s+(?:url\\()?\\s*["']?https?:[^;]+;?/gi, "");
+
+  // Nunca permite que a IA invente o canal de contato do cliente.
+  output = output.replace(/<a\\b([^>]*\\bhref\\s*=\\s*["'](?:https?:\\/\\/(?:www\\.)?wa\\.me\\/[^"']*|tel:[^"']*|mailto:[^"']*)["'][^>]*)>([\\s\\S]*?)<\\/a>/gi,
+    (whole, attrs, inner) => {
+      const isWhatsApp = /wa\\.me\\//i.test(attrs);
+      if (isWhatsApp && validWhatsApp) {
+        const message = "Olá! Gostaria de saber mais sobre " + String(business.name || "seus serviços").slice(0, 80) + ".";
+        return whole.replace(/href\\s*=\\s*["'][^"']*["']/i, 'href="https://wa.me/' + digits + '?text=' + encodeURIComponent(message) + '"');
+      }
+      return '<span class="contact-link-neutral">' + inner + '</span>';
+    });
+
+  // Corrige também links wa.me escritos fora de uma âncora ou em atributos alternativos.
+  if (validWhatsApp) {
+    output = output.replace(/https?:\\/\\/(?:www\\.)?wa\\.me\\/\\d{6,20}(?:\\?[^"'\\s<>]*)?/gi, "https://wa.me/" + digits);
+  }
+  return output;
+}
+
+function qualityReport(quality) {
+  const criticalPattern = /HTML com estrutura inválida|IDs duplicados|Links internos sem destino|Falta meta viewport|Falta um título principal h1|Contato contém e-mail|WhatsApp fictício|WhatsApp informado pelo cliente precisa estar conectado|afirmações sobre equipe|afirmações comerciais específicas|afirmações não comprovadas|placeholder|instrução provisória|Formulário sem tratamento|Formulário bloqueia|Markdown visível|script externo|dependência externa/i;
+  const majorPattern = /Poucas seções|Há seções demais|Seções superficiais|Profundidade editorial|Falta uma media query|adaptação responsiva|Galeria|Hero sem|direção de arte|composição|FAQ|Planos|modalidades|lista nav ul|menu móvel|Seção obrigatória|benefícios|manifesto|método|links sem destino/i;
+  const criticalIssues = quality.issues.filter(issue => criticalPattern.test(issue));
+  const majorIssues = quality.issues.filter(issue => majorPattern.test(issue) && !criticalPattern.test(issue));
+  const minorIssues = quality.issues.filter(issue => !criticalPattern.test(issue) && !majorPattern.test(issue));
+  const raw = 10 - criticalIssues.length * 1.35 - majorIssues.length * 0.55 - minorIssues.length * 0.25;
+  const score = Math.max(0, Math.min(10, Math.round(raw * 10) / 10));
+  const readyForClient = score >= 8 && criticalIssues.length === 0 && majorIssues.length <= 2;
+  return {
+    score,
+    readyForClient,
+    ratingLabel: readyForClient ? "Aprovado na verificação automática" : "Precisa de revisão antes de apresentar ao cliente",
+    criticalCount: criticalIssues.length,
+    majorCount: majorIssues.length,
+    minorCount: minorIssues.length,
+    criticalIssues,
+    majorIssues,
+    minorIssues
+  };
 }
 
 function extractHtml(result) {
@@ -328,7 +379,7 @@ Descrição e necessidades do cliente: ${prompt}`;
       }, status, origin);
     }
 
-    let html = polishHtml(extractHtml(result));
+    let html = enforceBusinessIntegrity(polishHtml(extractHtml(result)), business);
     if (!html || !/^<!doctype html/i.test(html) || !/<html[\s>]/i.test(html) || html.length < 500) {
       return json({ error: "A IA não retornou um HTML completo. Tente uma descrição mais específica." }, 502, origin);
     }
@@ -371,7 +422,7 @@ Descrição e necessidades do cliente: ${prompt}`;
         });
         const repairResult = await repairResponse.json().catch(() => ({}));
         if (repairResponse.ok) {
-          const candidate = polishHtml(extractHtml(repairResult));
+          const candidate = enforceBusinessIntegrity(polishHtml(extractHtml(repairResult)), business);
           if (candidate && /^<!doctype html/i.test(candidate) && /<html[\s>]/i.test(candidate) && candidate.length >= 500) {
             const candidateQuality = inspectHtml(candidate, business);
             const weight = issue => /IDs duplicados|Links internos sem destino|Seções superficiais|Estrutura incompleta|Seção obrigatória ausente|Galeria da academia|afirmações sobre equipe|lista nav ul|Seção de modalidades|Contato ainda parece|Hero sem composição detalhada|adaptação responsiva comprovada/i.test(issue) ? 30 : 12;
@@ -404,9 +455,10 @@ Descrição e necessidades do cliente: ${prompt}`;
         // Se a correção falhar, mantém o primeiro HTML válido.
       }
     }
+    const report = qualityReport(quality);
     return json({
       html,
-      quality: { checked: true, autoRepairAttempted: repairAttempted, autoRepairApplied: repairApplied, repairStatus: !repairAttempted ? "not-needed" : repairApplied ? "applied" : "not-applied", sectionCount: quality.sections, warnings: quality.issues, note: "A verificação é estática e a página recebeu ajustes automáticos seguros; confira a prévia, dados do negócio e controles no navegador." }
+      quality: { checked: true, autoRepairAttempted: repairAttempted, autoRepairApplied: repairApplied, repairStatus: !repairAttempted ? "not-needed" : repairApplied ? "applied" : "not-applied", sectionCount: quality.sections, warnings: quality.issues, ...report, note: "A nota mede verificações automáticas de estrutura, conteúdo e responsividade; a aparência final e os links devem ser conferidos na prévia." }
     }, 200, origin);
   }
 };
