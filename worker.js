@@ -273,6 +273,21 @@ function inspectHtml(html, business = {}) {
   if (/agende uma visita|fale conosco|entre em contato|solicite um or[cç]amento/i.test(contactBlock || html) && !hasRealContact && whatsappDigits.length > 0) issues.push("A chamada comercial precisa usar o WhatsApp real informado pelo cliente.");
   if (/<img\b/i.test(html) && /<img\b(?![^>]*\bloading=["']lazy["'])/i.test(html)) issues.push("Imagens fora do hero devem usar loading=lazy para melhorar o carregamento.");
   if (/(?:min-width\s*:\s*(?:280|300|320|350)px|width\s*:\s*(?:300|320|350)px)/i.test(html) && !/overflow-x\s*:\s*hidden|overflow-x\s*:\s*clip/i.test(html)) issues.push("Revise larguras mínimas fixas que podem causar rolagem horizontal em celulares; use grids fluidos com minmax(0, 1fr).");
+
+  if (!/<html\b[^>]*\blang=["']pt-BR["']/i.test(html)) issues.push("Documento sem idioma pt-BR declarado. Adicione lang=\"pt-BR\" à tag html.");
+  const h1Count = (html.match(/<h1\b/gi) || []).length;
+  if (h1Count > 1) issues.push("Há mais de um h1. Mantenha um único título principal e organize o restante com h2/h3.");
+  if (!/<main\b/i.test(html)) issues.push("Falta landmark main. Envolva o conteúdo principal em <main> para melhorar semântica e navegação assistiva.");
+  if (/<a\b[^>]*href=["']\s*["']/i.test(html)) issues.push("Há link com href vazio. Dê um destino real a cada link ou transforme o texto em elemento não clicável.");
+  if (/<button\b(?![^>]*\btype=)/i.test(html)) issues.push("Há botão sem atributo type. Defina type=\"button\" ou type=\"submit\" para evitar envios acidentais.");
+  if (/<a\b(?=[^>]*target=["']_blank["'])(?![^>]*rel=["'][^"']*noopener)[^>]*>/i.test(html)) issues.push("Links que abrem nova aba precisam de rel=\"noopener noreferrer\".");
+  const blankAltImages = Array.from(html.matchAll(/<img\b[^>]*>/gi), match => match[0]).filter(tag => !/\balt=["'][^"']+["']/i.test(tag));
+  if (blankAltImages.length) issues.push("Há imagens sem texto alternativo descritivo. Preencha alt em todas as imagens informativas.");
+  const description = (html.match(/<meta\s+name=["']description["']\s+content=["']([^"']*)["']/i) || [,""])[1];
+  if (description && (description.length < 70 || description.length > 170)) issues.push("A meta description está fora do tamanho recomendado. Ajuste para aproximadamente 70 a 170 caracteres, sem repetir palavras-chave.");
+  const emptyButtons = Array.from(html.matchAll(/<button\b[^>]*>([\s\S]*?)<\/button>/gi), match => match[1].replace(/<[^>]+>/g, "").trim()).filter(label => !label);
+  if (emptyButtons.length) issues.push("Há botão sem nome acessível. Adicione texto visível ou aria-label que descreva sua ação.");
+
   if (!/<h1\b/i.test(html)) issues.push("Falta um título principal h1 claro no hero.");
   if (/width\s*:\s*300px[\s\S]{0,160}height\s*:\s*300px[\s\S]{0,160}border\s*:\s*20px/i.test(html)) issues.push("O hero parece usar apenas um quadrado decorativo simples; crie uma composição editorial relacionada ao segmento.");
   if (/prefers-reduced-motion/i.test(html) === false && /scroll-behavior\s*:\s*smooth/i.test(html)) issues.push("Respeite prefers-reduced-motion para usuários que reduzem animações.");
@@ -447,7 +462,7 @@ function enforceBusinessIntegrity(html, business = {}) {
 }
 
 function qualityReport(quality) {
-  const criticalPattern = /O FAQ promete contato, visita ou suporte de equipe|A galeria repete fotografias|alegações comerciais ou técnicas não encontradas|O conteúdo apresenta como fatos serviços|A imagem principal do hero desaparece no celular|HTML com estrutura inválida|IDs duplicados|Links internos sem destino|Falta meta viewport|Falta um título principal h1|Contato contém e-mail|chamada sem ação funcional|Foto principal do hero incompatível|Galeria usa fotos ausentes ou incompatíveis|WhatsApp fictício|WhatsApp informado pelo cliente precisa estar conectado|afirmações sobre equipe|afirmações comerciais específicas|afirmações não comprovadas|placeholder|instrução provisória|Formulário sem tratamento|Formulário bloqueia|Markdown visível|script externo|dependência externa/i;
+  const criticalPattern = /Documento sem idioma pt-BR|Há mais de um h1|Falta landmark main|Há link com href vazio|Há botão sem nome acessível|O FAQ promete contato, visita ou suporte de equipe|A galeria repete fotografias|alegações comerciais ou técnicas não encontradas|O conteúdo apresenta como fatos serviços|A imagem principal do hero desaparece no celular|HTML com estrutura inválida|IDs duplicados|Links internos sem destino|Falta meta viewport|Falta um título principal h1|Contato contém e-mail|chamada sem ação funcional|Foto principal do hero incompatível|Galeria usa fotos ausentes ou incompatíveis|WhatsApp fictício|WhatsApp informado pelo cliente precisa estar conectado|afirmações sobre equipe|afirmações comerciais específicas|afirmações não comprovadas|placeholder|instrução provisória|Formulário sem tratamento|Formulário bloqueia|Markdown visível|script externo|dependência externa/i;
   const majorPattern = /A fotografia do hero está repetida na galeria|A galeria não tem adaptação mobile específica|A imagem principal do hero desaparece no celular|Falta um rodapé completo|botão do menu móvel deve ficar oculto|afirmações comerciais específicas|Poucas seções|Há seções demais|Seções superficiais|Profundidade editorial|Falta uma media query|adaptação responsiva|Galeria|Hero sem|direção de arte|composição|FAQ|Planos|modalidades|lista nav ul|menu móvel|Seção obrigatória|benefícios|manifesto|método|links sem destino/i;
   const criticalIssues = quality.issues.filter(issue => criticalPattern.test(issue));
   const majorIssues = quality.issues.filter(issue => majorPattern.test(issue) && !criticalPattern.test(issue));
@@ -613,7 +628,7 @@ Descrição e necessidades do cliente: ${prompt}`;
             const candidateScore = score(candidateQuality);
             // Só bloqueia falhas estruturais graves. Avisos editoriais/visuais continuam
             // sendo contabilizados, mas não devem descartar uma reconstrução claramente melhor.
-            const criticalPatterns = /HTML com estrutura inválida|IDs duplicados|Links internos sem destino|Falta meta viewport|Falta um título principal h1|Poucas seções|Há seções demais|FAQ superficial|FAQ precisa de cinco perguntas|A seção planos apresenta opções comerciais sem dados confirmados|Planos sem hierarquia visual|FAQ contém regras|chamada promete agendamento|Markdown visível|largura mínima rígida|Seções superficiais|Estrutura incompleta para academia|Estrutura de academia incorreta|dez seções da academia precisam seguir a ordem|Seção obrigatória ausente|lista nav ul|links da lista de navegação|Seção de modalidades\/serviços sem opções|Galeria incompleta ou esquemática|Galeria da academia não comprova|Hero sem composição detalhada|Foto principal do hero incompatível|Galeria usa fotos ausentes ou incompatíveis|Contato contém e-mail ou domínio fictício|WhatsApp informado pelo cliente precisa estar conectado/;
+            const criticalPatterns = /Documento sem idioma pt-BR|Há mais de um h1|Falta landmark main|Há link com href vazio|Há botão sem nome acessível|HTML com estrutura inválida|IDs duplicados|Links internos sem destino|Falta meta viewport|Falta um título principal h1|Poucas seções|Há seções demais|FAQ superficial|FAQ precisa de cinco perguntas|A seção planos apresenta opções comerciais sem dados confirmados|Planos sem hierarquia visual|FAQ contém regras|chamada promete agendamento|Markdown visível|largura mínima rígida|Seções superficiais|Estrutura incompleta para academia|Estrutura de academia incorreta|dez seções da academia precisam seguir a ordem|Seção obrigatória ausente|lista nav ul|links da lista de navegação|Seção de modalidades\/serviços sem opções|Galeria incompleta ou esquemática|Galeria da academia não comprova|Hero sem composição detalhada|Foto principal do hero incompatível|Galeria usa fotos ausentes ou incompatíveis|Contato contém e-mail ou domínio fictício|WhatsApp informado pelo cliente precisa estar conectado/;
             const candidateHasRequiredArt = !candidateQuality.issues.some(issue => /A galeria precisa de quatro painéis|Galeria sem quatro ilustrações|Galeria incompleta ou esquemática|Galeria incompleta: use pelo menos quatro fotografias|Remova SVGs esquemáticos da galeria|Galeria da academia não comprova|Hero sem composição detalhada/.test(issue));
             const candidateHasNoCriticalIssues = !candidateQuality.issues.some(issue => criticalPatterns.test(issue));
             const improvement = originalScore - candidateScore;
@@ -623,9 +638,13 @@ Descrição e necessidades do cliente: ${prompt}`;
               candidateQuality.sections <= 12 &&
               candidateHasNoCriticalIssues &&
               candidateHasRequiredArt;
-            const candidateImproves = improvement > 0 || candidateQuality.issues.length < quality.issues.length;
-            // Mesmo uma reconstrução ainda imperfeita vira a base da segunda tentativa
-            // quando melhora a anterior; não descartamos progresso parcial.
+            const currentReport = qualityReport(quality);
+            const candidateReport = qualityReport(candidateQuality);
+            const candidateImproves = candidateReport.score > currentReport.score ||
+              (candidateReport.score === currentReport.score &&
+               candidateReport.criticalCount <= currentReport.criticalCount &&
+               candidateQuality.issues.length < quality.issues.length);
+            // Só aceita uma reconstrução quando a nota objetiva melhora (ou empata sem piorar falhas críticas).
             if (candidateIsValid || candidateImproves) {
               html = candidate;
               quality = candidateQuality;
