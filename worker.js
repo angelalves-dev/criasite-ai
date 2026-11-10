@@ -248,11 +248,11 @@ function inspectHtml(html, business = {}) {
   const galleryPhotoIds = galleryImageTags.map(tag => ((tag.match(/src=["'][^"']*images\.unsplash\.com\/(photo-[^?]+)/i) || [])[1] || ""));
   const repeatedGalleryPhotos = galleryPhotoIds.filter((id, index) => id && galleryPhotoIds.indexOf(id) !== index);
   if (repeatedGalleryPhotos.length) issues.push("A galeria repete fotografias. Use quatro imagens diferentes dentro da própria galeria, mantendo a foto do hero independente.");
-  if (heroPhotoId && galleryPhotoIds.includes(heroPhotoId)) issues.push("A fotografia do hero está repetida na galeria. Reserve quatro imagens distintas para a galeria e mantenha a foto principal independente.");
   const correctSegmentPhotos = galleryPhotoIds.filter(id => expectedPhotoIds.includes(id)).length;
   if (hasGallery && galleryImagesWithAlt < 4) issues.push("Galeria precisa conter quatro fotografias reais com texto alternativo útil.");
   if (hasGallery && expectedPhotoIds.length && correctSegmentPhotos < 4) issues.push("Galeria usa fotos ausentes ou incompatíveis com o segmento. Use exatamente as quatro URLs de fotografia fornecidas para este tipo de negócio.");
   const heroPhotoId = ((hero.match(/<img\b[^>]*src=["'][^"']*images\.unsplash\.com\/(photo-[^?]+)/i) || [])[1] || "");
+  if (heroPhotoId && galleryPhotoIds.includes(heroPhotoId)) issues.push("A fotografia do hero está repetida na galeria. Reserve quatro imagens distintas para a galeria e mantenha a foto principal independente.");
   if (expectedPhotoIds.length && !expectedPhotoIds.includes(heroPhotoId)) issues.push("Foto principal do hero incompatível com o segmento selecionado. Substitua pela primeira fotografia oficial do perfil do negócio.");
   if (hasGallery && gallerySemanticSvgs + galleryImagesWithAlt < 4) issues.push("Galeria precisa de quatro imagens com alt útil ou ilustrações SVG acessíveis.");
   if (hasGallery && gallerySvgCount > 0 && svgShapeCount < 18 && (galleryMatch ? (galleryMatch[0].match(/<img\b/gi) || []).length : 0) < 4) issues.push("Ilustrações pouco detalhadas: desenvolva os SVGs com múltiplas formas, linhas e detalhes específicos, não formas geométricas isoladas.");
