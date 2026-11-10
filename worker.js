@@ -344,7 +344,6 @@ function inspectHtml(html, business = {}) {
     const detailCount = (faqBlock.body.match(/<details\b/gi) || []).length;
     if (Math.max(questionCount, detailCount) < 5) issues.push("FAQ superficial: inclua pelo menos cinco perguntas úteis com respostas completas.");
   }
-  const visibleText = html.replace(/<(script|style|svg)\b[\s\S]*?<\/\1>/gi, " ").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
   if (/\*\*[^*]{2,80}\*\*|(?<!\*)\*[^*\n]{2,80}\*(?!\*)/.test(visibleText)) issues.push("Há marcação Markdown visível no texto; converta para tags HTML.");
   if (/minmax\(\s*(?:280|300|320|350)px\s*,/i.test(html)) issues.push("Há colunas com largura mínima rígida que podem estourar a tela; use grids fluidos.");
   if (/(?:agende|marque)\s+(?:uma\s+)?(?:visita|avaliação|aula experimental)/i.test(html) && !hasWhatsAppContact && !/<form\b/i.test(contactBlock)) issues.push("A chamada promete agendamento, mas não há canal funcional; troque por convite neutro.");
