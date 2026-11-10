@@ -51,18 +51,18 @@ function inferBusinessType(business = {}, prompt = "") {
 function segmentVisualBrief(type) {
   const key = String(type || "servicos").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[_-]+/g, " ").replace(/\s+/g, " ");
   const profiles = {
-    academia: ["photo-1534438327276-14e5300c3a48", "photo-1571019613454-1cb2f99b2d8b", "photo-1583454110551-21f2fa2afe61", "photo-1517836357463-d25dfeac3438"],
-    restaurante: ["photo-1517248135467-4c7edcad34c4", "photo-1414235077428-338989a2e8c0", "photo-1515003197210-e0cd7184f8b2", "photo-1559339352-11d035aa65de"],
-    barbearia: ["photo-1503951914875-452162b0f3f1", "photo-1599351431202-1e0f0137899a", "photo-1621605815971-fbc98d665033", "photo-1503951914875-452162b0f3f1"],
-    beleza: ["photo-1560066984-138dadb4c035", "photo-1522337360788-8b13dee7a37e", "photo-1487412720507-e7ab37603c6f", "photo-1521590832167-7bcbfaa6381f"],
-    clinica: ["photo-1629909613654-28e377c37b09", "photo-1576091160399-112ba8d25d1d", "photo-1584982751601-97d4b6c8b6c5", "photo-1631815588090-d4bfec5b1ccb"],
-    loja: ["photo-1441986300917-64674bd600d8", "photo-1472851294608-062f824d29cc", "photo-1490481651871-ab68de25d43d", "photo-1523275335684-37898b6baf30"],
-    petshop: ["photo-1548199973-03cce0bbc87b", "photo-1583337130417-3346a1be7dee", "photo-1543466835-00a7907e9de1", "photo-1552053831-71594a27632d"],
-    imobiliaria: ["photo-1600596542815-ffad4c1539a9", "photo-1600607687939-ce8a6c25118c", "photo-1600566753086-00f18fb6b3ea", "photo-1600607687920-4e2a09cf159d"],
-    fotografo: ["photo-1452587925148-ce544e77e70d", "photo-1516035069371-29a1b244cc32", "photo-1492691527719-9d1e07e534b4", "photo-1500530855697-b586d89ba3ee"],
-    construcao: ["photo-1503387762-592deb58ef4e", "photo-1504307651254-35680f356dfd", "photo-1541888946425-d81bb19240f5", "photo-1503387762-592deb58ef4e"],
-    educacao: ["photo-1509062522246-3755977927d7", "photo-1523050854058-8df90110c9f1", "photo-1503676260728-1c00da094a0b", "photo-1509062522246-3755977927d7"],
-    servicos: ["photo-1497366754035-f200968a6e72", "photo-1497366216548-37526070297c", "photo-1497366811353-6870744d04b2", "photo-1497366754035-f200968a6e72"]
+    academia: ["photo-1534438327276-14e5300c3a48", "photo-1571019613454-1cb2f99b2d8b", "photo-1583454110551-21f2fa2afe61", "photo-1517836357463-d25dfeac3438", "photo-1534258936925-c58bed479fcb"],
+    restaurante: ["photo-1517248135467-4c7edcad34c4", "photo-1414235077428-338989a2e8c0", "photo-1515003197210-e0cd7184f8b2", "photo-1559339352-11d035aa65de", "photo-1514933651103-005eec06c04b"],
+    barbearia: ["photo-1503951914875-452162b0f3f1", "photo-1599351431202-1e0f0137899a", "photo-1621605815971-fbc98d665033", "photo-1622296089863-eb7fc530daa8", "photo-1593702295094-aea8c9c8f2d1"],
+    beleza: ["photo-1560066984-138dadb4c035", "photo-1522337360788-8b13dee7a37e", "photo-1487412720507-e7ab37603c6f", "photo-1521590832167-7bcbfaa6381f", "photo-1516975080664-ed2fc6a32937"],
+    clinica: ["photo-1629909613654-28e377c37b09", "photo-1576091160399-112ba8d25d1d", "photo-1584982751601-97d4b6c8b6c5", "photo-1631815588090-d4bfec5b1ccb", "photo-1511174511562-5f7f18b874f8"],
+    loja: ["photo-1441986300917-64674bd600d8", "photo-1472851294608-062f824d29cc", "photo-1490481651871-ab68de25d43d", "photo-1523275335684-37898b6baf30", "photo-1490312278390-ab64016e0aa9"],
+    petshop: ["photo-1548199973-03cce0bbc87b", "photo-1583337130417-3346a1be7dee", "photo-1543466835-00a7907e9de1", "photo-1552053831-71594a27632d", "photo-1516734212186-a967f81ad0d7"],
+    imobiliaria: ["photo-1600596542815-ffad4c1539a9", "photo-1600607687939-ce8a6c25118c", "photo-1600566753086-00f18fb6b3ea", "photo-1600607687920-4e2a09cf159d", "photo-1600607687644-c7171b42498f"],
+    fotografo: ["photo-1452587925148-ce544e77e70d", "photo-1516035069371-29a1b244cc32", "photo-1492691527719-9d1e07e534b4", "photo-1500530855697-b586d89ba3ee", "photo-1542038784456-1ea8e935640e"],
+    construcao: ["photo-1503387762-592deb58ef4e", "photo-1504307651254-35680f356dfd", "photo-1541888946425-d81bb19240f5", "photo-1487958449943-2429e8be8625", "photo-1503387762-592deb58ef4e"],
+    educacao: ["photo-1509062522246-3755977927d7", "photo-1523050854058-8df90110c9f1", "photo-1503676260728-1c00da094a0b", "photo-1522202176988-66273c2fd55f", "photo-1498243691581-b145c3f54a5a"],
+    servicos: ["photo-1497366754035-f200968a6e72", "photo-1497366216548-37526070297c", "photo-1497366811353-6870744d04b2", "photo-1521737711867-e3b97375f902", "photo-1524758631624-e2822e304c36"]
   };
   const aliases = { "salao": "beleza", "salao de beleza": "beleza", "gym": "academia", "fitness": "academia", "musculacao": "academia", "academia de ginastica": "academia", "restaurante / lanchonete": "restaurante", "pet shop": "petshop", "pet-shop": "petshop", "clinica medica": "clinica", "loja virtual": "loja", "fotografia": "fotografo", "imoveis": "imobiliaria" };
   const selected = aliases[key] || key;
@@ -72,7 +72,7 @@ function segmentVisualBrief(type) {
     "DIREÇÃO VISUAL ESPECÍFICA DO SEGMENTO (" + selected + "):",
     "Priorize fotografia editorial real como base visual, não uma galeria de ícones ou quatro SVGs esquemáticos. URLs de fotografia pública selecionadas para este segmento:",
     ...urls.map((url, index) => (index + 1) + ". " + url),
-    "Use as quatro imagens em painéis com object-fit:cover, proporções variadas, recortes editoriais e alt em português começando por 'Imagem ilustrativa'. Use a primeira imagem como visual principal do hero. Não afirme que as imagens mostram o estabelecimento, equipe ou clientes reais: são referências ilustrativas do segmento. Não invente imagens de pessoas identificáveis como funcionários ou clientes.",
+    "Use a primeira imagem exclusivamente no hero e as quatro imagens seguintes, todas diferentes, exclusivamente nos quatro painéis da galeria. Não repita nenhuma fotografia entre hero e galeria nem dentro da galeria. Use object-fit:cover, proporções variadas, recortes editoriais e alt em português começando por 'Imagem ilustrativa'. Não afirme que as imagens mostram o estabelecimento, equipe ou clientes reais: são referências ilustrativas do segmento.",
     "Crie composição premium: hero com foto grande + título e CTA; mosaico com pelo menos quatro fotos; alterne seções editoriais, listas e faixas com fundos diferentes. Não force seção de planos para negócios que não vendem planos/assinaturas. Não invente depoimentos, avaliações, números ou resultados."
   ].join("\n");
 }
@@ -84,18 +84,18 @@ function enforceSegmentPhotography(html, business = {}) {
     .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
     .replace(/[_-]+/g, " ").replace(/\s+/g, " ");
   const profiles = {
-    academia: ["photo-1534438327276-14e5300c3a48", "photo-1571019613454-1cb2f99b2d8b", "photo-1583454110551-21f2fa2afe61", "photo-1517836357463-d25dfeac3438"],
-    restaurante: ["photo-1517248135467-4c7edcad34c4", "photo-1414235077428-338989a2e8c0", "photo-1515003197210-e0cd7184f8b2", "photo-1559339352-11d035aa65de"],
-    barbearia: ["photo-1503951914875-452162b0f3f1", "photo-1599351431202-1e0f0137899a", "photo-1621605815971-fbc98d665033", "photo-1503951914875-452162b0f3f1"],
-    beleza: ["photo-1560066984-138dadb4c035", "photo-1522337360788-8b13dee7a37e", "photo-1487412720507-e7ab37603c6f", "photo-1521590832167-7bcbfaa6381f"],
-    clinica: ["photo-1629909613654-28e377c37b09", "photo-1576091160399-112ba8d25d1d", "photo-1584982751601-97d4b6c8b6c5", "photo-1631815588090-d4bfec5b1ccb"],
-    loja: ["photo-1441986300917-64674bd600d8", "photo-1472851294608-062f824d29cc", "photo-1490481651871-ab68de25d43d", "photo-1523275335684-37898b6baf30"],
-    petshop: ["photo-1548199973-03cce0bbc87b", "photo-1583337130417-3346a1be7dee", "photo-1543466835-00a7907e9de1", "photo-1552053831-71594a27632d"],
-    imobiliaria: ["photo-1600596542815-ffad4c1539a9", "photo-1600607687939-ce8a6c25118c", "photo-1600566753086-00f18fb6b3ea", "photo-1600607687920-4e2a09cf159d"],
-    fotografo: ["photo-1452587925148-ce544e77e70d", "photo-1516035069371-29a1b244cc32", "photo-1492691527719-9d1e07e534b4", "photo-1500530855697-b586d89ba3ee"],
-    construcao: ["photo-1503387762-592deb58ef4e", "photo-1504307651254-35680f356dfd", "photo-1541888946425-d81bb19240f5", "photo-1503387762-592deb58ef4e"],
-    educacao: ["photo-1509062522246-3755977927d7", "photo-1523050854058-8df90110c9f1", "photo-1503676260728-1c00da094a0b", "photo-1509062522246-3755977927d7"],
-    servicos: ["photo-1497366754035-f200968a6e72", "photo-1497366216548-37526070297c", "photo-1497366811353-6870744d04b2", "photo-1497366754035-f200968a6e72"]
+    academia: ["photo-1534438327276-14e5300c3a48", "photo-1571019613454-1cb2f99b2d8b", "photo-1583454110551-21f2fa2afe61", "photo-1517836357463-d25dfeac3438", "photo-1534258936925-c58bed479fcb"],
+    restaurante: ["photo-1517248135467-4c7edcad34c4", "photo-1414235077428-338989a2e8c0", "photo-1515003197210-e0cd7184f8b2", "photo-1559339352-11d035aa65de", "photo-1514933651103-005eec06c04b"],
+    barbearia: ["photo-1503951914875-452162b0f3f1", "photo-1599351431202-1e0f0137899a", "photo-1621605815971-fbc98d665033", "photo-1622296089863-eb7fc530daa8", "photo-1593702295094-aea8c9c8f2d1"],
+    beleza: ["photo-1560066984-138dadb4c035", "photo-1522337360788-8b13dee7a37e", "photo-1487412720507-e7ab37603c6f", "photo-1521590832167-7bcbfaa6381f", "photo-1516975080664-ed2fc6a32937"],
+    clinica: ["photo-1629909613654-28e377c37b09", "photo-1576091160399-112ba8d25d1d", "photo-1584982751601-97d4b6c8b6c5", "photo-1631815588090-d4bfec5b1ccb", "photo-1511174511562-5f7f18b874f8"],
+    loja: ["photo-1441986300917-64674bd600d8", "photo-1472851294608-062f824d29cc", "photo-1490481651871-ab68de25d43d", "photo-1523275335684-37898b6baf30", "photo-1490312278390-ab64016e0aa9"],
+    petshop: ["photo-1548199973-03cce0bbc87b", "photo-1583337130417-3346a1be7dee", "photo-1543466835-00a7907e9de1", "photo-1552053831-71594a27632d", "photo-1516734212186-a967f81ad0d7"],
+    imobiliaria: ["photo-1600596542815-ffad4c1539a9", "photo-1600607687939-ce8a6c25118c", "photo-1600566753086-00f18fb6b3ea", "photo-1600607687920-4e2a09cf159d", "photo-1600607687644-c7171b42498f"],
+    fotografo: ["photo-1452587925148-ce544e77e70d", "photo-1516035069371-29a1b244cc32", "photo-1492691527719-9d1e07e534b4", "photo-1500530855697-b586d89ba3ee", "photo-1542038784456-1ea8e935640e"],
+    construcao: ["photo-1503387762-592deb58ef4e", "photo-1504307651254-35680f356dfd", "photo-1541888946425-d81bb19240f5", "photo-1487958449943-2429e8be8625", "photo-1503387762-592deb58ef4e"],
+    educacao: ["photo-1509062522246-3755977927d7", "photo-1523050854058-8df90110c9f1", "photo-1503676260728-1c00da094a0b", "photo-1522202176988-66273c2fd55f", "photo-1498243691581-b145c3f54a5a"],
+    servicos: ["photo-1497366754035-f200968a6e72", "photo-1497366216548-37526070297c", "photo-1497366811353-6870744d04b2", "photo-1521737711867-e3b97375f902", "photo-1524758631624-e2822e304c36"]
   };
   const aliases = { "gym": "academia", "fitness": "academia", "musculacao": "academia", "academia de ginastica": "academia", "restaurante / lanchonete": "restaurante", "pet shop": "petshop", "salao": "beleza", "salao de beleza": "beleza" };
   const selected = aliases[key] || key;
@@ -131,11 +131,11 @@ function enforceSegmentPhotography(html, business = {}) {
     section = section.replace(/<img\b[^>]*>/gi, tag => {
       if (index >= 4) return tag;
       const i = index++;
-      return replaceImage(tag, makeUrl(ids[i], i), "Imagem ilustrativa " + (i + 1) + " do segmento " + selected, false);
+      return replaceImage(tag, makeUrl(ids[i + 1], i + 1), "Imagem ilustrativa " + (i + 1) + " do segmento " + selected, false);
     });
     while (index < 4) {
       const i = index++;
-      const image = '<figure class="gallery-item" style="margin:0;overflow:hidden;border-radius:12px;aspect-ratio:4/3"><img src="' + makeUrl(ids[i], i) + '" alt="Imagem ilustrativa ' + (i + 1) + ' do segmento ' + selected + '" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:cover"></figure>';
+      const image = '<figure class="gallery-item" style="margin:0;overflow:hidden;border-radius:12px;aspect-ratio:4/3"><img src="' + makeUrl(ids[i + 1], i + 1) + '" alt="Imagem ilustrativa ' + (i + 1) + ' do segmento ' + selected + '" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:cover"></figure>';
       if (/<svg\b[\s\S]*?<\/svg>/i.test(section)) section = section.replace(/<svg\b[\s\S]*?<\/svg>/i, image);
       else section = section.replace(/<\/section>/i, image + "</section>");
     }
@@ -143,7 +143,7 @@ function enforceSegmentPhotography(html, business = {}) {
   });
   if (!galleryRe.test(output)) {
     const gallery = '<section id="galeria" aria-label="Galeria ilustrativa" style="padding:72px 6%;max-width:1200px;margin:auto"><h2>Conheça o universo ' + String(business.name || "do negócio").replace(/[<>"]/g, "") + '</h2><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:16px">' +
-      ids.map((id, i) => '<img src="' + makeUrl(id, i) + '" alt="Imagem ilustrativa ' + (i + 1) + ' do segmento ' + selected + '" loading="lazy" decoding="async" style="width:100%;height:240px;object-fit:cover;border-radius:14px">').join("") +
+      ids.slice(1, 5).map((id, i) => '<img src="' + makeUrl(id, i + 1) + '" alt="Imagem ilustrativa ' + (i + 1) + ' do segmento ' + selected + '" loading="lazy" decoding="async" style="width:100%;height:240px;object-fit:cover;border-radius:14px">').join("") +
       '</div></section>';
     if (/<section\b[^>]*\bid=["']contato["'][^>]*>/i.test(output)) {
       const contactStart = output.search(/<section\b[^>]*\bid=["']contato["'][^>]*>/i);
@@ -462,7 +462,7 @@ function enforceBusinessIntegrity(html, business = {}) {
 }
 
 function qualityReport(quality) {
-  const criticalPattern = /Documento sem idioma pt-BR|Há mais de um h1|Falta landmark main|Há link com href vazio|Há botão sem nome acessível|O FAQ promete contato, visita ou suporte de equipe|A galeria repete fotografias|alegações comerciais ou técnicas não encontradas|O conteúdo apresenta como fatos serviços|A imagem principal do hero desaparece no celular|HTML com estrutura inválida|IDs duplicados|Links internos sem destino|Falta meta viewport|Falta um título principal h1|Contato contém e-mail|chamada sem ação funcional|Foto principal do hero incompatível|Galeria usa fotos ausentes ou incompatíveis|WhatsApp fictício|WhatsApp informado pelo cliente precisa estar conectado|afirmações sobre equipe|afirmações comerciais específicas|afirmações não comprovadas|placeholder|instrução provisória|Formulário sem tratamento|Formulário bloqueia|Markdown visível|script externo|dependência externa/i;
+  const criticalPattern = /Documento sem idioma pt-BR|Há mais de um h1|Falta landmark main|Há link com href vazio|Há botão sem nome acessível|O FAQ promete contato, visita ou suporte de equipe|A galeria repete fotografias|A fotografia do hero está repetida na galeria|alegações comerciais ou técnicas não encontradas|O conteúdo apresenta alegações comerciais ou técnicas não encontradas|Há afirmações sobre equipe, equipamentos, instalações ou serviços|O conteúdo apresenta como fatos serviços|A imagem principal do hero desaparece no celular|HTML com estrutura inválida|IDs duplicados|Links internos sem destino|Falta meta viewport|Falta um título principal h1|Contato contém e-mail|chamada sem ação funcional|Foto principal do hero incompatível|Galeria usa fotos ausentes ou incompatíveis|WhatsApp fictício|WhatsApp informado pelo cliente precisa estar conectado|afirmações sobre equipe|afirmações comerciais específicas|afirmações não comprovadas|placeholder|instrução provisória|Formulário sem tratamento|Formulário bloqueia|Markdown visível|script externo|dependência externa/i;
   const majorPattern = /A fotografia do hero está repetida na galeria|A galeria não tem adaptação mobile específica|A imagem principal do hero desaparece no celular|Falta um rodapé completo|botão do menu móvel deve ficar oculto|afirmações comerciais específicas|Poucas seções|Há seções demais|Seções superficiais|Profundidade editorial|Falta uma media query|adaptação responsiva|Galeria|Hero sem|direção de arte|composição|FAQ|Planos|modalidades|lista nav ul|menu móvel|Seção obrigatória|benefícios|manifesto|método|links sem destino/i;
   const criticalIssues = quality.issues.filter(issue => criticalPattern.test(issue));
   const majorIssues = quality.issues.filter(issue => majorPattern.test(issue) && !criticalPattern.test(issue));
@@ -628,8 +628,8 @@ Descrição e necessidades do cliente: ${prompt}`;
             const candidateScore = score(candidateQuality);
             // Só bloqueia falhas estruturais graves. Avisos editoriais/visuais continuam
             // sendo contabilizados, mas não devem descartar uma reconstrução claramente melhor.
-            const criticalPatterns = /Documento sem idioma pt-BR|Há mais de um h1|Falta landmark main|Há link com href vazio|Há botão sem nome acessível|HTML com estrutura inválida|IDs duplicados|Links internos sem destino|Falta meta viewport|Falta um título principal h1|Poucas seções|Há seções demais|FAQ superficial|FAQ precisa de cinco perguntas|A seção planos apresenta opções comerciais sem dados confirmados|Planos sem hierarquia visual|FAQ contém regras|chamada promete agendamento|Markdown visível|largura mínima rígida|Seções superficiais|Estrutura incompleta para academia|Estrutura de academia incorreta|dez seções da academia precisam seguir a ordem|Seção obrigatória ausente|lista nav ul|links da lista de navegação|Seção de modalidades\/serviços sem opções|Galeria incompleta ou esquemática|Galeria da academia não comprova|Hero sem composição detalhada|Foto principal do hero incompatível|Galeria usa fotos ausentes ou incompatíveis|Contato contém e-mail ou domínio fictício|WhatsApp informado pelo cliente precisa estar conectado/;
-            const candidateHasRequiredArt = !candidateQuality.issues.some(issue => /A galeria precisa de quatro painéis|Galeria sem quatro ilustrações|Galeria incompleta ou esquemática|Galeria incompleta: use pelo menos quatro fotografias|Remova SVGs esquemáticos da galeria|Galeria da academia não comprova|Hero sem composição detalhada/.test(issue));
+            const criticalPatterns = /A galeria repete fotografias|A fotografia do hero está repetida na galeria|O conteúdo apresenta alegações comerciais ou técnicas não encontradas|Há afirmações sobre equipe, equipamentos, instalações ou serviços|Galeria incompleta: use pelo menos quatro fotografias|Galeria precisa conter quatro fotografias|Documento sem idioma pt-BR|Há mais de um h1|Falta landmark main|Há link com href vazio|Há botão sem nome acessível|HTML com estrutura inválida|IDs duplicados|Links internos sem destino|Falta meta viewport|Falta um título principal h1|Poucas seções|Há seções demais|FAQ superficial|FAQ precisa de cinco perguntas|A seção planos apresenta opções comerciais sem dados confirmados|Planos sem hierarquia visual|FAQ contém regras|chamada promete agendamento|Markdown visível|largura mínima rígida|Seções superficiais|Estrutura incompleta para academia|Estrutura de academia incorreta|dez seções da academia precisam seguir a ordem|Seção obrigatória ausente|lista nav ul|links da lista de navegação|Seção de modalidades\/serviços sem opções|Galeria incompleta ou esquemática|Galeria da academia não comprova|Hero sem composição detalhada|Foto principal do hero incompatível|Galeria usa fotos ausentes ou incompatíveis|Contato contém e-mail ou domínio fictício|WhatsApp informado pelo cliente precisa estar conectado/;
+            const candidateHasRequiredArt = !candidateQuality.issues.some(issue => /A galeria precisa de quatro painéis|Galeria sem quatro ilustrações|Galeria incompleta ou esquemática|Galeria incompleta: use pelo menos quatro fotografias|Galeria repete fotografias|fotografia do hero está repetida|fotos ausentes ou incompatíveis|Remova SVGs esquemáticos da galeria|Galeria da academia não comprova|Hero sem composição detalhada/.test(issue));
             const candidateHasNoCriticalIssues = !candidateQuality.issues.some(issue => criticalPatterns.test(issue));
             const improvement = originalScore - candidateScore;
             // A reconstrução não deve ser descartada só porque a pontuação estática
@@ -640,10 +640,9 @@ Descrição e necessidades do cliente: ${prompt}`;
               candidateHasRequiredArt;
             const currentReport = qualityReport(quality);
             const candidateReport = qualityReport(candidateQuality);
-            const candidateImproves = candidateReport.score > currentReport.score ||
-              (candidateReport.score === currentReport.score &&
-               candidateReport.criticalCount <= currentReport.criticalCount &&
-               candidateQuality.issues.length < quality.issues.length);
+            const candidateImproves = candidateReport.score > currentReport.score &&
+              candidateReport.criticalCount <= currentReport.criticalCount &&
+              candidateReport.majorCount <= currentReport.majorCount;
             // Só aceita uma reconstrução quando a nota objetiva melhora (ou empata sem piorar falhas críticas).
             if (candidateIsValid || candidateImproves) {
               html = candidate;
