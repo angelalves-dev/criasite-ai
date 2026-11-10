@@ -1,13 +1,16 @@
 const ALLOWED_ORIGIN = "https://angelalves-dev.github.io";
 
 function corsHeaders(origin) {
-  return {
-    "Access-Control-Allow-Origin": origin === ALLOWED_ORIGIN ? ALLOWED_ORIGIN : ALLOWED_ORIGIN,
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
-    "Content-Type": "application/json; charset=utf-8",
-    "Vary": "Origin"
-  };
+  const headers = new Headers();
+  if (origin === ALLOWED_ORIGIN) {
+    headers.set("Access-Control-Allow-Origin", ALLOWED_ORIGIN);
+  }
+  headers.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+  headers.set("Access-Control-Allow-Headers", "Content-Type");
+  headers.set("Access-Control-Max-Age", "86400");
+  headers.set("Vary", "Origin");
+  headers.set("Content-Type", "application/json; charset=utf-8");
+  return headers;
 }
 
 function json(data, status, origin) {
@@ -468,6 +471,7 @@ function extractHtml(result) {
 export default {
   async fetch(request, env) {
     const origin = request.headers.get("Origin") || "";
+    try {
     if (request.method === "OPTIONS") {
       return new Response(null, { status: 204, headers: corsHeaders(origin) });
     }
@@ -635,5 +639,11 @@ Descrição e necessidades do cliente: ${prompt}`;
       html,
       quality: { checked: true, autoRepairAttempted: repairAttempted, autoRepairApplied: repairApplied, repairStatus: !repairAttempted ? "not-needed" : repairApplied ? "applied" : "not-applied", sectionCount: quality.sections, warnings: quality.issues, ...report, note: "A nota mede verificações automáticas de estrutura, conteúdo e responsividade; a aparência final e os links devem ser conferidos na prévia." }
     }, 200, origin);
+    } catch (error) {
+      return json({
+        error: "O Worker encontrou um erro interno ao processar a geração.",
+        detail: String(error?.message || error).slice(0, 240)
+      }, 500, origin);
+    }
   }
 };
