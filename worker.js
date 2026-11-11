@@ -430,6 +430,21 @@ function inspectHtml(html, business = {}) {
   if (hasMenuButton && hasMobileRules && !mobileUlRule) issues.push("A lista nav ul precisa ter regra mobile explícita com display:flex e flex-direction:column.");
   const visualMoments = [/manifesto|faixa[- ]editorial|statement/i, /timeline|etapas|processo/i, /masonry|grid-template-areas|bento|assim[eé]tric/i, /clip-path|mask-image|background-image|radial-gradient|linear-gradient/i].filter(pattern => pattern.test(normalizedHtml)).length;
   if (visualMoments < 2) issues.push("Direção de arte sem variedade: crie pelo menos dois momentos visuais especiais além do hero.");
+
+  if (hasMenuButton && !/setAttribute\(\s*["']aria-expanded["']/i.test(html)) issues.push("O menu não atualiza aria-expanded dinamicamente ao abrir e fechar.");
+  if (hasMenuButton && !/querySelectorAll\(["']a["']\)[\s\S]{0,500}addEventListener\(["']click["']/i.test(html)) issues.push("O menu não fecha ao selecionar um link.");
+  if (hasMenuButton && !/e\.key\s*===?\s*["']Escape["']/i.test(html)) issues.push("O menu não fecha ao pressionar Escape.");
+  if (galleryMatch) {
+    const alts = Array.from(galleryMatch[0].matchAll(/<img\b[^>]*\balt=["']([^"']*)["'][^>]*>/gi), m => m[1].toLowerCase().trim());
+    if (alts.length >= 3 && alts.filter(alt => /^(imagem ilustrativa|imagem|foto)(\s+\d+)?(\s+do segmento)?(\s+\w+)?$/.test(alt)).length >= 3) issues.push("Os textos alternativos da galeria são genéricos; descreva cada cena ilustrativa.");
+  }
+  const paragraphTexts = [];
+  for (const section of sectionBlocks) for (const m of section.body.matchAll(/<p\b[^>]*>([\s\S]*?)<\/p>/gi)) {
+    const value=m[1].replace(/<[^>]+>/g," ").replace(/\s+/g," ").trim().toLowerCase();
+    if(value.length>=65) paragraphTexts.push(value);
+  }
+  if (paragraphTexts.some((value,index)=>paragraphTexts.indexOf(value)!==index)) issues.push("Há parágrafos repetidos entre seções; dê uma finalidade própria a cada bloco.");
+
   return { sections, issues: issues.slice(0, 24) };
 }
 function polishHtml(html) {
@@ -556,9 +571,37 @@ function enforceResponsiveLayout(html) {
   return output;
 }
 
+
+function enforceNavigationAccessibility(html) {
+  let output = String(html || "");
+  if (!output || /CriaSite navigation accessibility v2/.test(output)) return output;
+  const nav = output.match(/<nav\b([^>]*)>/i);
+  if (!nav) return output;
+  let navId = (nav[1].match(/\bid=["']([^"']+)["']/i) || [])[1] || "criasite-primary-nav";
+  if (!/\bid=/i.test(nav[1])) output = output.replace(nav[0], '<nav id="' + navId + '"' + nav[1] + '>');
+  let found = false;
+  output = output.replace(/<button\b([^>]*)>([\s\S]*?)<\/button>/gi, function(tag, attrs, inner) {
+    if (found || !/(?:menu|hamburger|☰|≡)/i.test(attrs + inner)) return tag;
+    found = true;
+    if (!/\btype=/i.test(attrs)) attrs = ' type="button"' + attrs;
+    if (!/\baria-label=/i.test(attrs)) attrs += ' aria-label="Abrir menu de navegação"';
+    if (!/\baria-controls=/i.test(attrs)) attrs += ' aria-controls="' + navId + '"';
+    attrs = attrs.replace(/\baria-expanded=["'][^"']*["']/i, 'aria-expanded="false"');
+    if (!/\baria-expanded=/i.test(attrs)) attrs += ' aria-expanded="false"';
+    return "<button" + attrs + ">" + inner + "</button>";
+  });
+  if (!found) return output;
+  const css = "/* CriaSite navigation accessibility v2 */\\n.menu-btn,.menu-toggle,#menu-btn,#menu-toggle,.nav-toggle,#menu-button{display:none}\\n@media(max-width:760px){.menu-btn,.menu-toggle,#menu-btn,#menu-toggle,.nav-toggle,#menu-button{display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px}.nav-links{display:none;position:absolute;top:100%;left:0;right:0;z-index:1001;flex-direction:column;align-items:stretch;gap:12px;padding:20px;background:#fff;box-shadow:0 16px 32px rgba(15,23,42,.12)}.nav-links.active,.nav-links.is-open{display:flex}.nav-links a{display:flex;align-items:center;min-height:44px}.nav-links li{width:100%}}\\n@media(min-width:761px){.menu-btn,.menu-toggle,#menu-btn,#menu-toggle,.nav-toggle,#menu-button{display:none!important}.nav-links{display:flex!important;position:static!important;flex-direction:row!important;box-shadow:none!important;padding:0!important}}";
+  if (/<style\b[^>]*>[\s\S]*?<\/style>/i.test(output)) output = output.replace(/<\/style>/i, css + "\\n</style>");
+  else output = output.replace(/<\/head>/i, "<style>" + css + "</style></head>");
+  const script = "(function(){function init(){var b=document.querySelector('.menu-btn,.menu-toggle,#menu-btn,#menu-toggle,.nav-toggle,#menu-button');var n=document.getElementById(b&&b.getAttribute('aria-controls'))||document.querySelector('header nav ul,header nav');if(!b||!n||b.dataset.criasiteMenuReady)return;b.dataset.criasiteMenuReady='1';function setOpen(v){n.classList.toggle('active',v);n.classList.toggle('is-open',v);b.setAttribute('aria-expanded',String(v));b.setAttribute('aria-label',v?'Fechar menu de navegação':'Abrir menu de navegação')}b.addEventListener('click',function(){setOpen(b.getAttribute('aria-expanded')!=='true')});n.querySelectorAll('a').forEach(function(a){a.addEventListener('click',function(){setOpen(false)})});document.addEventListener('keydown',function(e){if(e.key==='Escape'&&b.getAttribute('aria-expanded')==='true'){setOpen(false);b.focus()}});document.addEventListener('click',function(e){if(b.getAttribute('aria-expanded')==='true'&&!n.contains(e.target)&&!b.contains(e.target))setOpen(false)});setOpen(false)}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init()})();";
+  output = output.replace(/<\/body>/i, "<script>/* CriaSite navigation accessibility v2 */" + script + "</script></body>");
+  return output;
+}
+
 function qualityReport(quality) {
-  const criticalPattern = /Documento sem idioma pt-BR|Há mais de um h1|Falta landmark main|Há link com href vazio|Há botão sem nome acessível|O FAQ promete contato, visita ou suporte de equipe|A galeria repete fotografias|A fotografia do hero está repetida na galeria|alegações comerciais ou técnicas não encontradas|O conteúdo apresenta alegações comerciais ou técnicas não encontradas|Há afirmações sobre equipe, equipamentos, instalações ou serviços|O conteúdo apresenta como fatos serviços|A imagem principal do hero desaparece no celular|HTML com estrutura inválida|IDs duplicados|Links internos sem destino|Falta meta viewport|Falta um título principal h1|Contato contém e-mail|chamada sem ação funcional|Foto principal do hero incompatível|Galeria usa fotos ausentes ou incompatíveis|WhatsApp fictício|WhatsApp informado pelo cliente precisa estar conectado|afirmações sobre equipe|afirmações comerciais específicas|afirmações não comprovadas|placeholder|instrução provisória|Formulário sem tratamento|Formulário bloqueia|Markdown visível|script externo|dependência externa/i;
-  const majorPattern = /Galeria sem composição editorial|A galeria mantém imagens com altura fixa em celulares|Falta um segundo momento visual editorial além do hero|A fotografia do hero está repetida na galeria|A galeria não tem adaptação mobile específica|A imagem principal do hero desaparece no celular|Falta um rodapé completo|botão do menu móvel deve ficar oculto|afirmações comerciais específicas|Poucas seções|Há seções demais|Seções superficiais|Profundidade editorial|Falta uma media query|adaptação responsiva|Galeria|Hero sem|direção de arte|composição|FAQ|Planos|modalidades|lista nav ul|menu móvel|Seção obrigatória|benefícios|manifesto|método|links sem destino/i;
+  const criticalPattern = /Documento sem idioma pt-BR|Há mais de um h1|Falta landmark main|Há link com href vazio|Há botão sem nome acessível|O FAQ promete contato, visita ou suporte de equipe|O menu não atualiza aria-expanded|O menu não fecha ao selecionar um link|O menu não fecha ao pressionar Escape|Há parágrafos repetidos entre seções|textos alternativos da galeria são genéricos|A galeria repete fotografias|A fotografia do hero está repetida na galeria|alegações comerciais ou técnicas não encontradas|O conteúdo apresenta alegações comerciais ou técnicas não encontradas|Há afirmações sobre equipe, equipamentos, instalações ou serviços|O conteúdo apresenta como fatos serviços|A imagem principal do hero desaparece no celular|HTML com estrutura inválida|IDs duplicados|Links internos sem destino|Falta meta viewport|Falta um título principal h1|Contato contém e-mail|chamada sem ação funcional|Foto principal do hero incompatível|Galeria usa fotos ausentes ou incompatíveis|WhatsApp fictício|WhatsApp informado pelo cliente precisa estar conectado|afirmações sobre equipe|afirmações comerciais específicas|afirmações não comprovadas|placeholder|instrução provisória|Formulário sem tratamento|Formulário bloqueia|Markdown visível|script externo|dependência externa/i;
+  const majorPattern = /Galeria sem composição editorial|A galeria mantém imagens com altura fixa em celulares|Falta um segundo momento visual editorial além do hero|A fotografia do hero está repetida na galeria|A galeria não tem adaptação mobile específica|A imagem principal do hero desaparece no celular|Falta um rodapé completo|botão do menu móvel deve ficar oculto|menu não atualiza aria-expanded|menu não fecha ao selecionar|menu não fecha ao pressionar Escape|parágrafos repetidos|textos alternativos da galeria são genéricos|afirmações comerciais específicas|Poucas seções|Há seções demais|Seções superficiais|Profundidade editorial|Falta uma media query|adaptação responsiva|Galeria|Hero sem|direção de arte|composição|FAQ|Planos|modalidades|lista nav ul|menu móvel|Seção obrigatória|benefícios|manifesto|método|links sem destino/i;
   const criticalIssues = quality.issues.filter(issue => criticalPattern.test(issue));
   const majorIssues = quality.issues.filter(issue => majorPattern.test(issue) && !criticalPattern.test(issue));
   const minorIssues = quality.issues.filter(issue => !criticalPattern.test(issue) && !majorPattern.test(issue));
@@ -670,7 +713,7 @@ Descrição e necessidades do cliente: ${prompt}`;
       }, status, origin);
     }
 
-    let html = enforceResponsiveLayout(enforceSegmentPhotography(enforceBusinessIntegrity(polishHtml(extractHtml(result)), business), business));
+    let html = enforceNavigationAccessibility(enforceResponsiveLayout(enforceSegmentPhotography(enforceBusinessIntegrity(polishHtml(extractHtml(result)), business), business)));
     if (!html || !/^<!doctype html/i.test(html) || !/<html[\s>]/i.test(html) || html.length < 500) {
       return json({ error: "A IA não retornou um HTML completo. Tente uma descrição mais específica." }, 502, origin);
     }
@@ -714,7 +757,7 @@ Descrição e necessidades do cliente: ${prompt}`;
         });
         const repairResult = await repairResponse.json().catch(() => ({}));
         if (repairResponse.ok) {
-          const candidate = enforceResponsiveLayout(enforceSegmentPhotography(enforceBusinessIntegrity(polishHtml(extractHtml(repairResult)), business), business));
+          const candidate = enforceNavigationAccessibility(enforceResponsiveLayout(enforceSegmentPhotography(enforceBusinessIntegrity(polishHtml(extractHtml(repairResult)), business), business)));
           if (candidate && /^<!doctype html/i.test(candidate) && /<html[\s>]/i.test(candidate) && candidate.length >= 500) {
             const candidateQuality = inspectHtml(candidate, business);
             const weight = issue => /IDs duplicados|Links internos sem destino|Seções superficiais|Estrutura incompleta|Seção obrigatória ausente|Galeria da academia|afirmações sobre equipe|lista nav ul|Seção de modalidades|Contato ainda parece|Hero sem composição detalhada|adaptação responsiva comprovada/i.test(issue) ? 30 : 12;
