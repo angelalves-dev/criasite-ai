@@ -126,32 +126,46 @@ function enforceSegmentPhotography(html, business = {}) {
     return section;
   });
   const galleryRe = /<section\b(?=[^>]*(?:\bid=["'](?:galeria|gallery|estrutura)["']|\bclass=["'][^"']*(?:galeria|gallery|portfolio)[^"']*["']))[^>]*>[\s\S]*?<\/section>/i;
-  output = output.replace(galleryRe, section => {
-    let index = 0;
-    section = section.replace(/<img\b[^>]*>/gi, tag => {
-      if (index >= 4) return tag;
-      const i = index++;
-      return replaceImage(tag, makeUrl(ids[i + 1], i + 1), "Imagem ilustrativa " + (i + 1) + " do segmento " + selected, false);
-    });
-    while (index < 4) {
-      const i = index++;
-      const image = '<figure class="gallery-item" style="margin:0;overflow:hidden;border-radius:12px;aspect-ratio:4/3"><img src="' + makeUrl(ids[i + 1], i + 1) + '" alt="Imagem ilustrativa ' + (i + 1) + ' do segmento ' + selected + '" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:cover"></figure>';
-      if (/<svg\b[\s\S]*?<\/svg>/i.test(section)) section = section.replace(/<svg\b[\s\S]*?<\/svg>/i, image);
-      else section = section.replace(/<\/section>/i, image + "</section>");
-    }
-    return section;
-  });
-  if (!galleryRe.test(output)) {
-    const gallery = '<section id="galeria" aria-label="Galeria ilustrativa" style="padding:72px 6%;max-width:1200px;margin:auto"><h2>Conheça o universo ' + String(business.name || "do negócio").replace(/[<>"]/g, "") + '</h2><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:16px">' +
-      ids.slice(1, 5).map((id, i) => '<img src="' + makeUrl(id, i + 1) + '" alt="Imagem ilustrativa ' + (i + 1) + ' do segmento ' + selected + '" loading="lazy" decoding="async" style="width:100%;height:240px;object-fit:cover;border-radius:14px">').join("") +
-      '</div></section>';
-    if (/<section\b[^>]*\bid=["']contato["'][^>]*>/i.test(output)) {
-      const contactStart = output.search(/<section\b[^>]*\bid=["']contato["'][^>]*>/i);
-      output = output.slice(0, contactStart) + gallery + output.slice(contactStart);
-    } else {
-      output = output.replace(/<\/body>/i, gallery + "</body>");
-    }
+  const galleryMatch = output.match(galleryRe);
+  const galleryHeading = galleryMatch
+    ? ((galleryMatch[0].match(/<h[12]\b[^>]*>([\s\S]*?)<\/h[12]>/i) || [])[1] || "Espaço")
+        .replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim()
+    : "Conheça nosso espaço";
+  const galleryOpening = galleryMatch ? galleryMatch[0].match(/^<section\b[^>]*>/i)[0] : '<section id="galeria">';
+  const galleryId = (galleryOpening.match(/\bid=["']([^"']+)["']/i) || [])[1] || "galeria";
+  const safeHeading = galleryHeading.replace(/[<>]/g, "").slice(0, 90) || "Galeria";
+  const galleryMarkup = '<section id="' + galleryId + '" class="criasite-gallery-section">' +
+    '<div class="container criasite-gallery-wrap"><h2>' + safeHeading + '</h2>' +
+    '<div class="criasite-gallery" aria-label="Galeria de imagens ilustrativas">' +
+    ids.slice(1, 5).map((id, i) =>
+      '<figure class="criasite-gallery__item criasite-gallery__item--' + (i + 1) + '">' +
+      '<img src="' + makeUrl(id, i + 1) + '" alt="Imagem ilustrativa ' + (i + 1) + ' do segmento ' + selected + '" loading="lazy" decoding="async">' +
+      '</figure>'
+    ).join("") +
+    '</div><p class="criasite-gallery__note">Imagens ilustrativas do segmento.</p></div></section>';
+  if (galleryMatch) output = output.replace(galleryRe, galleryMarkup);
+  else {
+    const contactStart = output.search(/<section\b[^>]*\bid=["']contato["'][^>]*>/i);
+    if (contactStart >= 0) output = output.slice(0, contactStart) + galleryMarkup + output.slice(contactStart);
+    else output = output.replace(/<\/body>/i, galleryMarkup + "</body>");
   }
+  const galleryCss = "/* CriaSite: mosaico editorial consistente e responsivo */\n" +
+    ".criasite-gallery-section{padding:clamp(3.5rem,7vw,6rem) 0;overflow:hidden}\n" +
+    ".criasite-gallery-wrap{width:min(1100px,calc(100% - 40px));margin-inline:auto}\n" +
+    ".criasite-gallery{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);grid-template-rows:repeat(3,minmax(150px,1fr));gap:12px;min-height:590px}\n" +
+    ".criasite-gallery__item{position:relative;min-width:0;min-height:0;margin:0;overflow:hidden;border-radius:14px;background:#e9e9e9}\n" +
+    ".criasite-gallery__item--1{grid-column:1;grid-row:1/4}\n" +
+    ".criasite-gallery__item--2{grid-column:2;grid-row:1}\n" +
+    ".criasite-gallery__item--3{grid-column:2;grid-row:2}\n" +
+    ".criasite-gallery__item--4{grid-column:2;grid-row:3}\n" +
+    ".criasite-gallery__item img{display:block;width:100%;height:100%;min-height:0;object-fit:cover;transition:transform .65s cubic-bezier(.2,.7,.2,1)}\n" +
+    ".criasite-gallery__item:hover img{transform:scale(1.035)}\n" +
+    ".criasite-gallery__note{margin-top:12px;font-size:.78rem;opacity:.65}\n" +
+    "@media(max-width:700px){.criasite-gallery{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:auto;min-height:0;gap:9px}.criasite-gallery__item{aspect-ratio:4/3;min-height:0}.criasite-gallery__item--1{grid-column:1/-1;grid-row:auto;aspect-ratio:16/10}.criasite-gallery__item--2,.criasite-gallery__item--3,.criasite-gallery__item--4{grid-column:auto;grid-row:auto}}\n" +
+    "@media(max-width:420px){.criasite-gallery{grid-template-columns:minmax(0,1fr)}.criasite-gallery__item--1,.criasite-gallery__item--2,.criasite-gallery__item--3,.criasite-gallery__item--4{grid-column:1;aspect-ratio:16/10}}\n" +
+    "@media(prefers-reduced-motion:reduce){.criasite-gallery__item img{transition:none}}\n";
+  if (/<style\b[^>]*>[\s\S]*?<\/style>/i.test(output)) output = output.replace(/<\/style>/i, galleryCss + "\n</style>");
+  else output = output.replace(/<\/head>/i, "<style>" + galleryCss + "</style></head>");
   return output;
 }
 
@@ -195,7 +209,7 @@ function inspectHtml(html, business = {}) {
   const hasDummyWhatsApp = waLinks.some(number => number.length < 10 || number.length > 15 || /^0+$/.test(number) || /^(1234567890|11999999999|5511999999999)$/.test(number));
   const sourceFacts = String([business.userBrief, business.name, business.tagline, business.description, business.offerings, business.services, business.modalities, business.plans, business.benefits].filter(Boolean).join(" ")).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   const visibleText = html.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, " ").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-  const unverifiedClaims = ["acesso livre","acesso total","avaliacao inicial","avaliacao mensal","acompanhamento total","acompanhamento individual","acompanhamento continuo","horario de funcionamento","horario de atendimento","equipe tecnica","equipe especializada","treino supervisionado","avaliacao periodica","reavaliacao periodica","planilha de treino personalizada","visita guiada","tour guiado","suporte tecnico","prioridade em agendamentos","prioridade no suporte","visite nossa unidade","nossa recepcao","recepcao da academia","profissionais certificados","instrutores acompanham","atendimento personalizado","consultoria de treino","consultoria completa","desconto progressivo","aula experimental","aulas experimentais","avaliacao fisica","personal trainer","professor a disposicao","estacionamento gratuito","vestiario","ar condicionado","ambiente climatizado","biomecanica","periodizacao","forca maxima","hipertrofia","prevencao de lesoes","acompanhamento constante","treino livre","treino orientado","treino de forca","condicionamento fisico","condicionamento","mobilidade","integracao","execucao tecnica","orientacao tecnica constante","orientacao tecnica","estrutura otimizada","estrutura completa","equipamentos modernos","equipamentos profissionais","ambiente focado em performance","seriedade tecnica","metodologia propria","metodo exclusivo","resultados reais","resultados garantidos","equipe qualificada","equipe experiente","profissionais especializados","profissionais qualificados","acompanhamento de evolucao","cronograma personalizado","planejamento individual","planos flexiveis","horarios flexiveis"].filter(claim => visibleText.includes(claim) && !sourceFacts.includes(claim));
+  const unverifiedClaims = ["acesso livre","acesso total","avaliacao inicial","avaliacao mensal","acompanhamento total","acompanhamento individual","acompanhamento continuo","horario de funcionamento","horario de atendimento","equipe tecnica","equipe especializada","treino supervisionado","avaliacao periodica","reavaliacao periodica","planilha de treino personalizada","visita guiada","tour guiado","suporte tecnico","prioridade em agendamentos","prioridade no suporte","visite nossa unidade","nossa recepcao","recepcao da academia","profissionais certificados","instrutores acompanham","atendimento personalizado","consultoria de treino","consultoria completa","desconto progressivo","aula experimental","aulas experimentais","avaliacao fisica","personal trainer","professor a disposicao","estacionamento gratuito","vestiario","ar condicionado","ambiente climatizado","biomecanica","periodizacao","forca maxima","hipertrofia","prevencao de lesoes","acompanhamento constante","treino livre","treino orientado","treino de forca","treinamento funcional","musculacao orientada","condicionamento metabolico","condicionamento fisico","condicionamento","mobilidade","integracao","execucao tecnica","orientacao tecnica constante","orientacao tecnica","estrutura otimizada","estrutura completa","equipamentos modernos","equipamentos profissionais","ambiente focado em performance","seriedade tecnica","metodologia propria","metodo exclusivo","resultados reais","resultados garantidos","equipe qualificada","equipe experiente","profissionais especializados","profissionais qualificados","acompanhamento de evolucao","cronograma personalizado","planejamento individual","planos flexiveis","horarios flexiveis"].filter(claim => visibleText.includes(claim) && !sourceFacts.includes(claim));
   const unsupportedCommercialClaims = unverifiedClaims.length > 0;
   const deadLinks = (html.match(/href=["'](?:#|javascript:void\(0\)|javascript:;)["']/gi) || []).length;
 
