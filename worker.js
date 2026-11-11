@@ -494,16 +494,37 @@ function enforceResponsiveLayout(html) {
     return '<html lang="pt-BR"' + attrs + ">";
   });
   output = output.replace(/<nav\b(?![^>]*\baria-label=)(?![^>]*\baria-labelledby=)([^>]*)>/gi, '<nav aria-label="Navegação principal"$1>');
-  output = output.replace(/<button\b(?![^>]*\btype\s*=)([^>]*)>/gi, '<button type="button"$1>');
+  output = output.replace(/<button\b(?![^>]*\btype\s*=)([^>]*)>/gi, (tag, attrs, offset, source) => {
+    const before = source.slice(0, offset);
+    const insideForm = before.lastIndexOf("<form") > before.lastIndexOf("</form>");
+    return '<button type="' + (insideForm ? "submit" : "button") + '"' + attrs + ">";
+  });
   output = output.replace(/<a\b([^>]*\btarget=["']_blank["'][^>]*)>/gi, tag => {
     if (/\brel=["'][^"']*noopener/i.test(tag)) return tag;
     return tag.replace(/>$/, ' rel="noopener noreferrer">');
   });
   output = output.replace(/<img\b(?![^>]*\balt\s*=)([^>]*)>/gi, '<img alt="Imagem ilustrativa do segmento"$1>');
   output = output.replace(/<img\b(?![^>]*\bdecoding\s*=)([^>]*)>/gi, '<img decoding="async"$1>');
+  if (!/<main\b/i.test(output)) {
+    const headerMatch = output.match(/<\/header\s*>/i);
+    const footerStart = output.search(/<footer\b/i);
+    if (headerMatch && footerStart > output.indexOf(headerMatch[0])) {
+      const afterHeader = output.indexOf(headerMatch[0]) + headerMatch[0].length;
+      output = output.slice(0, afterHeader) + '<main id="main-content">' +
+        output.slice(afterHeader, footerStart) + '</main>' + output.slice(footerStart);
+    }
+  }
+  if (!/class=["'][^"']*criasite-skip-link/i.test(output) && /<body\b[^>]*>/i.test(output)) {
+    output = output.replace(/<body\b[^>]*>/i, function(opening) {
+      return opening + '<a class="criasite-skip-link" href="#main-content">Pular para o conteúdo</a>';
+    });
+  }
   const css = [
     "/* CriaSite AI — camada final de robustez responsiva e acessibilidade */",
     "html{max-width:100%;scroll-behavior:smooth}",
+    ".criasite-skip-link{position:fixed;left:12px;top:12px;z-index:10000;padding:12px 16px;background:#111;color:#fff;transform:translateY(-160%);border-radius:8px}",
+    ".criasite-skip-link:focus{transform:translateY(0)}",
+    ".menu-toggle,#menu-btn,#menu-toggle,.nav-toggle,#menu-button{display:none}",
     "body{max-width:100%;overflow-x:clip}",
     "img,picture,video,svg{max-width:100%}",
     "img{height:auto}",
