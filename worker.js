@@ -485,6 +485,50 @@ function enforceBusinessIntegrity(html, business = {}) {
   return output;
 }
 
+
+function enforceResponsiveLayout(html) {
+  let output = String(html || "");
+  if (!output) return output;
+  output = output.replace(/<html\b([^>]*)>/i, (tag, attrs) => {
+    if (/\blang\s*=/i.test(attrs)) return "<html" + attrs.replace(/\blang\s*=\s*(["'])[^"']*\1/i, 'lang="pt-BR"') + ">";
+    return '<html lang="pt-BR"' + attrs + ">";
+  });
+  output = output.replace(/<nav\b(?![^>]*\baria-label=)(?![^>]*\baria-labelledby=)([^>]*)>/gi, '<nav aria-label="Navegação principal"$1>');
+  output = output.replace(/<button\b(?![^>]*\btype\s*=)([^>]*)>/gi, '<button type="button"$1>');
+  output = output.replace(/<a\b([^>]*\btarget=["']_blank["'][^>]*)>/gi, tag => {
+    if (/\brel=["'][^"']*noopener/i.test(tag)) return tag;
+    return tag.replace(/>$/, ' rel="noopener noreferrer">');
+  });
+  output = output.replace(/<img\b(?![^>]*\balt\s*=)([^>]*)>/gi, '<img alt="Imagem ilustrativa do segmento"$1>');
+  output = output.replace(/<img\b(?![^>]*\bdecoding\s*=)([^>]*)>/gi, '<img decoding="async"$1>');
+  const css = [
+    "/* CriaSite AI — camada final de robustez responsiva e acessibilidade */",
+    "html{max-width:100%;scroll-behavior:smooth}",
+    "body{max-width:100%;overflow-x:clip}",
+    "img,picture,video,svg{max-width:100%}",
+    "img{height:auto}",
+    ".hero,#hero{min-width:0}",
+    ".hero>*,#hero>*{min-width:0}",
+    ".hero img,#hero img,.hero-img,.hero-image{display:block;width:100%;max-width:100%;height:clamp(260px,46vw,560px);min-height:0;object-fit:cover;object-position:center}",
+    "a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:3px solid currentColor;outline-offset:3px}",
+    "@media(max-width:760px){.hero,#hero{grid-template-columns:minmax(0,1fr)!important;grid-template-rows:auto;gap:clamp(1.25rem,5vw,2rem);width:100%;max-width:100%;padding-inline:clamp(1rem,5vw,1.5rem)}.hero img,#hero img,.hero-img,.hero-image{height:clamp(220px,68vw,380px)!important;min-height:0!important;aspect-ratio:16/11;object-fit:cover}.hero h1,#hero h1{font-size:clamp(2.15rem,9vw,3.5rem)!important;overflow-wrap:anywhere}nav ul{display:flex;flex-direction:column;align-items:stretch;gap:12px}nav a{display:flex;align-items:center;min-height:44px}.menu-toggle,#menu-btn,#menu-toggle,.nav-toggle,#menu-button{min-width:44px;min-height:44px;align-items:center;justify-content:center}}",
+    "@media(max-width:420px){.hero img,#hero img,.hero-img,.hero-image{height:clamp(210px,72vw,310px)!important}}",
+    "@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}"
+  ].join("\n");
+  if (!/CriaSite AI — camada final de robustez responsiva/i.test(output)) {
+    if (/<style\b[^>]*>[\s\S]*?<\/style>/i.test(output)) output = output.replace(/<\/style>/i, css + "\n</style>");
+    else output = output.replace(/<\/head>/i, "<style>" + css + "</style></head>");
+  }
+  const heroMatch = output.match(/<section\b(?=[^>]*(?:\bid=["']hero["']|\bclass=["'][^"']*\bhero\b))[^>]*>[\s\S]*?<\/section>/i);
+  const heroHtml = heroMatch ? heroMatch[0] : "";
+  output = output.replace(/<img\b[^>]*>/gi, tag => {
+    const inHero = heroHtml && heroHtml.includes(tag);
+    const next = tag.replace(/\sloading=["'][^"']*["']/i, "");
+    return next.replace(/<img\b/i, '<img loading="' + (inHero ? "eager" : "lazy") + '"');
+  });
+  return output;
+}
+
 function qualityReport(quality) {
   const criticalPattern = /Documento sem idioma pt-BR|Há mais de um h1|Falta landmark main|Há link com href vazio|Há botão sem nome acessível|O FAQ promete contato, visita ou suporte de equipe|A galeria repete fotografias|A fotografia do hero está repetida na galeria|alegações comerciais ou técnicas não encontradas|O conteúdo apresenta alegações comerciais ou técnicas não encontradas|Há afirmações sobre equipe, equipamentos, instalações ou serviços|O conteúdo apresenta como fatos serviços|A imagem principal do hero desaparece no celular|HTML com estrutura inválida|IDs duplicados|Links internos sem destino|Falta meta viewport|Falta um título principal h1|Contato contém e-mail|chamada sem ação funcional|Foto principal do hero incompatível|Galeria usa fotos ausentes ou incompatíveis|WhatsApp fictício|WhatsApp informado pelo cliente precisa estar conectado|afirmações sobre equipe|afirmações comerciais específicas|afirmações não comprovadas|placeholder|instrução provisória|Formulário sem tratamento|Formulário bloqueia|Markdown visível|script externo|dependência externa/i;
   const majorPattern = /Galeria sem composição editorial|A galeria mantém imagens com altura fixa em celulares|Falta um segundo momento visual editorial além do hero|A fotografia do hero está repetida na galeria|A galeria não tem adaptação mobile específica|A imagem principal do hero desaparece no celular|Falta um rodapé completo|botão do menu móvel deve ficar oculto|afirmações comerciais específicas|Poucas seções|Há seções demais|Seções superficiais|Profundidade editorial|Falta uma media query|adaptação responsiva|Galeria|Hero sem|direção de arte|composição|FAQ|Planos|modalidades|lista nav ul|menu móvel|Seção obrigatória|benefícios|manifesto|método|links sem destino/i;
@@ -599,7 +643,7 @@ Descrição e necessidades do cliente: ${prompt}`;
       }, status, origin);
     }
 
-    let html = enforceSegmentPhotography(enforceBusinessIntegrity(polishHtml(extractHtml(result)), business), business);
+    let html = enforceResponsiveLayout(enforceSegmentPhotography(enforceBusinessIntegrity(polishHtml(extractHtml(result)), business), business));
     if (!html || !/^<!doctype html/i.test(html) || !/<html[\s>]/i.test(html) || html.length < 500) {
       return json({ error: "A IA não retornou um HTML completo. Tente uma descrição mais específica." }, 502, origin);
     }
@@ -643,7 +687,7 @@ Descrição e necessidades do cliente: ${prompt}`;
         });
         const repairResult = await repairResponse.json().catch(() => ({}));
         if (repairResponse.ok) {
-          const candidate = enforceSegmentPhotography(enforceBusinessIntegrity(polishHtml(extractHtml(repairResult)), business), business);
+          const candidate = enforceResponsiveLayout(enforceSegmentPhotography(enforceBusinessIntegrity(polishHtml(extractHtml(repairResult)), business), business));
           if (candidate && /^<!doctype html/i.test(candidate) && /<html[\s>]/i.test(candidate) && candidate.length >= 500) {
             const candidateQuality = inspectHtml(candidate, business);
             const weight = issue => /IDs duplicados|Links internos sem destino|Seções superficiais|Estrutura incompleta|Seção obrigatória ausente|Galeria da academia|afirmações sobre equipe|lista nav ul|Seção de modalidades|Contato ainda parece|Hero sem composição detalhada|adaptação responsiva comprovada/i.test(issue) ? 30 : 12;
