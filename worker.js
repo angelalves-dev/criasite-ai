@@ -139,7 +139,7 @@ function enforceSegmentPhotography(html, business = {}) {
     '<div class="criasite-gallery" aria-label="Galeria de imagens ilustrativas">' +
     ids.slice(1, 5).map((id, i) =>
       '<figure class="criasite-gallery__item criasite-gallery__item--' + (i + 1) + '">' +
-      '<img src="' + makeUrl(id, i + 1) + '" alt="Imagem ilustrativa ' + (i + 1) + ' do segmento ' + selected + '" loading="lazy" decoding="async">' +
+      '<img src="' + makeUrl(id, i + 1) + '" alt="' + (selected === "clinica" ? ["Ambiente clínico odontológico ilustrativo", "Detalhe de atendimento odontológico ilustrativo", "Espaço de cuidado bucal ilustrativo", "Cena relacionada à saúde odontológica ilustrativa"][i] : selected === "petshop" ? ["Cães em atividade ao ar livre, fotografia ilustrativa", "Cão recebendo cuidados, fotografia ilustrativa", "Retrato de cão, fotografia ilustrativa", "Animal de estimação em ambiente externo, fotografia ilustrativa"][i] : "Fotografia ilustrativa de " + selected + ", cena " + (i + 1)) + '" loading="lazy" decoding="async">' +
       '</figure>'
     ).join("") +
     '</div><p class="criasite-gallery__note">Imagens ilustrativas do segmento.</p></div></section>';
