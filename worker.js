@@ -505,7 +505,9 @@ function enforceResponsiveLayout(html) {
   });
   output = output.replace(/<img\b(?![^>]*\balt\s*=)([^>]*)>/gi, '<img alt="Imagem ilustrativa do segmento"$1>');
   output = output.replace(/<img\b(?![^>]*\bdecoding\s*=)([^>]*)>/gi, '<img decoding="async"$1>');
-  if (!/<main\b/i.test(output)) {
+  let mainTarget = "main-content";
+  const existingMain = output.match(/<main\b([^>]*)>/i);
+  if (!existingMain) {
     const headerMatch = output.match(/<\/header\s*>/i);
     const footerStart = output.search(/<footer\b/i);
     if (headerMatch && footerStart > output.indexOf(headerMatch[0])) {
@@ -513,10 +515,14 @@ function enforceResponsiveLayout(html) {
       output = output.slice(0, afterHeader) + '<main id="main-content">' +
         output.slice(afterHeader, footerStart) + '</main>' + output.slice(footerStart);
     }
+  } else {
+    const existingId = (existingMain[1].match(/\bid=["']([^"']+)["']/i) || [])[1];
+    if (existingId) mainTarget = existingId;
+    else output = output.replace(/<main\b/i, '<main id="main-content"');
   }
   if (!/class=["'][^"']*criasite-skip-link/i.test(output) && /<body\b[^>]*>/i.test(output)) {
     output = output.replace(/<body\b[^>]*>/i, function(opening) {
-      return opening + '<a class="criasite-skip-link" href="#main-content">Pular para o conteúdo</a>';
+      return opening + '<a class="criasite-skip-link" href="#' + mainTarget + '">Pular para o conteúdo</a>';
     });
   }
   const css = [
