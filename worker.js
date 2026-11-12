@@ -364,7 +364,7 @@ function inspectHtml(html, business = {}) {
     if (!/m[eé]todo|etapas|como funciona|jornada/i.test(normalizedHtml)) issues.push("Falta explicar o método ou as etapas da experiência.");
     if (!/manifesto|filosofia|no que acreditamos|experi[eê]ncia/i.test(normalizedHtml)) issues.push("Falta um momento de identidade da marca, como manifesto ou filosofia.");
   }
-  const requestedType = String(business.type || "").trim().toLowerCase();
+  const requestedType = String(inferBusinessType(business, normalizedHtml).type || business.type || "").trim().toLowerCase();
   const isFitnessSite = requestedType === "academia" || (!requestedType && /academia|muscula[cç][aã]o|powerfit|treinamento f[ií]sico/i.test(normalizedHtml));
   if (isFitnessSite && sections !== 10) issues.push("Estrutura de academia incorreta: entregue exatamente dez seções reais.");
   if (isFitnessSite) {
@@ -374,6 +374,21 @@ function inspectHtml(html, business = {}) {
     if (expectedOrder.some((id, index) => normalizedOrder[index] !== id)) {
       issues.push("As dez seções da academia precisam seguir a ordem obrigatória: hero, sobre, modalidades, benefícios, método, galeria, planos, manifesto, FAQ e contato.");
     }
+  }
+  const isVeterinarySite = requestedType === "veterinaria";
+  if (isVeterinarySite) {
+    const serviceBlock = sectionBlocks.find(section => /id=["']servicos["']/i.test(section.attrs));
+    const differentiatorBlock = sectionBlocks.find(section => /id=["']diferenciais["']|id=["']porque-escolher["']/i.test(section.attrs));
+    if (!serviceBlock) issues.push("Site veterinário sem seção própria de serviços: crie uma seção id=servicos com pelo menos três áreas de cuidado descritas com profundidade, sem afirmar que a clínica oferece procedimentos não informados.");
+    else {
+      const serviceCards = (serviceBlock.body.match(/<(?:article|li)\b|class=["'][^"']*(?:card|service|servico)[^"']*["']/gi) || []).length;
+      const serviceText = serviceBlock.body.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+      if (serviceCards < 3 || serviceText.length < 260) issues.push("A seção de serviços veterinários está superficial: desenvolva pelo menos três áreas de cuidado com explicações úteis, sem inventar procedimentos, especialidades ou estrutura.");
+    }
+    if (!differentiatorBlock) issues.push("Site veterinário sem seção de diferenciais: crie uma seção id=diferenciais com princípios de cuidado, sem inventar equipe, certificações ou equipamentos.");
+    const heroBlock = sectionBlocks.find(section => /id=["']hero["']/i.test(section.attrs));
+    if (heroBlock && !/<a\b[^>]*href=["']#(?:servicos|contato)["']/i.test(heroBlock.body)) issues.push("O hero precisa de uma chamada funcional que leve aos serviços ou ao contato, sem criar canal de contato fictício.");
+    if (!/\b(?:tutor|pet|animal|c[aã]o|gato)\b/i.test(normalizedHtml)) issues.push("O conteúdo veterinário precisa falar diretamente com tutores e contextualizar o cuidado animal.");
   }
   const plansBlock = sectionBlocks.find(section => /id=["']planos["']/i.test(section.attrs));
   if (isFitnessSite && plansBlock) {
@@ -645,7 +660,7 @@ function enforceNavigationAccessibility(html) {
   if (!found) return output;
   const css = "/* CriaSite navigation accessibility v3 */\n" +
     ".menu-btn,.menu-toggle,#menu-btn,#menu-toggle,.nav-toggle,#menu-button{display:none}\n" +
-    "@media(max-width:760px){.menu-btn,.menu-toggle,#menu-btn,#menu-toggle,.nav-toggle,#menu-button{display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px}.nav-links{display:none;position:absolute;top:100%;left:0;right:0;z-index:1001;flex-direction:column;align-items:stretch;gap:12px;padding:20px;background:#fff;box-shadow:0 16px 32px rgba(15,23,42,.12)}.nav-links.active,.nav-links.is-open{display:flex}.nav-links a{display:flex;align-items:center;min-height:44px}.nav-links li{width:100%}}\n" +
+    "@media(max-width:760px){.menu-btn,.menu-toggle,#menu-btn,#menu-toggle,.nav-toggle,#menu-button{display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px}.nav-links{display:none;position:absolute;top:100%;left:0;right:0;z-index:1001;flex-direction:column;align-items:stretch;gap:12px;padding:20px;background:#fff;box-shadow:0 16px 32px rgba(15,23,42,.12)}.nav-links.active,.nav-links.is-open{display:flex}.nav-links a{display:flex;align-items:center;min-height:44px}.nav-links li{width:100%}header nav ul{display:none!important}header nav ul.active,header nav ul.is-open{display:flex!important;position:absolute;top:100%;left:0;right:0;z-index:1001;flex-direction:column;align-items:stretch;gap:12px;padding:20px;background:#fff;box-shadow:0 16px 32px rgba(15,23,42,.12)}}\n" +
     "@media(min-width:761px){.menu-btn,.menu-toggle,#menu-btn,#menu-toggle,.nav-toggle,#menu-button{display:none!important}}";
   if (/<style\b[^>]*>[\s\S]*?<\/style>/i.test(output)) output = output.replace(/<\/style>/i, css + "\n</style>");
   else output = output.replace(/<\/head>/i, "<style>" + css + "</style></head>");
@@ -725,7 +740,7 @@ export default {
     if (prompt.length > 5000) return json({ error: "A descrição deve ter no máximo 5.000 caracteres." }, 400, origin);
 
     const visualBrief = segmentVisualBrief(business.type);
-    const instructions = `Você é uma equipe sênior de design UX/UI, desenvolvimento front-end, conversão e SEO. Veterinária, fisioterapia, odontologia e clínica médica são segmentos distintos: nunca reutilize imagens, descrições ou vocabulário entre eles. Veterinária exige contexto de atendimento animal; fisioterapia exige reabilitação e movimento; odontologia exige saúde bucal humana.  Crie um site comercial realmente profissional, rico e personalizado para o negócio descrito, em português do Brasil. Entregue SOMENTE um documento HTML completo começando com <!doctype html>, com CSS dentro de <style> e JavaScript puro dentro de <script>. Tudo deve funcionar em um único arquivo, sem frameworks, bibliotecas externas, fontes externas ou scripts de terceiros. Não faça uma página genérica curta.
+    const instructions = `Você é uma equipe sênior de design UX/UI, desenvolvimento front-end, conversão e SEO. Veterinária, fisioterapia, odontologia e clínica médica são segmentos distintos: nunca reutilize imagens, descrições ou vocabulário entre eles. Veterinária exige contexto de atendimento animal; fisioterapia exige reabilitação e movimento; odontologia exige saúde bucal humana.  Crie um site comercial realmente profissional, rico e personalizado para o negócio descrito, em português do Brasil. Entregue SOMENTE um documento HTML completo começando com <!doctype html>, com CSS dentro de <style> e JavaScript puro dentro de <script>. Tudo deve funcionar em um único arquivo, sem frameworks, bibliotecas externas, fontes externas ou scripts de terceiros. Não faça uma página genérica curta. Para clínica veterinária, crie 8 a 12 seções reais e substanciais, incluindo serviços, diferenciais, galeria, FAQ e contato; nunca reduza o conteúdo a pilares genéricos. O hero precisa de CTA que leve a uma seção útil. Não invente serviços, especialidades, equipe, endereço, avaliações, preços, horários ou canais de contato.
 
 ${visualBrief}
 
@@ -798,7 +813,7 @@ Descrição e necessidades do cliente: ${prompt}`;
         "INTEGRIDADE SEMÂNTICA: veterinária, fisioterapia, odontologia e clínica médica são segmentos distintos. Em veterinária, use cães/gatos e consulta veterinária; nunca cadeira odontológica, dentista ou saúde bucal. Em fisioterapia, use reabilitação, movimento e exercício terapêutico; nunca vocabulário odontológico, veterinário ou de academia. Em odontologia, use saúde bucal humana. Não misture bancos de imagens e descreva corretamente cada foto.",
         "DIREÇÃO DE ARTE: reconstrua como estúdio digital profissional. Antes de escrever, defina um conceito visual específico, uma paleta curta, uma escala tipográfica e uma composição própria. A primeira dobra deve ter impacto e hierarquia; alterne seções editoriais, mosaicos, faixas e listas visuais. Não repita o mesmo cartão em todas as seções. Cada seção deve parecer desenhada para este negócio, não um template trocando cores. Não use emoji como ícone principal, nem formas aleatórias para fingir fotografia. Use a primeira URL de fotografia selecionada no visualBrief no hero e as quatro URLs seguintes, distintas, na galeria; SVG/CSS complementa, mas não substitui essas fotos.",
         visualBrief,
-        "SEÇÕES OBRIGATÓRIAS: para academia entregue exatamente 10 elementos <section> reais, nesta ordem: hero, sobre, modalidades, benefícios, método/etapas, galeria, planos, manifesto/filosofia, FAQ e contato. Não omita nem funda seções. Cada seção precisa ter conteúdo desenvolvido e id próprio. Para outros segmentos, entregue 8 a 12 seções úteis.",
+        "SEÇÕES OBRIGATÓRIAS: para academia entregue exatamente 10 elementos <section> reais, nesta ordem: hero, sobre, modalidades, benefícios, método/etapas, galeria, planos, manifesto/filosofia, FAQ e contato. Para clínica veterinária entregue de 8 a 12 seções reais, incluindo obrigatoriamente hero, sobre, serviços (id=servicos), diferenciais (id=diferenciais), galeria (id=galeria), FAQ (id=faq) e contato (id=contato). A seção de serviços deve desenvolver pelo menos três áreas de cuidado em textos úteis, sem inventar procedimentos, especialidades, exames, equipe, equipamentos, endereço, preços ou horários. A seção de diferenciais deve apresentar princípios e abordagem, não fatos não fornecidos. O hero deve ter CTA funcional para #servicos ou #contato. Para outros segmentos, entregue 8 a 12 seções úteis. Não omita nem funda seções. Cada seção precisa ter conteúdo desenvolvido, id próprio e composição visual variada.",
         "SEGMENTO ACADEMIA: use linguagem visual esportiva premium. A primeira fotografia selecionada no visualBrief deve ser usada exclusivamente no hero. As quatro fotografias seguintes devem ser usadas exclusivamente na galeria, sem repetição entre si ou com o hero. As fotos são referências ilustrativas, não prova de que a academia possui os equipamentos ou espaços mostrados. Use alt descritivo e não invente instalações próprias.",
         "HERO: composição editorial assimétrica, título grande com quebra intencional, etiqueta curta, CTA destacado e uma das fotografias exatas do visualBrief como imagem principal. Em celular, mantenha a foto visível e empilhe o texto e a imagem em uma coluna; não use display:none na imagem do hero. Use camadas, recortes, escala e profundidade; SVG inline pode complementar, mas não substituir a fotografia.",
         'O hero deve usar uma das quatro fotografias exatas do visualBrief. Se adicionar SVG, ele é apenas um detalhe complementar, não um requisito nem substituto da foto.',
