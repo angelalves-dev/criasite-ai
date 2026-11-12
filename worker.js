@@ -516,6 +516,53 @@ function enforceBusinessIntegrity(html, business = {}) {
 }
 
 
+function enforceContactIntegrity(html, business = {}) {
+  let output = String(html || "");
+  const digits = String(business.whatsapp || "").replace(/\D/g, "");
+  const validWhatsApp = digits.length >= 10 && digits.length <= 15 && !/^0+$/.test(digits);
+  const contactPattern = /<section\b(?=[^>]*\bid=["']contato["'])[^>]*>[\s\S]*?<\/section>/i;
+  if (!contactPattern.test(output)) return output;
+
+  const cleanText = value => String(value || "").replace(/<[^>]*>/g, " ").replace(/&nbsp;|&#160;/gi, " ").replace(/\s+/g, " ").trim();
+  const contactIntent = /whats(?:app)?|fale conosco|fale com|entre em contato|ligue|telefone|e-?mail|mensagem|agende|solicite|orçamento|orcamento|contato/i;
+
+  return output.replace(contactPattern, section => {
+    section = section.replace(/<form\b[^>]*>[\s\S]*?<\/form>/gi,
+      '<p class="criasite-contact-note">As informações comerciais devem ser confirmadas diretamente com o estabelecimento.</p>');
+
+    if (validWhatsApp) {
+      const waUrl = "https://wa.me/" + digits + "?text=" + encodeURIComponent("Olá! Gostaria de saber mais sobre " + String(business.name || "seus serviços").slice(0, 80) + ".");
+      section = section.replace(/https?:\/\/(?:www\.)?wa\.me\/[0-9+]+(?:\?[^"'\s<>]*)?/gi, waUrl);
+      if (!section.includes('href="https://wa.me/' + digits) && !section.includes("href='https://wa.me/" + digits)) {
+        const cta = '<a class="criasite-contact-cta" href="' + waUrl + '" target="_blank" rel="noopener noreferrer">Conversar pelo WhatsApp</a>';
+        const heading = section.match(/<h[1-6]\b[^>]*>[\s\S]*?<\/h[1-6]>/i);
+        if (heading) section = section.replace(heading[0], heading[0] + cta);
+        else section = section.replace(/<\/section>$/i, cta + "</section>");
+      }
+      return section;
+    }
+
+    section = section.replace(/<a\b([^>]*)>([\s\S]*?)<\/a>/gi, (whole, attrs, inner) => {
+      const label = cleanText(inner);
+      const href = (attrs.match(/\bhref=["']([^"']*)["']/i) || [])[1] || "";
+      const isContactLink = contactIntent.test(label + " " + attrs);
+      const unsafeDestination = /^(?:#|javascript:)|^mailto:|^tel:|wa\.me\//i.test(href) ||
+        /(?:example\.com|seudominio|seuemail|powerfit\.com)/i.test(href);
+      if (unsafeDestination || (isContactLink && /^#/i.test(href))) {
+        return '<span class="criasite-contact-neutral">' + inner + "</span>";
+      }
+      return whole;
+    });
+
+    section = section.replace(/<button\b([^>]*)>([\s\S]*?)<\/button>/gi, (whole, attrs, inner) => {
+      if (!contactIntent.test(cleanText(inner) + " " + attrs)) return whole;
+      return '<span class="criasite-contact-neutral">' + inner + "</span>";
+    });
+    return section;
+  });
+}
+
+
 function enforceResponsiveLayout(html) {
   let output = String(html || "");
   if (!output) return output;
@@ -744,7 +791,7 @@ Descrição e necessidades do cliente: ${prompt}`;
       }, status, origin);
     }
 
-    let html = enforceNavigationAccessibility(enforceResponsiveLayout(enforceSegmentPhotography(enforceBusinessIntegrity(polishHtml(extractHtml(result)), business), business)));
+    let html = enforceNavigationAccessibility(enforceResponsiveLayout(enforceSegmentPhotography(enforceContactIntegrity(enforceBusinessIntegrity(polishHtml(extractHtml(result)), business), business), business)));
     if (!html || !/^<!doctype html/i.test(html) || !/<html[\s>]/i.test(html) || html.length < 500) {
       return json({ error: "A IA não retornou um HTML completo. Tente uma descrição mais específica." }, 502, origin);
     }
@@ -788,7 +835,7 @@ Descrição e necessidades do cliente: ${prompt}`;
         });
         const repairResult = await repairResponse.json().catch(() => ({}));
         if (repairResponse.ok) {
-          const candidate = enforceNavigationAccessibility(enforceResponsiveLayout(enforceSegmentPhotography(enforceBusinessIntegrity(polishHtml(extractHtml(repairResult)), business), business)));
+          const candidate = enforceNavigationAccessibility(enforceResponsiveLayout(enforceSegmentPhotography(enforceContactIntegrity(enforceBusinessIntegrity(polishHtml(extractHtml(repairResult)), business), business), business)));
           if (candidate && /^<!doctype html/i.test(candidate) && /<html[\s>]/i.test(candidate) && candidate.length >= 500) {
             const candidateQuality = inspectHtml(candidate, business);
             const weight = issue => /IDs duplicados|Links internos sem destino|Seções superficiais|Estrutura incompleta|Seção obrigatória ausente|Galeria da academia|afirmações sobre equipe|lista nav ul|Seção de modalidades|Contato ainda parece|Hero sem composição detalhada|adaptação responsiva comprovada/i.test(issue) ? 30 : 12;
