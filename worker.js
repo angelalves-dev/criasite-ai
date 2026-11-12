@@ -20,44 +20,19 @@ function json(data, status, origin) {
 
 
 function inferBusinessType(business = {}, prompt = "") {
-  const normalize = value => String(value || "").toLowerCase().normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
-  const supplied = normalize(business.type);
-  const text = normalize([prompt, business.name, business.tagline, business.offerings, business.description].join(" "));
-  const signals = {
-    academia: ["academia", "musculacao", "treino", "treinamento", "fitness", "halteres", "esteira", "crossfit", "funcional"],
-    restaurante: ["restaurante", "lanchonete", "cardapio", "comida", "gastronomia", "delivery", "pizzaria", "hamburgueria", "chef", "cozinha"],
-    barbearia: ["barbearia", "barbeiro", "corte masculino", "barba"],
-    beleza: ["salao de beleza", "cabeleireiro", "manicure", "estetica", "unhas", "maquiagem", "cabeleireira"],
-    clinica: ["clinica", "consultorio", "dentista", "odontologia", "odontologico", "odontologica", "saude bucal", "implante dentario", "aparelho ortodontico", "ortodontia", "fisioterapia", "medico", "medicina"],
-    loja: ["loja", "roupas", "vestuario", "ecommerce", "produtos", "vitrine", "moda"],
-    petshop: ["pet shop", "petshop", "veterinaria", "banho e tosa", "animais", "cao", "cachorro", "gato"],
-    imobiliaria: ["imobiliaria", "imoveis", "corretor", "apartamentos", "aluguel de imoveis"],
-    fotografo: ["fotografo", "fotografia", "ensaio fotografico", "estudio fotografico"],
-    arquitetura: ["escritorio de arquitetura", "arquiteto", "arquiteta", "projeto arquitetonico", "arquitetura residencial", "arquitetura comercial", "design de interiores"],
-    construcao: ["construcao", "construtora", "reforma", "engenharia", "obra", "empreiteira"],
-    educacao: ["curso", "escola", "educacao", "aulas", "professor", "ensino", "colegio"]
-  };
-  const known = new Set(["academia","restaurante","barbearia","beleza","clinica","loja","petshop","imobiliaria","fotografo","construcao","arquitetura","educacao","servicos"]);
-  const scores = Object.entries(signals).map(([type, words]) => ({
-    type,
-    score: words.reduce((total, word) => total + (text.includes(normalize(word)) ? 1 : 0), 0)
-  })).sort((a, b) => b.score - a.score || (a.type === supplied ? -1 : b.type === supplied ? 1 : a.type.localeCompare(b.type)));
-  const best = scores[0];
-  const suppliedScore = scores.find(item => item.type === supplied)?.score || 0;
-  const strongArchitecture = /\b(escritorio de arquitetura|arquiteto|arquiteta|projeto arquitetonico|arquitetura residencial|arquitetura comercial)\b/.test(text);
-  if (known.has(supplied) && supplied !== "servicos") {
-    const conflictingSignalIsClear = best && best.type !== supplied && best.score >= Math.max(2, suppliedScore + 1);
-    if (!conflictingSignalIsClear || (best.type === "arquitetura" && !strongArchitecture)) {
-      return { ...business, type: supplied, detectedType: supplied, originalType: supplied };
-    }
-  }
-  if (best && best.score >= 1) {
-    if (best.type !== "arquitetura" || strongArchitecture || supplied === "arquitetura") {
-      return { ...business, type: best.type, detectedType: best.type, originalType: supplied || "não informado" };
-    }
-  }
-  return { ...business, type: known.has(supplied) ? supplied : "servicos", detectedType: known.has(supplied) ? supplied : "servicos" };
+const n=v=>String(v||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9 ]/g," ").replace(/\s+/g," ").trim();
+const supplied=n(business.type), text=n([prompt,business.name,business.tagline,business.offerings,business.description].join(" "));
+const has=(...terms)=>terms.some(t=>text.includes(n(t)));
+if(has("clinica veterinaria","hospital veterinario","medicina veterinaria","medico veterinario","medica veterinaria","consulta veterinaria","saude animal")||supplied==="veterinaria")return {...business,type:"veterinaria",detectedType:"veterinaria",originalType:supplied||"não informado"};
+if(has("fisioterapia","fisioterapeuta","reabilitacao fisica","reabilitacao motora","terapia manual","recuperacao de movimento")||supplied==="fisioterapia")return {...business,type:"fisioterapia",detectedType:"fisioterapia",originalType:supplied||"não informado"};
+if(has("odontologia","odontologica","odontologico","dentista","consultorio odontologico","saude bucal","implante dentario","ortodontia")||supplied==="odontologia")return {...business,type:"odontologia",detectedType:"odontologia",originalType:supplied||"não informado"};
+const signals={academia:["academia","musculacao","treino","treinamento","fitness","halteres","esteira","crossfit","funcional"],restaurante:["restaurante","lanchonete","cardapio","comida","gastronomia","delivery","pizzaria","hamburgueria","chef","cozinha"],barbearia:["barbearia","barbeiro","corte masculino","barba"],beleza:["salao de beleza","cabeleireiro","manicure","estetica","unhas","maquiagem","cabeleireira"],clinica:["clinica medica","consultorio medico","medico","medicina","saude","atendimento clinico","consultorio"],loja:["loja","roupas","vestuario","ecommerce","produtos","vitrine","moda"],petshop:["pet shop","petshop","banho e tosa","racao","acessorios pet","produtos para pets"],veterinaria:["veterinaria","veterinario","clinica veterinaria","hospital veterinario","medicina veterinaria","saude animal"],imobiliaria:["imobiliaria","imoveis","corretor","apartamentos","aluguel de imoveis"],fotografo:["fotografo","fotografia","ensaio fotografico","estudio fotografico"],arquitetura:["escritorio de arquitetura","arquiteto","arquiteta","projeto arquitetonico","arquitetura residencial","arquitetura comercial","design de interiores"],construcao:["construcao","construtora","reforma","engenharia","obra","empreiteira"],educacao:["curso","escola","educacao","aulas","professor","ensino","colegio"]};
+const known=new Set(["academia","restaurante","barbearia","beleza","clinica","odontologia","fisioterapia","veterinaria","loja","petshop","imobiliaria","fotografo","construcao","arquitetura","educacao","servicos"]);
+const scores=Object.entries(signals).map(([type,words])=>({type,score:words.reduce((x,w)=>x+(text.includes(n(w))?1:0),0)})).sort((a,b)=>b.score-a.score||(a.type===supplied?-1:b.type===supplied?1:a.type.localeCompare(b.type)));
+const best=scores[0], ss=scores.find(x=>x.type===supplied)?.score||0, strong=/\b(escritorio de arquitetura|arquiteto|arquiteta|projeto arquitetonico|arquitetura residencial|arquitetura comercial)\b/.test(text);
+if(known.has(supplied)&&supplied!=="servicos"){const conflict=best&&best.type!==supplied&&best.score>=Math.max(2,ss+1);if(!conflict||(best.type==="arquitetura"&&!strong))return {...business,type:supplied,detectedType:supplied,originalType:supplied};}
+if(best&&best.score>=1&&(best.type!=="arquitetura"||strong||supplied==="arquitetura"))return {...business,type:best.type,detectedType:best.type,originalType:supplied||"não informado"};
+return {...business,type:known.has(supplied)?supplied:"servicos",detectedType:known.has(supplied)?supplied:"servicos"};
 }
 
 function segmentVisualBrief(type) {
@@ -67,7 +42,10 @@ function segmentVisualBrief(type) {
     restaurante: ["photo-1517248135467-4c7edcad34c4", "photo-1414235077428-338989a2e8c0", "photo-1515003197210-e0cd7184f8b2", "photo-1559339352-11d035aa65de", "photo-1514933651103-005eec06c04b"],
     barbearia: ["photo-1503951914875-452162b0f3f1", "photo-1599351431202-1e0f0137899a", "photo-1621605815971-fbc98d665033", "photo-1622296089863-eb7fc530daa8", "photo-1593702295094-aea8c9c8f2d1"],
     beleza: ["photo-1560066984-138dadb4c035", "photo-1522337360788-8b13dee7a37e", "photo-1487412720507-e7ab37603c6f", "photo-1521590832167-7bcbfaa6381f", "photo-1516975080664-ed2fc6a32937"],
-    clinica: ["photo-1629909613654-28e377c37b09", "photo-1576091160399-112ba8d25d1d", "photo-1584982751601-97d4b6c8b6c5", "photo-1631815588090-d4bfec5b1ccb", "photo-1511174511562-5f7f18b874f8"],
+    clinica: ["photo-1559757175-0eb30cd8c063", "photo-1579684385127-1ef15d508118", "photo-1584515933487-779824d29309", "photo-1576091160550-2173dba999ef", "photo-1584820927498-cfe5211fd8bf"],
+    odontologia: ["photo-1629909613654-28e377c37b09", "photo-1576091160399-112ba8d25d1d", "photo-1584982751601-97d4b6c8b6c5", "photo-1631815588090-d4bfec5b1ccb", "photo-1511174511562-5f7f18b874f8"],
+    fisioterapia: ["photo-1571019613454-1cb2f99b2d8b", "photo-1581009146145-b5ef050c2e1e", "photo-1579758629938-03607ccdbaba", "photo-1517836357463-d25dfeac3438", "photo-1534438327276-14e5300c3a48"],
+    veterinaria: ["photo-1628009368231-7bb7cfcb0def", "photo-1583337130417-3346a1be7dee", "photo-1543466835-00a7907e9de1", "photo-1552053831-71594a27632d", "photo-1516734212186-a967f81ad0d7"],
     loja: ["photo-1441986300917-64674bd600d8", "photo-1472851294608-062f824d29cc", "photo-1490481651871-ab68de25d43d", "photo-1523275335684-37898b6baf30", "photo-1490312278390-ab64016e0aa9"],
     petshop: ["photo-1548199973-03cce0bbc87b", "photo-1583337130417-3346a1be7dee", "photo-1543466835-00a7907e9de1", "photo-1552053831-71594a27632d", "photo-1516734212186-a967f81ad0d7"],
     imobiliaria: ["photo-1600596542815-ffad4c1539a9", "photo-1600607687939-ce8a6c25118c", "photo-1600566753086-00f18fb6b3ea", "photo-1600607687920-4e2a09cf159d", "photo-1600607687644-c7171b42498f"],
@@ -77,7 +55,7 @@ function segmentVisualBrief(type) {
     educacao: ["photo-1509062522246-3755977927d7", "photo-1523050854058-8df90110c9f1", "photo-1503676260728-1c00da094a0b", "photo-1522202176988-66273c2fd55f", "photo-1498243691581-b145c3f54a5a"],
     servicos: ["photo-1497366754035-f200968a6e72", "photo-1497366216548-37526070297c", "photo-1497366811353-6870744d04b2", "photo-1521737711867-e3b97375f902", "photo-1524758631624-e2822e304c36"]
   };
-  const aliases = { "salao": "beleza", "salao de beleza": "beleza", "gym": "academia", "fitness": "academia", "musculacao": "academia", "academia de ginastica": "academia", "restaurante / lanchonete": "restaurante", "pet shop": "petshop", "pet-shop": "petshop", "clinica medica": "clinica", "clinica odontologica": "clinica", "consultorio odontologico": "clinica", "odontologia": "clinica", "dentista": "clinica", "loja virtual": "loja", "fotografia": "fotografo", "imoveis": "imobiliaria", "escritorio de arquitetura": "arquitetura", "design de interiores": "arquitetura" };
+  const aliases = { "salao": "beleza", "salao de beleza": "beleza", "gym": "academia", "fitness": "academia", "musculacao": "academia", "academia de ginastica": "academia", "restaurante / lanchonete": "restaurante", "pet shop": "petshop", "pet-shop": "petshop", "clinica medica": "clinica", "clinica odontologica": "odontologia", "consultorio odontologico": "odontologia", "odontologia": "odontologia", "dentista": "odontologia", "fisioterapia": "fisioterapia", "clinica veterinaria": "veterinaria", "veterinaria": "veterinaria", "veterinario": "veterinaria", "loja virtual": "loja", "fotografia": "fotografo", "imoveis": "imobiliaria", "escritorio de arquitetura": "arquitetura", "design de interiores": "arquitetura" };
   const selected = aliases[key] || key;
   const ids = profiles[selected] || profiles.servicos;
   const urls = ids.map((id, index) => "https://images.unsplash.com/" + id + "?auto=format&fit=crop&w=" + (index === 0 ? "1500" : "900") + "&q=85");
@@ -87,7 +65,7 @@ function segmentVisualBrief(type) {
     ...urls.map((url, index) => (index + 1) + ". " + url),
     "Use a primeira imagem exclusivamente no hero e as quatro imagens seguintes, todas diferentes, exclusivamente nos quatro painéis da galeria. Não repita nenhuma fotografia entre hero e galeria nem dentro da galeria. Use object-fit:cover, proporções variadas, recortes editoriais e alt em português começando por 'Imagem ilustrativa'. Não afirme que as imagens mostram o estabelecimento, equipe ou clientes reais: são referências ilustrativas do segmento.",
     "Crie composição premium: hero com foto grande + título e CTA; mosaico com pelo menos quatro fotos; alterne seções editoriais, listas e faixas com fundos diferentes. Não force seção de planos para negócios que não vendem planos/assinaturas. Não invente depoimentos, avaliações, números ou resultados.",
-    selected === "arquitetura" ? "DIREÇÃO DE ARQUITETURA: priorize fachadas residenciais contemporâneas, interiores, salas, cozinhas, materiais, iluminação e detalhes construtivos. Não use restaurantes, pratos, mesas de restaurante, bares ou imagens de gastronomia. A galeria deve representar referências visuais arquitetônicas, não alegar que são obras executadas pelo escritório." : selected === "clinica" ? "DIREÇÃO DE CLÍNICA E ODONTOLOGIA: use estética de saúde contemporânea, consultório odontológico, cadeira odontológica, sala clínica limpa, instrumentos e detalhes de cuidado bucal. Não use escritórios corporativos, salas de reunião, fachadas residenciais, restaurantes ou fotos de arquitetura. Não prometa procedimentos, resultados ou certificações que não tenham sido informados." : ""
+    selected === "arquitetura" ? "DIREÇÃO DE ARQUITETURA: priorize fachadas residenciais contemporâneas, interiores, salas, cozinhas, materiais, iluminação e detalhes construtivos. Não use restaurantes, pratos, mesas de restaurante, bares ou imagens de gastronomia. A galeria deve representar referências visuais arquitetônicas, não alegar que são obras executadas pelo escritório." : selected === "odontologia" ? "DIREÇÃO DE ODONTOLOGIA: use consultório odontológico contemporâneo e saúde bucal humana; não use animais ou fisioterapia." : selected === "clinica" ? "DIREÇÃO DE CLÍNICA MÉDICA: use ambiente de saúde humana e consulta médica geral; não use cadeira odontológica, animais ou restaurantes." : selected === "fisioterapia" ? "DIREÇÃO DE FISIOTERAPIA: mostre reabilitação do movimento, exercício terapêutico, mobilidade e recuperação funcional; não use odontologia, veterinária ou academia como foco." : selected === "veterinaria" ? "DIREÇÃO DE CLÍNICA VETERINÁRIA: mostre veterinário examinando cães ou gatos, cuidado animal e ambiente clínico veterinário; não use cadeira odontológica ou instrumentos dentários humanos." : ""
   ].join("\n");
 }
 
@@ -102,7 +80,10 @@ function enforceSegmentPhotography(html, business = {}) {
     restaurante: ["photo-1517248135467-4c7edcad34c4", "photo-1414235077428-338989a2e8c0", "photo-1515003197210-e0cd7184f8b2", "photo-1559339352-11d035aa65de", "photo-1514933651103-005eec06c04b"],
     barbearia: ["photo-1503951914875-452162b0f3f1", "photo-1599351431202-1e0f0137899a", "photo-1621605815971-fbc98d665033", "photo-1622296089863-eb7fc530daa8", "photo-1593702295094-aea8c9c8f2d1"],
     beleza: ["photo-1560066984-138dadb4c035", "photo-1522337360788-8b13dee7a37e", "photo-1487412720507-e7ab37603c6f", "photo-1521590832167-7bcbfaa6381f", "photo-1516975080664-ed2fc6a32937"],
-    clinica: ["photo-1629909613654-28e377c37b09", "photo-1576091160399-112ba8d25d1d", "photo-1584982751601-97d4b6c8b6c5", "photo-1631815588090-d4bfec5b1ccb", "photo-1511174511562-5f7f18b874f8"],
+    clinica: ["photo-1559757175-0eb30cd8c063", "photo-1579684385127-1ef15d508118", "photo-1584515933487-779824d29309", "photo-1576091160550-2173dba999ef", "photo-1584820927498-cfe5211fd8bf"],
+    odontologia: ["photo-1629909613654-28e377c37b09", "photo-1576091160399-112ba8d25d1d", "photo-1584982751601-97d4b6c8b6c5", "photo-1631815588090-d4bfec5b1ccb", "photo-1511174511562-5f7f18b874f8"],
+    fisioterapia: ["photo-1571019613454-1cb2f99b2d8b", "photo-1581009146145-b5ef050c2e1e", "photo-1579758629938-03607ccdbaba", "photo-1517836357463-d25dfeac3438", "photo-1534438327276-14e5300c3a48"],
+    veterinaria: ["photo-1628009368231-7bb7cfcb0def", "photo-1583337130417-3346a1be7dee", "photo-1543466835-00a7907e9de1", "photo-1552053831-71594a27632d", "photo-1516734212186-a967f81ad0d7"],
     loja: ["photo-1441986300917-64674bd600d8", "photo-1472851294608-062f824d29cc", "photo-1490481651871-ab68de25d43d", "photo-1523275335684-37898b6baf30", "photo-1490312278390-ab64016e0aa9"],
     petshop: ["photo-1548199973-03cce0bbc87b", "photo-1583337130417-3346a1be7dee", "photo-1543466835-00a7907e9de1", "photo-1552053831-71594a27632d", "photo-1516734212186-a967f81ad0d7"],
     imobiliaria: ["photo-1600596542815-ffad4c1539a9", "photo-1600607687939-ce8a6c25118c", "photo-1600566753086-00f18fb6b3ea", "photo-1600607687920-4e2a09cf159d", "photo-1600607687644-c7171b42498f"],
@@ -112,7 +93,7 @@ function enforceSegmentPhotography(html, business = {}) {
     educacao: ["photo-1509062522246-3755977927d7", "photo-1523050854058-8df90110c9f1", "photo-1503676260728-1c00da094a0b", "photo-1522202176988-66273c2fd55f", "photo-1498243691581-b145c3f54a5a"],
     servicos: ["photo-1497366754035-f200968a6e72", "photo-1497366216548-37526070297c", "photo-1497366811353-6870744d04b2", "photo-1521737711867-e3b97375f902", "photo-1524758631624-e2822e304c36"]
   };
-  const aliases = { "gym": "academia", "fitness": "academia", "musculacao": "academia", "academia de ginastica": "academia", "restaurante / lanchonete": "restaurante", "pet shop": "petshop", "salao": "beleza", "salao de beleza": "beleza", "clinica odontologica": "clinica", "consultorio odontologico": "clinica", "odontologia": "clinica", "dentista": "clinica", "escritorio de arquitetura": "arquitetura", "design de interiores": "arquitetura" };
+  const aliases = { "gym": "academia", "fitness": "academia", "musculacao": "academia", "academia de ginastica": "academia", "restaurante / lanchonete": "restaurante", "pet shop": "petshop", "salao": "beleza", "salao de beleza": "beleza", "clinica odontologica": "odontologia", "consultorio odontologico": "odontologia", "odontologia": "odontologia", "dentista": "odontologia", "fisioterapia": "fisioterapia", "clinica veterinaria": "veterinaria", "veterinaria": "veterinaria", "veterinario": "veterinaria", "escritorio de arquitetura": "arquitetura", "design de interiores": "arquitetura" };
   const selected = aliases[key] || key;
   const ids = profiles[selected] || profiles.servicos;
   const makeUrl = (id, index) => "https://images.unsplash.com/" + id + "?auto=format&fit=crop&w=" + (index === 0 ? "1500" : "900") + "&q=85";
@@ -154,7 +135,7 @@ function enforceSegmentPhotography(html, business = {}) {
     '<div class="criasite-gallery" aria-label="Galeria de imagens ilustrativas">' +
     ids.slice(1, 5).map((id, i) =>
       '<figure class="criasite-gallery__item criasite-gallery__item--' + (i + 1) + '">' +
-      '<img src="' + makeUrl(id, i + 1) + '" alt="' + (selected === "arquitetura" ? ["Fachada residencial contemporânea, referência arquitetônica ilustrativa", "Sala de estar com composição de interiores, referência ilustrativa", "Ambiente interno com materiais e iluminação, referência ilustrativa", "Detalhe de projeto arquitetônico e acabamentos, referência ilustrativa"][i] : selected === "clinica" ? ["Ambiente clínico odontológico ilustrativo", "Detalhe de atendimento odontológico ilustrativo", "Espaço de cuidado bucal ilustrativo", "Cena relacionada à saúde odontológica ilustrativa"][i] : selected === "petshop" ? ["Cães em atividade ao ar livre, fotografia ilustrativa", "Cão recebendo cuidados, fotografia ilustrativa", "Retrato de cão, fotografia ilustrativa", "Animal de estimação em ambiente externo, fotografia ilustrativa"][i] : "Fotografia ilustrativa de " + selected + ", cena " + (i + 1)) + '" loading="lazy" decoding="async">' +
+      '<img src="' + makeUrl(id, i + 1) + '" alt="' + (selected === "arquitetura" ? ["Fachada residencial contemporânea, referência arquitetônica ilustrativa", "Sala de estar com composição de interiores, referência ilustrativa", "Ambiente interno com materiais e iluminação, referência ilustrativa", "Detalhe de projeto arquitetônico e acabamentos, referência ilustrativa"][i] : selected === "odontologia" ? ["Consultório odontológico ilustrativo", "Atendimento odontológico ilustrativo", "Equipamento de cuidado bucal ilustrativo", "Ambiente de saúde bucal ilustrativo"][i] : selected === "fisioterapia" ? ["Sessão de fisioterapia e reabilitação do movimento ilustrativa", "Exercício terapêutico orientado ilustrativo", "Prática de mobilidade e alongamento ilustrativa", "Atividade de recuperação funcional ilustrativa"][i] : selected === "veterinaria" ? ["Consulta veterinária com animal de estimação ilustrativa", "Cuidado veterinário de cão ilustrativo", "Animal em contexto de saúde veterinária ilustrativo", "Atendimento clínico veterinário ilustrativo"][i] : selected === "clinica" ? ["Ambiente de atendimento médico ilustrativo", "Consulta de saúde humana ilustrativa", "Espaço clínico contemporâneo ilustrativo", "Cuidado em saúde ilustrativo"][i] : selected === "petshop" ? ["Cães em atividade ao ar livre, fotografia ilustrativa", "Cão recebendo cuidados, fotografia ilustrativa", "Retrato de cão, fotografia ilustrativa", "Animal de estimação em ambiente externo, fotografia ilustrativa"][i] : "Fotografia ilustrativa de " + selected + ", cena " + (i + 1)) + '" loading="lazy" decoding="async">' +
       '</figure>'
     ).join("") +
     '</div><p class="criasite-gallery__note">Imagens ilustrativas do segmento.</p></div></section>';
@@ -451,7 +432,16 @@ function inspectHtml(html, business = {}) {
   if (hasMenuButton && !/e\.key\s*===?\s*["']Escape["']/i.test(html)) issues.push("O menu não fecha ao pressionar Escape.");
   if (galleryMatch) {
     const alts = Array.from(galleryMatch[0].matchAll(/<img\b[^>]*\balt=["']([^"']*)["'][^>]*>/gi), m => m[1].toLowerCase().trim());
-    if (alts.length >= 3 && alts.filter(alt => /^(imagem ilustrativa|imagem|foto)(\s+\d+)?(\s+do segmento)?(\s+\w+)?$/.test(alt)).length >= 3) issues.push("Os textos alternativos da galeria são genéricos; descreva cada cena ilustrativa.");
+        if (alts.length >= 3 && alts.filter(alt => /^(imagem ilustrativa|imagem|foto)(\s+\d+)?(\s+do segmento)?(\s+\w+)?$/.test(alt)).length >= 3) issues.push("Os textos alternativos da galeria são genéricos; descreva cada cena ilustrativa.");
+    const segmentKey = String(business.type || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const dentalAlt = alts.some(alt => /odontolog|dentista|cadeira odontologica|saude bucal/.test(alt));
+    const veterinaryAlt = alts.some(alt => /veterin|cao|cachorro|gato|animal/.test(alt));
+    const physioAlt = alts.some(alt => /fisioterapia|reabilitacao|exercicio terapeutico|mobilidade/.test(alt));
+    if (segmentKey.includes("veterin") && dentalAlt) issues.push("Galeria incompatível: site veterinário contém texto alternativo odontológico. Refaça as descrições e fotografias para veterinária.");
+    if (segmentKey.includes("fisioterapia") && dentalAlt) issues.push("Galeria incompatível: site de fisioterapia contém texto alternativo odontológico. Use cenas de reabilitação e movimento.");
+    if (segmentKey.includes("odontologia") && veterinaryAlt) issues.push("Galeria incompatível: site odontológico contém descrições de animais. Use cenas de odontologia humana.");
+    if (segmentKey.includes("veterin") && alts.length >= 3 && !veterinaryAlt) issues.push("Galeria sem contexto veterinário: descreva cenas ilustrativas de atendimento e cuidado animal.");
+    if (segmentKey.includes("fisioterapia") && alts.length >= 3 && !physioAlt) issues.push("Galeria sem contexto de fisioterapia: descreva reabilitação, exercício terapêutico e mobilidade.");
   }
   const paragraphTexts = [];
   for (const section of sectionBlocks) for (const m of section.body.matchAll(/<p\b[^>]*>([\s\S]*?)<\/p>/gi)) {
@@ -735,7 +725,7 @@ export default {
     if (prompt.length > 5000) return json({ error: "A descrição deve ter no máximo 5.000 caracteres." }, 400, origin);
 
     const visualBrief = segmentVisualBrief(business.type);
-    const instructions = `Você é uma equipe sênior de design UX/UI, desenvolvimento front-end, conversão e SEO. Crie um site comercial realmente profissional, rico e personalizado para o negócio descrito, em português do Brasil. Entregue SOMENTE um documento HTML completo começando com <!doctype html>, com CSS dentro de <style> e JavaScript puro dentro de <script>. Tudo deve funcionar em um único arquivo, sem frameworks, bibliotecas externas, fontes externas ou scripts de terceiros. Não faça uma página genérica curta.
+    const instructions = `Você é uma equipe sênior de design UX/UI, desenvolvimento front-end, conversão e SEO. Veterinária, fisioterapia, odontologia e clínica médica são segmentos distintos: nunca reutilize imagens, descrições ou vocabulário entre eles. Veterinária exige contexto de atendimento animal; fisioterapia exige reabilitação e movimento; odontologia exige saúde bucal humana.  Crie um site comercial realmente profissional, rico e personalizado para o negócio descrito, em português do Brasil. Entregue SOMENTE um documento HTML completo começando com <!doctype html>, com CSS dentro de <style> e JavaScript puro dentro de <script>. Tudo deve funcionar em um único arquivo, sem frameworks, bibliotecas externas, fontes externas ou scripts de terceiros. Não faça uma página genérica curta.
 
 ${visualBrief}
 
@@ -805,6 +795,7 @@ Descrição e necessidades do cliente: ${prompt}`;
         "Você é um estúdio digital sênior. REFAÇA o que estiver fraco, não maquie o HTML. O objetivo é um site comercial publicável, com direção de arte autoral, conteúdo confiável e acabamento de produto. Retorne SOMENTE um HTML completo válido começando com <!doctype html>.",
         "Esta é a tentativa de reconstrução " + (repairPass + 1) + " de 3. Corrija TODOS os problemas listados e faça uma revisão geral de qualidade. Não preserve componentes fracos só para manter o HTML anterior.",
         "",
+        "INTEGRIDADE SEMÂNTICA: veterinária, fisioterapia, odontologia e clínica médica são segmentos distintos. Em veterinária, use cães/gatos e consulta veterinária; nunca cadeira odontológica, dentista ou saúde bucal. Em fisioterapia, use reabilitação, movimento e exercício terapêutico; nunca vocabulário odontológico, veterinário ou de academia. Em odontologia, use saúde bucal humana. Não misture bancos de imagens e descreva corretamente cada foto.",
         "DIREÇÃO DE ARTE: reconstrua como estúdio digital profissional. Antes de escrever, defina um conceito visual específico, uma paleta curta, uma escala tipográfica e uma composição própria. A primeira dobra deve ter impacto e hierarquia; alterne seções editoriais, mosaicos, faixas e listas visuais. Não repita o mesmo cartão em todas as seções. Cada seção deve parecer desenhada para este negócio, não um template trocando cores. Não use emoji como ícone principal, nem formas aleatórias para fingir fotografia. Use a primeira URL de fotografia selecionada no visualBrief no hero e as quatro URLs seguintes, distintas, na galeria; SVG/CSS complementa, mas não substitui essas fotos.",
         visualBrief,
         "SEÇÕES OBRIGATÓRIAS: para academia entregue exatamente 10 elementos <section> reais, nesta ordem: hero, sobre, modalidades, benefícios, método/etapas, galeria, planos, manifesto/filosofia, FAQ e contato. Não omita nem funda seções. Cada seção precisa ter conteúdo desenvolvido e id próprio. Para outros segmentos, entregue 8 a 12 seções úteis.",
