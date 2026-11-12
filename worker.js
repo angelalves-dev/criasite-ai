@@ -24,31 +24,40 @@ function inferBusinessType(business = {}, prompt = "") {
     .replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
   const supplied = normalize(business.type);
   const text = normalize([prompt, business.name, business.tagline, business.offerings, business.description].join(" "));
-  const explicitArchitecture = /\b(arquitetura|arquiteto|arquiteta|projeto arquitetonico|escritorio de arquitetura)\b/.test(text);
-  if (explicitArchitecture) return { ...business, type: "arquitetura", detectedType: "arquitetura", originalType: supplied || "não informado" };
   const signals = {
     academia: ["academia", "musculacao", "treino", "treinamento", "fitness", "halteres", "esteira", "crossfit", "funcional"],
-    restaurante: ["restaurante", "lanchonete", "cardapio", "comida", "gastronomia", "delivery", "pizzaria", "hamburgueria"],
+    restaurante: ["restaurante", "lanchonete", "cardapio", "comida", "gastronomia", "delivery", "pizzaria", "hamburgueria", "chef", "cozinha"],
     barbearia: ["barbearia", "barbeiro", "corte masculino", "barba"],
-    beleza: ["salao de beleza", "cabeleireiro", "manicure", "estetica", "unhas"],
-    clinica: ["clinica", "consultorio", "dentista", "odontologia", "fisioterapia", "medico"],
-    loja: ["loja", "roupas", "vestuario", "ecommerce", "produtos", "vitrine"],
-    petshop: ["pet shop", "petshop", "veterinaria", "banho e tosa", "animais"],
+    beleza: ["salao de beleza", "cabeleireiro", "manicure", "estetica", "unhas", "maquiagem", "cabeleireira"],
+    clinica: ["clinica", "consultorio", "dentista", "odontologia", "odontologico", "odontologica", "saude bucal", "implante dentario", "aparelho ortodontico", "ortodontia", "fisioterapia", "medico", "medicina"],
+    loja: ["loja", "roupas", "vestuario", "ecommerce", "produtos", "vitrine", "moda"],
+    petshop: ["pet shop", "petshop", "veterinaria", "banho e tosa", "animais", "cao", "cachorro", "gato"],
     imobiliaria: ["imobiliaria", "imoveis", "corretor", "apartamentos", "aluguel de imoveis"],
-    fotografo: ["fotografo", "fotografia", "ensaio fotografico"],
-    arquitetura: ["arquitetura", "arquiteto", "arquiteta", "projeto arquitetonico", "escritorio de arquitetura"],
-    construcao: ["construcao", "construtora", "reforma", "engenharia"],
-    educacao: ["curso", "escola", "educacao", "aulas", "professor"]
+    fotografo: ["fotografo", "fotografia", "ensaio fotografico", "estudio fotografico"],
+    arquitetura: ["escritorio de arquitetura", "arquiteto", "arquiteta", "projeto arquitetonico", "arquitetura residencial", "arquitetura comercial", "design de interiores"],
+    construcao: ["construcao", "construtora", "reforma", "engenharia", "obra", "empreiteira"],
+    educacao: ["curso", "escola", "educacao", "aulas", "professor", "ensino", "colegio"]
   };
-  const scores = Object.entries(signals).map(([type, words]) => ({
-    type, score: words.reduce((total, word) => total + (text.includes(normalize(word)) ? 1 : 0), 0)
-  })).sort((a,b) => b.score-a.score);
-  const best = scores[0];
   const known = new Set(["academia","restaurante","barbearia","beleza","clinica","loja","petshop","imobiliaria","fotografo","construcao","arquitetura","educacao","servicos"]);
-  if (best && best.score >= 2 && (!known.has(supplied) || best.type !== supplied)) {
-    return { ...business, type: best.type, detectedType: best.type, originalType: supplied || "não informado" };
+  const scores = Object.entries(signals).map(([type, words]) => ({
+    type,
+    score: words.reduce((total, word) => total + (text.includes(normalize(word)) ? 1 : 0), 0)
+  })).sort((a, b) => b.score - a.score || (a.type === supplied ? -1 : b.type === supplied ? 1 : a.type.localeCompare(b.type)));
+  const best = scores[0];
+  const suppliedScore = scores.find(item => item.type === supplied)?.score || 0;
+  const strongArchitecture = /\b(escritorio de arquitetura|arquiteto|arquiteta|projeto arquitetonico|arquitetura residencial|arquitetura comercial)\b/.test(text);
+  if (known.has(supplied) && supplied !== "servicos") {
+    const conflictingSignalIsClear = best && best.type !== supplied && best.score >= Math.max(2, suppliedScore + 1);
+    if (!conflictingSignalIsClear || (best.type === "arquitetura" && !strongArchitecture)) {
+      return { ...business, type: supplied, detectedType: supplied, originalType: supplied };
+    }
   }
-  return { ...business, type: known.has(supplied) ? supplied : "servicos" };
+  if (best && best.score >= 1) {
+    if (best.type !== "arquitetura" || strongArchitecture || supplied === "arquitetura") {
+      return { ...business, type: best.type, detectedType: best.type, originalType: supplied || "não informado" };
+    }
+  }
+  return { ...business, type: known.has(supplied) ? supplied : "servicos", detectedType: known.has(supplied) ? supplied : "servicos" };
 }
 
 function segmentVisualBrief(type) {
@@ -68,7 +77,7 @@ function segmentVisualBrief(type) {
     educacao: ["photo-1509062522246-3755977927d7", "photo-1523050854058-8df90110c9f1", "photo-1503676260728-1c00da094a0b", "photo-1522202176988-66273c2fd55f", "photo-1498243691581-b145c3f54a5a"],
     servicos: ["photo-1497366754035-f200968a6e72", "photo-1497366216548-37526070297c", "photo-1497366811353-6870744d04b2", "photo-1521737711867-e3b97375f902", "photo-1524758631624-e2822e304c36"]
   };
-  const aliases = { "salao": "beleza", "salao de beleza": "beleza", "gym": "academia", "fitness": "academia", "musculacao": "academia", "academia de ginastica": "academia", "restaurante / lanchonete": "restaurante", "pet shop": "petshop", "pet-shop": "petshop", "clinica medica": "clinica", "loja virtual": "loja", "fotografia": "fotografo", "imoveis": "imobiliaria", "escritorio de arquitetura": "arquitetura", "design de interiores": "arquitetura" };
+  const aliases = { "salao": "beleza", "salao de beleza": "beleza", "gym": "academia", "fitness": "academia", "musculacao": "academia", "academia de ginastica": "academia", "restaurante / lanchonete": "restaurante", "pet shop": "petshop", "pet-shop": "petshop", "clinica medica": "clinica", "clinica odontologica": "clinica", "consultorio odontologico": "clinica", "odontologia": "clinica", "dentista": "clinica", "loja virtual": "loja", "fotografia": "fotografo", "imoveis": "imobiliaria", "escritorio de arquitetura": "arquitetura", "design de interiores": "arquitetura" };
   const selected = aliases[key] || key;
   const ids = profiles[selected] || profiles.servicos;
   const urls = ids.map((id, index) => "https://images.unsplash.com/" + id + "?auto=format&fit=crop&w=" + (index === 0 ? "1500" : "900") + "&q=85");
@@ -78,7 +87,7 @@ function segmentVisualBrief(type) {
     ...urls.map((url, index) => (index + 1) + ". " + url),
     "Use a primeira imagem exclusivamente no hero e as quatro imagens seguintes, todas diferentes, exclusivamente nos quatro painéis da galeria. Não repita nenhuma fotografia entre hero e galeria nem dentro da galeria. Use object-fit:cover, proporções variadas, recortes editoriais e alt em português começando por 'Imagem ilustrativa'. Não afirme que as imagens mostram o estabelecimento, equipe ou clientes reais: são referências ilustrativas do segmento.",
     "Crie composição premium: hero com foto grande + título e CTA; mosaico com pelo menos quatro fotos; alterne seções editoriais, listas e faixas com fundos diferentes. Não force seção de planos para negócios que não vendem planos/assinaturas. Não invente depoimentos, avaliações, números ou resultados.",
-    selected === "arquitetura" ? "DIREÇÃO DE ARQUITETURA: priorize fachadas residenciais contemporâneas, interiores, salas, cozinhas, materiais, iluminação e detalhes construtivos. Não use restaurantes, pratos, mesas de restaurante, bares ou imagens de gastronomia. A galeria deve representar referências visuais arquitetônicas, não alegar que são obras executadas pelo escritório." : ""
+    selected === "arquitetura" ? "DIREÇÃO DE ARQUITETURA: priorize fachadas residenciais contemporâneas, interiores, salas, cozinhas, materiais, iluminação e detalhes construtivos. Não use restaurantes, pratos, mesas de restaurante, bares ou imagens de gastronomia. A galeria deve representar referências visuais arquitetônicas, não alegar que são obras executadas pelo escritório." : selected === "clinica" ? "DIREÇÃO DE CLÍNICA E ODONTOLOGIA: use estética de saúde contemporânea, consultório odontológico, cadeira odontológica, sala clínica limpa, instrumentos e detalhes de cuidado bucal. Não use escritórios corporativos, salas de reunião, fachadas residenciais, restaurantes ou fotos de arquitetura. Não prometa procedimentos, resultados ou certificações que não tenham sido informados." : ""
   ].join("\n");
 }
 
@@ -98,11 +107,12 @@ function enforceSegmentPhotography(html, business = {}) {
     petshop: ["photo-1548199973-03cce0bbc87b", "photo-1583337130417-3346a1be7dee", "photo-1543466835-00a7907e9de1", "photo-1552053831-71594a27632d", "photo-1516734212186-a967f81ad0d7"],
     imobiliaria: ["photo-1600596542815-ffad4c1539a9", "photo-1600607687939-ce8a6c25118c", "photo-1600566753086-00f18fb6b3ea", "photo-1600607687920-4e2a09cf159d", "photo-1600607687644-c7171b42498f"],
     fotografo: ["photo-1452587925148-ce544e77e70d", "photo-1516035069371-29a1b244cc32", "photo-1492691527719-9d1e07e534b4", "photo-1500530855697-b586d89ba3ee", "photo-1542038784456-1ea8e935640e"],
+    arquitetura: ["photo-1600210492486-724fe5c67fb0", "photo-1600607687939-ce8a6c25118c", "photo-1600566753086-00f18fb6b3ea", "photo-1600607687920-4e2a09cf159d", "photo-1600607687644-c7171b42498f"],
     construcao: ["photo-1503387762-592deb58ef4e", "photo-1504307651254-35680f356dfd", "photo-1541888946425-d81bb19240f5", "photo-1487958449943-2429e8be8625", "photo-1511818966892-d7d671e672a2"],
     educacao: ["photo-1509062522246-3755977927d7", "photo-1523050854058-8df90110c9f1", "photo-1503676260728-1c00da094a0b", "photo-1522202176988-66273c2fd55f", "photo-1498243691581-b145c3f54a5a"],
     servicos: ["photo-1497366754035-f200968a6e72", "photo-1497366216548-37526070297c", "photo-1497366811353-6870744d04b2", "photo-1521737711867-e3b97375f902", "photo-1524758631624-e2822e304c36"]
   };
-  const aliases = { "gym": "academia", "fitness": "academia", "musculacao": "academia", "academia de ginastica": "academia", "restaurante / lanchonete": "restaurante", "pet shop": "petshop", "salao": "beleza", "salao de beleza": "beleza", "escritorio de arquitetura": "arquitetura", "design de interiores": "arquitetura" };
+  const aliases = { "gym": "academia", "fitness": "academia", "musculacao": "academia", "academia de ginastica": "academia", "restaurante / lanchonete": "restaurante", "pet shop": "petshop", "salao": "beleza", "salao de beleza": "beleza", "clinica odontologica": "clinica", "consultorio odontologico": "clinica", "odontologia": "clinica", "dentista": "clinica", "escritorio de arquitetura": "arquitetura", "design de interiores": "arquitetura" };
   const selected = aliases[key] || key;
   const ids = profiles[selected] || profiles.servicos;
   const makeUrl = (id, index) => "https://images.unsplash.com/" + id + "?auto=format&fit=crop&w=" + (index === 0 ? "1500" : "900") + "&q=85";
