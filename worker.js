@@ -24,6 +24,8 @@ function inferBusinessType(business = {}, prompt = "") {
     .replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
   const supplied = normalize(business.type);
   const text = normalize([prompt, business.name, business.tagline, business.offerings, business.description].join(" "));
+  const explicitArchitecture = /\b(arquitetura|arquiteto|arquiteta|projeto arquitetonico|escritorio de arquitetura)\b/.test(text);
+  if (explicitArchitecture) return { ...business, type: "arquitetura", detectedType: "arquitetura", originalType: supplied || "não informado" };
   const signals = {
     academia: ["academia", "musculacao", "treino", "treinamento", "fitness", "halteres", "esteira", "crossfit", "funcional"],
     restaurante: ["restaurante", "lanchonete", "cardapio", "comida", "gastronomia", "delivery", "pizzaria", "hamburgueria"],
@@ -34,14 +36,15 @@ function inferBusinessType(business = {}, prompt = "") {
     petshop: ["pet shop", "petshop", "veterinaria", "banho e tosa", "animais"],
     imobiliaria: ["imobiliaria", "imoveis", "corretor", "apartamentos", "aluguel de imoveis"],
     fotografo: ["fotografo", "fotografia", "ensaio fotografico"],
-    construcao: ["construcao", "construtora", "reforma", "engenharia", "arquitetura"],
+    arquitetura: ["arquitetura", "arquiteto", "arquiteta", "projeto arquitetonico", "escritorio de arquitetura"],
+    construcao: ["construcao", "construtora", "reforma", "engenharia"],
     educacao: ["curso", "escola", "educacao", "aulas", "professor"]
   };
   const scores = Object.entries(signals).map(([type, words]) => ({
     type, score: words.reduce((total, word) => total + (text.includes(normalize(word)) ? 1 : 0), 0)
   })).sort((a,b) => b.score-a.score);
   const best = scores[0];
-  const known = new Set(["academia","restaurante","barbearia","beleza","clinica","loja","petshop","imobiliaria","fotografo","construcao","educacao","servicos"]);
+  const known = new Set(["academia","restaurante","barbearia","beleza","clinica","loja","petshop","imobiliaria","fotografo","construcao","arquitetura","educacao","servicos"]);
   if (best && best.score >= 2 && (!known.has(supplied) || best.type !== supplied)) {
     return { ...business, type: best.type, detectedType: best.type, originalType: supplied || "não informado" };
   }
@@ -60,11 +63,12 @@ function segmentVisualBrief(type) {
     petshop: ["photo-1548199973-03cce0bbc87b", "photo-1583337130417-3346a1be7dee", "photo-1543466835-00a7907e9de1", "photo-1552053831-71594a27632d", "photo-1516734212186-a967f81ad0d7"],
     imobiliaria: ["photo-1600596542815-ffad4c1539a9", "photo-1600607687939-ce8a6c25118c", "photo-1600566753086-00f18fb6b3ea", "photo-1600607687920-4e2a09cf159d", "photo-1600607687644-c7171b42498f"],
     fotografo: ["photo-1452587925148-ce544e77e70d", "photo-1516035069371-29a1b244cc32", "photo-1492691527719-9d1e07e534b4", "photo-1500530855697-b586d89ba3ee", "photo-1542038784456-1ea8e935640e"],
+    arquitetura: ["photo-1600210492486-724fe5c67fb0", "photo-1600607687939-ce8a6c25118c", "photo-1600566753086-00f18fb6b3ea", "photo-1600607687920-4e2a09cf159d", "photo-1600607687644-c7171b42498f"],
     construcao: ["photo-1503387762-592deb58ef4e", "photo-1504307651254-35680f356dfd", "photo-1541888946425-d81bb19240f5", "photo-1487958449943-2429e8be8625", "photo-1511818966892-d7d671e672a2"],
     educacao: ["photo-1509062522246-3755977927d7", "photo-1523050854058-8df90110c9f1", "photo-1503676260728-1c00da094a0b", "photo-1522202176988-66273c2fd55f", "photo-1498243691581-b145c3f54a5a"],
     servicos: ["photo-1497366754035-f200968a6e72", "photo-1497366216548-37526070297c", "photo-1497366811353-6870744d04b2", "photo-1521737711867-e3b97375f902", "photo-1524758631624-e2822e304c36"]
   };
-  const aliases = { "salao": "beleza", "salao de beleza": "beleza", "gym": "academia", "fitness": "academia", "musculacao": "academia", "academia de ginastica": "academia", "restaurante / lanchonete": "restaurante", "pet shop": "petshop", "pet-shop": "petshop", "clinica medica": "clinica", "loja virtual": "loja", "fotografia": "fotografo", "imoveis": "imobiliaria" };
+  const aliases = { "salao": "beleza", "salao de beleza": "beleza", "gym": "academia", "fitness": "academia", "musculacao": "academia", "academia de ginastica": "academia", "restaurante / lanchonete": "restaurante", "pet shop": "petshop", "pet-shop": "petshop", "clinica medica": "clinica", "loja virtual": "loja", "fotografia": "fotografo", "imoveis": "imobiliaria", "escritorio de arquitetura": "arquitetura", "design de interiores": "arquitetura" };
   const selected = aliases[key] || key;
   const ids = profiles[selected] || profiles.servicos;
   const urls = ids.map((id, index) => "https://images.unsplash.com/" + id + "?auto=format&fit=crop&w=" + (index === 0 ? "1500" : "900") + "&q=85");
@@ -73,7 +77,8 @@ function segmentVisualBrief(type) {
     "Priorize fotografia editorial real como base visual, não uma galeria de ícones ou quatro SVGs esquemáticos. URLs de fotografia pública selecionadas para este segmento:",
     ...urls.map((url, index) => (index + 1) + ". " + url),
     "Use a primeira imagem exclusivamente no hero e as quatro imagens seguintes, todas diferentes, exclusivamente nos quatro painéis da galeria. Não repita nenhuma fotografia entre hero e galeria nem dentro da galeria. Use object-fit:cover, proporções variadas, recortes editoriais e alt em português começando por 'Imagem ilustrativa'. Não afirme que as imagens mostram o estabelecimento, equipe ou clientes reais: são referências ilustrativas do segmento.",
-    "Crie composição premium: hero com foto grande + título e CTA; mosaico com pelo menos quatro fotos; alterne seções editoriais, listas e faixas com fundos diferentes. Não force seção de planos para negócios que não vendem planos/assinaturas. Não invente depoimentos, avaliações, números ou resultados."
+    "Crie composição premium: hero com foto grande + título e CTA; mosaico com pelo menos quatro fotos; alterne seções editoriais, listas e faixas com fundos diferentes. Não force seção de planos para negócios que não vendem planos/assinaturas. Não invente depoimentos, avaliações, números ou resultados.",
+    selected === "arquitetura" ? "DIREÇÃO DE ARQUITETURA: priorize fachadas residenciais contemporâneas, interiores, salas, cozinhas, materiais, iluminação e detalhes construtivos. Não use restaurantes, pratos, mesas de restaurante, bares ou imagens de gastronomia. A galeria deve representar referências visuais arquitetônicas, não alegar que são obras executadas pelo escritório." : ""
   ].join("\n");
 }
 
@@ -97,7 +102,7 @@ function enforceSegmentPhotography(html, business = {}) {
     educacao: ["photo-1509062522246-3755977927d7", "photo-1523050854058-8df90110c9f1", "photo-1503676260728-1c00da094a0b", "photo-1522202176988-66273c2fd55f", "photo-1498243691581-b145c3f54a5a"],
     servicos: ["photo-1497366754035-f200968a6e72", "photo-1497366216548-37526070297c", "photo-1497366811353-6870744d04b2", "photo-1521737711867-e3b97375f902", "photo-1524758631624-e2822e304c36"]
   };
-  const aliases = { "gym": "academia", "fitness": "academia", "musculacao": "academia", "academia de ginastica": "academia", "restaurante / lanchonete": "restaurante", "pet shop": "petshop", "salao": "beleza", "salao de beleza": "beleza" };
+  const aliases = { "gym": "academia", "fitness": "academia", "musculacao": "academia", "academia de ginastica": "academia", "restaurante / lanchonete": "restaurante", "pet shop": "petshop", "salao": "beleza", "salao de beleza": "beleza", "escritorio de arquitetura": "arquitetura", "design de interiores": "arquitetura" };
   const selected = aliases[key] || key;
   const ids = profiles[selected] || profiles.servicos;
   const makeUrl = (id, index) => "https://images.unsplash.com/" + id + "?auto=format&fit=crop&w=" + (index === 0 ? "1500" : "900") + "&q=85";
@@ -139,7 +144,7 @@ function enforceSegmentPhotography(html, business = {}) {
     '<div class="criasite-gallery" aria-label="Galeria de imagens ilustrativas">' +
     ids.slice(1, 5).map((id, i) =>
       '<figure class="criasite-gallery__item criasite-gallery__item--' + (i + 1) + '">' +
-      '<img src="' + makeUrl(id, i + 1) + '" alt="' + (selected === "clinica" ? ["Ambiente clínico odontológico ilustrativo", "Detalhe de atendimento odontológico ilustrativo", "Espaço de cuidado bucal ilustrativo", "Cena relacionada à saúde odontológica ilustrativa"][i] : selected === "petshop" ? ["Cães em atividade ao ar livre, fotografia ilustrativa", "Cão recebendo cuidados, fotografia ilustrativa", "Retrato de cão, fotografia ilustrativa", "Animal de estimação em ambiente externo, fotografia ilustrativa"][i] : "Fotografia ilustrativa de " + selected + ", cena " + (i + 1)) + '" loading="lazy" decoding="async">' +
+      '<img src="' + makeUrl(id, i + 1) + '" alt="' + (selected === "arquitetura" ? ["Fachada residencial contemporânea, referência arquitetônica ilustrativa", "Sala de estar com composição de interiores, referência ilustrativa", "Ambiente interno com materiais e iluminação, referência ilustrativa", "Detalhe de projeto arquitetônico e acabamentos, referência ilustrativa"][i] : selected === "clinica" ? ["Ambiente clínico odontológico ilustrativo", "Detalhe de atendimento odontológico ilustrativo", "Espaço de cuidado bucal ilustrativo", "Cena relacionada à saúde odontológica ilustrativa"][i] : selected === "petshop" ? ["Cães em atividade ao ar livre, fotografia ilustrativa", "Cão recebendo cuidados, fotografia ilustrativa", "Retrato de cão, fotografia ilustrativa", "Animal de estimação em ambiente externo, fotografia ilustrativa"][i] : "Fotografia ilustrativa de " + selected + ", cena " + (i + 1)) + '" loading="lazy" decoding="async">' +
       '</figure>'
     ).join("") +
     '</div><p class="criasite-gallery__note">Imagens ilustrativas do segmento.</p></div></section>';
@@ -186,7 +191,7 @@ function inspectHtml(html, business = {}) {
   const svgShapeCount = (html.match(/<(?:path|line|polyline|polygon|rect|circle|ellipse)\b/gi) || []).length;
   const imageCount = (html.match(/<img\b/gi) || []).length;
   const cardCount = (html.match(/class=["'][^"']*\bcard\b[^"']*["']/gi) || []).length;
-  const heroMatch = html.match(/<section\b[^>]*class=["'][^"']*hero[^"']*["'][^>]*>[\s\S]*?<\/section>/i) || html.match(/<header\b[\s\S]*?<\/header>/i);
+  const heroMatch = html.match(/<section\b(?=[^>]*(?:\bid=["']hero["']|\bclass=["'][^"']*hero[^"']*["']))[^>]*>[\s\S]*?<\/section>/i) || html.match(/<header\b[\s\S]*?<\/header>/i);
   const hero = heroMatch ? heroMatch[0] : "";
   const heroVisuals = (hero.match(/<svg\b|<img\b|<picture\b/gi) || []).length;
   const galleryMatch = html.match(/<section\b(?=[^>]*(?:galeria|gallery|portfolio|estrutura))[^>]*>[\s\S]*?<\/section>/i) || html.match(/<div\b(?=[^>]*(?:galeria|gallery|portfolio|estrutura))[^>]*>[\s\S]*?<\/div>/i);
