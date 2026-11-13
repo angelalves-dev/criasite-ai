@@ -205,7 +205,7 @@ function inspectHtml(html, business = {}) {
   const hasDummyWhatsApp = waLinks.some(number => number.length < 10 || number.length > 15 || /^0+$/.test(number) || /^(1234567890|11999999999|5511999999999)$/.test(number));
   const sourceFacts = String([business.userBrief, business.name, business.tagline, business.description, business.offerings, business.services, business.modalities, business.plans, business.benefits].filter(Boolean).join(" ")).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   const visibleText = html.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, " ").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-  const unverifiedClaims = ["acesso livre","acesso total","avaliacao inicial","avaliacao mensal","acompanhamento total","acompanhamento individual","acompanhamento continuo","horario de funcionamento","horario de atendimento","equipe tecnica","equipe especializada","treino supervisionado","avaliacao periodica","reavaliacao periodica","planilha de treino personalizada","visita guiada","tour guiado","suporte tecnico","prioridade em agendamentos","prioridade no suporte","visite nossa unidade","nossa recepcao","recepcao da academia","profissionais certificados","instrutores acompanham","atendimento personalizado","consultoria de treino","consultoria completa","desconto progressivo","aula experimental","aulas experimentais","avaliacao fisica","personal trainer","professor a disposicao","estacionamento gratuito","vestiario","ar condicionado","ambiente climatizado","biomecanica","periodizacao","forca maxima","hipertrofia","prevencao de lesoes","acompanhamento constante","treino livre","treino orientado","treino de forca","treinamento funcional","musculacao orientada","condicionamento metabolico","condicionamento fisico","condicionamento","mobilidade","integracao","execucao tecnica","orientacao tecnica constante","orientacao tecnica","estrutura otimizada","estrutura completa","equipamentos modernos","equipamentos profissionais","ambiente focado em performance","seriedade tecnica","metodologia propria","metodo exclusivo","resultados reais","resultados garantidos","equipe qualificada","equipe experiente","profissionais especializados","profissionais qualificados","acompanhamento de evolucao","cronograma personalizado","planejamento individual","planos flexiveis","horarios flexiveis"].filter(claim => visibleText.includes(claim) && !sourceFacts.includes(claim));
+  const unverifiedClaims = ["acesso livre","acesso total","nasceu da necessidade","fundada em","anos de experiencia","mais de 10 anos","mais de 15 anos","acompanhamento geriatrico","protocolos de vacinacao atualizados","ambiente pensado para reduzir o estresse","ambiente desenhado para minimizar o estresse","estrutura pensada para reduzir o estresse","clinica veterinaria especializada","acompanhamento especializado","medicina baseada em evidencias","excelencia clinica","equipe multidisciplinar","equipe veterinaria","equipe odontologica","profissionais certificados","atendimento humanizado","referencia na regiao","lider no mercado","resultados comprovados","resultados garantidos","centenas de clientes","projetos realizados","clientes satisfeitos","avaliacao inicial","avaliacao mensal","acompanhamento total","acompanhamento individual","acompanhamento continuo","horario de funcionamento","horario de atendimento","equipe tecnica","equipe especializada","treino supervisionado","avaliacao periodica","reavaliacao periodica","planilha de treino personalizada","visita guiada","tour guiado","suporte tecnico","prioridade em agendamentos","prioridade no suporte","visite nossa unidade","nossa recepcao","recepcao da academia","profissionais certificados","instrutores acompanham","atendimento personalizado","consultoria de treino","consultoria completa","desconto progressivo","aula experimental","aulas experimentais","avaliacao fisica","personal trainer","professor a disposicao","estacionamento gratuito","vestiario","ar condicionado","ambiente climatizado","biomecanica","periodizacao","forca maxima","hipertrofia","prevencao de lesoes","acompanhamento constante","treino livre","treino orientado","treino de forca","treinamento funcional","musculacao orientada","condicionamento metabolico","condicionamento fisico","condicionamento","mobilidade","integracao","execucao tecnica","orientacao tecnica constante","orientacao tecnica","estrutura otimizada","estrutura completa","equipamentos modernos","equipamentos profissionais","ambiente focado em performance","seriedade tecnica","metodologia propria","metodo exclusivo","resultados reais","resultados garantidos","equipe qualificada","equipe experiente","profissionais especializados","profissionais qualificados","acompanhamento de evolucao","cronograma personalizado","planejamento individual","planos flexiveis","horarios flexiveis"].filter(claim => visibleText.includes(claim) && !sourceFacts.includes(claim));
   const unsupportedCommercialClaims = unverifiedClaims.length > 0;
   const deadLinks = (html.match(/href=["'](?:#|javascript:void\(0\)|javascript:;)["']/gi) || []).length;
 
@@ -641,44 +641,78 @@ function enforceResponsiveLayout(html) {
 
 function enforceNavigationAccessibility(html) {
   let output = String(html || "");
-  if (!output || /CriaSite navigation accessibility v3/.test(output)) return output;
-  const nav = output.match(/<nav\b([^>]*)>/i);
-  if (!nav) return output;
-  const navId = (nav[1].match(/\bid=["']([^"']+)["']/i) || [])[1] || "criasite-primary-nav";
-  if (!/\bid=/i.test(nav[1])) output = output.replace(nav[0], '<nav id="' + navId + '"' + nav[1] + '>');
-  let found = false;
-  output = output.replace(/<button\b([^>]*)>([\s\S]*?)<\/button>/gi, function(tag, attrs, inner) {
-    if (found || !/(?:menu|hamburger|☰|≡)/i.test(attrs + inner)) return tag;
-    found = true;
-    if (!/\btype=/i.test(attrs)) attrs = ' type="button"' + attrs;
-    if (!/\baria-label=/i.test(attrs)) attrs += ' aria-label="Abrir menu de navegação"';
-    if (!/\baria-controls=/i.test(attrs)) attrs += ' aria-controls="' + navId + '"';
-    attrs = attrs.replace(/\baria-expanded=["'][^"']*["']/i, 'aria-expanded="false"');
-    if (!/\baria-expanded=/i.test(attrs)) attrs += ' aria-expanded="false"';
-    return "<button" + attrs + ">" + inner + "</button>";
-  });
-  if (!found) return output;
-  const css = "/* CriaSite navigation accessibility v3 */\n" +
-    ".menu-btn,.menu-toggle,#menu-btn,#menu-toggle,.nav-toggle,#menu-button{display:none}\n" +
-    "@media(max-width:760px){.menu-btn,.menu-toggle,#menu-btn,#menu-toggle,.nav-toggle,#menu-button{display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px}.nav-links{display:none;position:absolute;top:100%;left:0;right:0;z-index:1001;flex-direction:column;align-items:stretch;gap:12px;padding:20px;background:#fff;box-shadow:0 16px 32px rgba(15,23,42,.12)}.nav-links.active,.nav-links.is-open{display:flex}.nav-links a{display:flex;align-items:center;min-height:44px}.nav-links li{width:100%}header nav ul{display:none!important}header nav ul.active,header nav ul.is-open{display:flex!important;position:absolute;top:100%;left:0;right:0;z-index:1001;flex-direction:column;align-items:stretch;gap:12px;padding:20px;background:#fff;box-shadow:0 16px 32px rgba(15,23,42,.12)}}\n" +
-    "@media(min-width:761px){.menu-btn,.menu-toggle,#menu-btn,#menu-toggle,.nav-toggle,#menu-button{display:none!important}}";
-  if (/<style\b[^>]*>[\s\S]*?<\/style>/i.test(output)) output = output.replace(/<\/style>/i, css + "\n</style>");
-  else output = output.replace(/<\/head>/i, "<style>" + css + "</style></head>");
+  if (!output) return output;
+  const navMatch = output.match(/<nav\b([^>]*)>/i);
+  if (!navMatch) return output;
+  const navId = (navMatch[1].match(/\bid=["']([^"']+)["']/i) || [])[1] || "criasite-primary-nav";
+  if (!/\bid=/i.test(navMatch[1])) {
+    output = output.replace(navMatch[0], '<nav id="' + navId + '"' + navMatch[1] + '>');
+  }
+
+  let buttonMatch = output.match(/<button\b(?=[^>]*(?:class=["'][^"']*(?:menu|nav)[^"']*["']|id=["'][^"']*(?:menu|nav)[^"']*["']|aria-controls=["']))[^>]*>[\s\S]*?<\/button>/i);
+  if (!buttonMatch) {
+    buttonMatch = output.match(/<button\b[^>]*>[\s\S]*?(?:☰|≡|menu)[\s\S]*?<\/button>/i);
+  }
+  if (!buttonMatch) return output;
+  let button = buttonMatch[0];
+  if (!/\btype=/i.test(button)) button = button.replace("<button", '<button type="button"');
+  if (!/\baria-label=/i.test(button)) button = button.replace("<button", '<button aria-label="Abrir menu de navegação"');
+  if (!/\baria-controls=/i.test(button)) button = button.replace("<button", '<button aria-controls="' + navId + '"');
+  if (!/\baria-expanded=/i.test(button)) button = button.replace("<button", '<button aria-expanded="false"');
+  output = output.replace(buttonMatch[0], button);
+
+  const scripts = Array.from(output.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi), match => match[1]);
+  const hasExistingController = scripts.some(script =>
+    /addEventListener\s*\(\s*["']click["']/i.test(script) &&
+    /aria-expanded/i.test(script) &&
+    /classList\.(?:toggle|add|remove)/i.test(script)
+  );
+  const hasEscapeClose = scripts.some(script => /keydown/i.test(script) && /Escape/i.test(script));
+
+  const css = [
+    "/* CriaSite navigation accessibility v4 */",
+    ".menu-btn,.menu-toggle,#menu-btn,#menu-toggle,.nav-toggle,#menu-button{display:none}",
+    "@media(max-width:760px){",
+    ".menu-btn,.menu-toggle,#menu-btn,#menu-toggle,.nav-toggle,#menu-button{display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px}",
+    "header{position:relative}",
+    "header nav ul{display:none!important;position:absolute;top:100%;left:0;right:0;z-index:1001;flex-direction:column!important;align-items:stretch;gap:12px;padding:20px;background:#fff;box-shadow:0 16px 32px rgba(15,23,42,.12)}",
+    "header nav ul.active,header nav ul.is-open{display:flex!important}",
+    "header nav ul li{width:100%}",
+    "header nav ul a{display:flex;align-items:center;min-height:44px;padding:8px 4px}",
+    "}",
+    "@media(min-width:761px){.menu-btn,.menu-toggle,#menu-btn,#menu-toggle,.nav-toggle,#menu-button{display:none!important}}"
+  ].join("\n");
+  if (!/CriaSite navigation accessibility v4/.test(output)) {
+    if (/<style\b[^>]*>[\s\S]*?<\/style>/i.test(output)) output = output.replace(/<\/style>/i, css + "\n</style>");
+    else output = output.replace(/<\/head>/i, "<style>" + css + "</style></head>");
+  }
+
+  if (hasExistingController) {
+    // Reaproveita o controlador criado pela IA. Escape aciona o mesmo botão
+    // para fechar o menu, sem criar um segundo sistema de alternância.
+    if (!hasEscapeClose && !/criasite-menu-escape-bridge/i.test(output)) {
+      const bridge = '<script>/* criasite-menu-escape-bridge */(function(){var b=document.querySelector(".menu-btn,.menu-toggle,#menu-btn,#menu-toggle,.nav-toggle,#menu-button");if(!b)return;document.addEventListener("keydown",function(e){if(e.key==="Escape"&&b.getAttribute("aria-expanded")==="true")b.click();});})();</script>';
+      output = output.replace(/<\/body>/i, bridge + "</body>");
+    }
+    return output;
+  }
+
+  if (/CriaSite navigation accessibility v3/.test(output)) return output;
   const script = [
     "(function(){function init(){",
     "var button=document.querySelector('.menu-btn,.menu-toggle,#menu-btn,#menu-toggle,.nav-toggle,#menu-button');",
-    "if(!button||button.dataset.criasiteMenuV3)return;",
+    "if(!button||button.dataset.criasiteMenuV4)return;",
     "var nav=document.getElementById(button.getAttribute('aria-controls'))||document.querySelector('header nav');if(!nav)return;",
-    "var list=nav.querySelector('ul')||nav;button.dataset.criasiteMenuV3='1';",
-    "function setOpen(v){list.classList.toggle('active',v);list.classList.toggle('is-open',v);nav.classList.toggle('active',v);nav.classList.toggle('is-open',v);button.setAttribute('aria-expanded',String(v));button.setAttribute('aria-label',v?'Fechar menu de navegação':'Abrir menu de navegação');}",
-    "button.addEventListener('click',function(e){e.preventDefault();e.stopImmediatePropagation();setOpen(button.getAttribute('aria-expanded')!=='true');},true);",
-    "list.addEventListener('click',function(e){if(e.target&&e.target.closest&&e.target.closest('a'))setOpen(false);},true);",
+    "var list=nav.querySelector('ul')||nav;button.dataset.criasiteMenuV4='1';",
+    "function setOpen(v){list.classList.toggle('active',v);list.classList.toggle('is-open',v);button.setAttribute('aria-expanded',String(v));button.setAttribute('aria-label',v?'Fechar menu de navegação':'Abrir menu de navegação');}",
+    "button.addEventListener('click',function(e){e.preventDefault();setOpen(button.getAttribute('aria-expanded')!=='true');});",
+    "list.addEventListener('click',function(e){if(e.target&&e.target.closest&&e.target.closest('a'))setOpen(false);});",
     "document.addEventListener('keydown',function(e){if(e.key==='Escape'&&button.getAttribute('aria-expanded')==='true'){setOpen(false);button.focus();}});",
     "document.addEventListener('click',function(e){if(button.getAttribute('aria-expanded')==='true'&&!nav.contains(e.target)&&!button.contains(e.target))setOpen(false);});",
     "setOpen(false);}",
     "if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();})();"
   ].join("");
-  output = output.replace(/<\/body>/i, "<script>/* CriaSite navigation accessibility v3 */" + script + "</script></body>");
+  output = output.replace(/<\/body>/i, "<script>/* CriaSite navigation accessibility v4 controller */" + script + "</script></body>");
   return output;
 }
 
@@ -740,7 +774,7 @@ export default {
     if (prompt.length > 5000) return json({ error: "A descrição deve ter no máximo 5.000 caracteres." }, 400, origin);
 
     const visualBrief = segmentVisualBrief(business.type);
-    const instructions = `Você é uma equipe sênior de design UX/UI, desenvolvimento front-end, conversão e SEO. Veterinária, fisioterapia, odontologia e clínica médica são segmentos distintos: nunca reutilize imagens, descrições ou vocabulário entre eles. Veterinária exige contexto de atendimento animal; fisioterapia exige reabilitação e movimento; odontologia exige saúde bucal humana.  Crie um site comercial realmente profissional, rico e personalizado para o negócio descrito, em português do Brasil. Entregue SOMENTE um documento HTML completo começando com <!doctype html>, com CSS dentro de <style> e JavaScript puro dentro de <script>. Tudo deve funcionar em um único arquivo, sem frameworks, bibliotecas externas, fontes externas ou scripts de terceiros. Não faça uma página genérica curta. Para clínica veterinária, crie 8 a 12 seções reais e substanciais, incluindo serviços, diferenciais, galeria, FAQ e contato; nunca reduza o conteúdo a pilares genéricos. O hero precisa de CTA que leve a uma seção útil. Não invente serviços, especialidades, equipe, endereço, avaliações, preços, horários ou canais de contato.
+    const instructions = `Você é uma equipe sênior de design UX/UI, desenvolvimento front-end, conversão e SEO. Veterinária, fisioterapia, odontologia e clínica médica são segmentos distintos: nunca reutilize imagens, descrições ou vocabulário entre eles. Veterinária exige contexto de atendimento animal; fisioterapia exige reabilitação e movimento; odontologia exige saúde bucal humana.  Crie um site comercial realmente profissional, rico e personalizado para o negócio descrito, em português do Brasil. Entregue SOMENTE um documento HTML completo começando com <!doctype html>, com CSS dentro de <style> e JavaScript puro dentro de <script>. Tudo deve funcionar em um único arquivo, sem frameworks, bibliotecas externas, fontes externas ou scripts de terceiros. Não faça uma página genérica curta. Para clínica veterinária, crie 8 a 12 seções reais e substanciais, incluindo serviços, diferenciais, galeria, FAQ e contato; nunca reduza o conteúdo a pilares genéricos. O hero precisa de CTA que leve a uma seção útil. Não invente serviços, especialidades, equipe, endereço, avaliações, preços, horários ou canais de contato. REGRA DE FIDELIDADE: não invente história de fundação, tempo de mercado, especialização, protocolos, estrutura física, instalações, equipamentos, equipe, processos internos, parcerias, prêmios ou resultados. Desejos descritos como 'quero', 'gostaria' ou 'inclua' são requisitos de design, não fatos sobre a empresa. Use como fatos somente os dados explicitamente fornecidos; apresente o restante como conteúdo educativo geral, possibilidade a confirmar ou omita.
 
 ${visualBrief}
 
@@ -810,6 +844,7 @@ Descrição e necessidades do cliente: ${prompt}`;
         "Você é um estúdio digital sênior. REFAÇA o que estiver fraco, não maquie o HTML. O objetivo é um site comercial publicável, com direção de arte autoral, conteúdo confiável e acabamento de produto. Retorne SOMENTE um HTML completo válido começando com <!doctype html>.",
         "Esta é a tentativa de reconstrução " + (repairPass + 1) + " de 3. Corrija TODOS os problemas listados e faça uma revisão geral de qualidade. Não preserve componentes fracos só para manter o HTML anterior.",
         "",
+        "REGRA DE FIDELIDADE COMERCIAL: não invente história da empresa, anos de experiência, especialidades, protocolos, equipe, instalações, equipamentos, parcerias, prêmios, certificações, clientes, projetos executados ou resultados. Desejos do usuário são requisitos do site, não fatos existentes. Só trate como fato aquilo que estiver explicitamente nos dados fornecidos. Conteúdo não confirmado deve ser educativo e neutro, ou removido.",
         "INTEGRIDADE SEMÂNTICA: veterinária, fisioterapia, odontologia e clínica médica são segmentos distintos. Em veterinária, use cães/gatos e consulta veterinária; nunca cadeira odontológica, dentista ou saúde bucal. Em fisioterapia, use reabilitação, movimento e exercício terapêutico; nunca vocabulário odontológico, veterinário ou de academia. Em odontologia, use saúde bucal humana. Não misture bancos de imagens e descreva corretamente cada foto.",
         "DIREÇÃO DE ARTE: reconstrua como estúdio digital profissional. Antes de escrever, defina um conceito visual específico, uma paleta curta, uma escala tipográfica e uma composição própria. A primeira dobra deve ter impacto e hierarquia; alterne seções editoriais, mosaicos, faixas e listas visuais. Não repita o mesmo cartão em todas as seções. Cada seção deve parecer desenhada para este negócio, não um template trocando cores. Não use emoji como ícone principal, nem formas aleatórias para fingir fotografia. Use a primeira URL de fotografia selecionada no visualBrief no hero e as quatro URLs seguintes, distintas, na galeria; SVG/CSS complementa, mas não substitui essas fotos.",
         visualBrief,
