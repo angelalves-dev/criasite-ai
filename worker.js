@@ -298,6 +298,86 @@ function enforceArchitectureFinalPolish(html, business = {}) {
     });
   }
 
+  // Normaliza seções mesmo quando a IA usa IDs ou títulos alternativos.
+  const replaceArchitectureSection = (source, idPattern, headingPattern, replacement) => {
+    let replaced = false;
+    const result = source.replace(/<section\b[^>]*>[\s\S]*?<\/section>/gi, section => {
+      if (replaced) return section;
+      const opening = section.match(/^<section\b[^>]*>/i)?.[0] || "";
+      const id = (opening.match(/\bid=["']([^"']+)["']/i) || [,""])[1];
+      const heading = ((section.match(/<h[1-3]\b[^>]*>([\s\S]*?)<\/h[1-3]>/i) || [,""])[1] || "")
+        .replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/\s+/g, " ").trim();
+      if ((idPattern && idPattern.test(id)) || (headingPattern && headingPattern.test(heading))) {
+        replaced = true;
+        return replacement;
+      }
+      return section;
+    });
+    return { html: result, replaced };
+  };
+
+  const servicesMarkup = '<section id="servicos" class="criasite-architecture-scope"><div class="criasite-architecture-wrap">' +
+    '<p class="criasite-architecture-kicker">POSSIBILIDADES DE PROJETO</p><h2>Um espaço pensado a partir da sua realidade</h2>' +
+    '<p class="criasite-architecture-lead">Antes de definir soluções, é importante compreender o local, as prioridades e o que precisa funcionar melhor no dia a dia. Os tópicos abaixo são frentes de reflexão, não uma lista de serviços confirmados.</p>' +
+    '<div class="criasite-architecture-services">' +
+    '<article><span>01 / CONTEXTO</span><h3>Leitura do espaço</h3><p>Observar dimensões, iluminação natural, circulação, acessos e relação com o entorno para entender as condições existentes.</p></article>' +
+    '<article><span>02 / ALTERNATIVAS</span><h3>Estudo de possibilidades</h3><p>Comparar caminhos de organização, volumetria, materiais e linguagem visual de acordo com as necessidades apresentadas.</p></article>' +
+    '<article><span>03 / DECISÕES</span><h3>Coerência nos detalhes</h3><p>Considerar uso, conforto, manutenção e expressão estética em conjunto, evitando decisões isoladas do contexto.</p></article>' +
+    '</div><p class="criasite-architecture-disclaimer">A contratação, o escopo e as entregas disponíveis devem ser confirmados diretamente com o escritório.</p></div></section>';
+
+  const processMarkup = '<section id="processo" class="criasite-architecture-scope"><div class="criasite-architecture-wrap">' +
+    '<p class="criasite-architecture-kicker">ETAPAS DE DESENVOLVIMENTO</p><h2>Da compreensão do espaço às decisões do projeto</h2>' +
+    '<div class="criasite-architecture-services">' +
+    '<article><span>ETAPA 01</span><h3>Escuta e levantamento</h3><p>Reunir objetivos, referências, medidas disponíveis, condicionantes do local e prioridades para estabelecer um ponto de partida claro.</p></article>' +
+    '<article><span>ETAPA 02</span><h3>Estudos e escolhas</h3><p>Organizar alternativas espaciais e discutir proporções, circulação, iluminação e materiais conforme o contexto apresentado.</p></article>' +
+    '<article><span>ETAPA 03</span><h3>Definição do escopo</h3><p>Alinhar quais desenhos, documentos, detalhamentos e etapas poderão fazer parte da proposta antes de qualquer contratação.</p></article>' +
+    '</div><p class="criasite-architecture-disclaimer">As etapas efetivas, os documentos entregues e os prazos variam conforme o escopo contratado e precisam ser confirmados.</p></div></section>';
+
+  const referencesMarkup = '<section id="referencias" class="criasite-reference-section"><div class="criasite-reference-wrap">' +
+    '<p class="criasite-eyebrow">REPERTÓRIO VISUAL</p><h2>Referências para explorar possibilidades</h2>' +
+    '<p class="criasite-reference-intro">Uma seleção de temas que pode orientar conversas sobre linguagem, uso e atmosfera. Esta seção é conceitual e não apresenta obras executadas ou clientes do escritório.</p>' +
+    '<div class="criasite-reference-grid">' +
+    '<article><span>01 / VOLUMETRIA</span><h3>Fachadas e proporção</h3><p>Relação entre cheios e vazios, escala, ritmo e integração visual com o entorno.</p></article>' +
+    '<article><span>02 / EXPERIÊNCIA</span><h3>Interiores e circulação</h3><p>Organização dos ambientes, percursos, ergonomia e aproveitamento da luz natural.</p></article>' +
+    '<article><span>03 / MATERIALIDADE</span><h3>Texturas e iluminação</h3><p>Combinação de superfícies, tonalidades e luz para construir uma atmosfera coerente.</p></article>' +
+    '</div><p class="criasite-architecture-disclaimer">Referências conceituais ilustrativas; não representam portfólio de projetos realizados.</p></div></section>';
+
+  const principlesMarkup = '<section id="principios" class="criasite-architecture-principles"><div class="criasite-architecture-wrap">' +
+    '<p class="criasite-architecture-kicker">PRINCÍPIOS DE PROJETO</p><h2>Critérios que ajudam a orientar boas decisões</h2>' +
+    '<div class="criasite-architecture-services">' +
+    '<article><span>01</span><h3>Clareza</h3><p>Definir prioridades, necessidades e limites antes de escolher uma direção de projeto.</p></article>' +
+    '<article><span>02</span><h3>Contexto</h3><p>Considerar o local, a incidência de luz, a circulação e a relação entre os ambientes.</p></article>' +
+    '<article><span>03</span><h3>Coerência</h3><p>Buscar equilíbrio entre funcionalidade, conforto, materiais e expressão visual.</p></article>' +
+    '</div><p class="criasite-architecture-disclaimer">Princípios conceituais; não representam certificações, resultados ou diferenciais comerciais comprovados.</p></div></section>';
+
+  let normalized = replaceArchitectureSection(output, /^processo$/i, /processo de projeto|etapas do projeto/i, processMarkup);
+  output = normalized.html;
+  normalized = replaceArchitectureSection(output, /^(?:referencias|referências|portfolio|projetos)$/i, /refer[eê]ncias conceituais|portf[oó]lio|projetos realizados/i, referencesMarkup);
+  output = normalized.html;
+  normalized = replaceArchitectureSection(output, /^(?:principios|princípios|criterios|critérios|diferenciais)$/i, /princ[ií]pios|crit[eé]rios de qualidade|diferenciais/i, principlesMarkup);
+  output = normalized.html;
+
+  if (!/<section\b(?=[^>]*\bid=["']servicos["'])/i.test(output)) {
+    const aboutRe = /(<section\b(?=[^>]*\bid=["']sobre["'])[^>]*>[\s\S]*?<\/section>)/i;
+    if (aboutRe.test(output)) output = output.replace(aboutRe, "$1" + servicesMarkup);
+    else output = output.replace(/<main\b[^>]*>/i, match => match + servicesMarkup);
+  }
+  if (!/<section\b(?=[^>]*\bid=["']processo["'])/i.test(output)) {
+    output = output.replace(/(<section\b(?=[^>]*\bid=["']servicos["'])[^>]*>[\s\S]*?<\/section>)/i, "$1" + processMarkup);
+  }
+  if (!/<section\b(?=[^>]*\bid=["']principios["'])/i.test(output)) {
+    const refSectionRe = /(<section\b(?=[^>]*\bid=["']referencias["'])[^>]*>[\s\S]*?<\/section>)/i;
+    if (refSectionRe.test(output)) output = output.replace(refSectionRe, "$1" + principlesMarkup);
+    else output = output.replace(/<\/main>/i, principlesMarkup + "</main>");
+  }
+
+  const heroSectionRe = /<section\b(?=[^>]*(?:\bid=["']hero["']|\bclass=["'][^"]*\bhero\b))[^>]*>[\s\S]*?<\/section>/i;
+  output = output.replace(heroSectionRe, hero => hero.replace(/(<a\b[^>]*class=["'][^"']*criasite-architecture-hero-cta[^"']*["'][^>]*href=["'])#[^"']*(["'][^>]*>)/i, "$1#servicos$2"));
+  output = output.replace(
+    /document\.querySelector\(this\.getAttribute\('href'\)\)\.scrollIntoView\(\s*\{\s*behavior:\s*'smooth'\s*\}\s*\);/g,
+    "var target=document.querySelector(this.getAttribute('href'));if(target){target.scrollIntoView({behavior:'smooth'});}"
+  );
+
   const css = [
     ":root{--cs-ink:#292722;--cs-paper:#f7f5f0;--cs-sand:#e9e1d7;--cs-copper:#9a704c;--cs-muted:#68635c}",
     "body{color:var(--cs-ink)}",
@@ -846,6 +926,11 @@ function enforceNavigationAccessibility(html) {
   const selector = ".menu-btn,.menu-toggle,#menu-btn,#menu-toggle,.nav-toggle,#menu-button";
   let buttonMatch = output.match(/<button\b(?=[^>]*(?:class=["'][^"']*(?:menu|nav)[^"']*["']|id=["'][^"']*(?:menu|nav)[^"']*["']|aria-controls=["']))[^>]*>[\s\S]*?<\/button>/i);
   if (!buttonMatch) buttonMatch = output.match(/<button\b[^>]*>[\s\S]*?(?:☰|≡|menu)[\s\S]*?<\/button>/i);
+  if (!buttonMatch) {
+    const generatedButton = '<button type="button" class="menu-toggle" aria-label="Abrir menu de navegação" aria-controls="' + navId + '" aria-expanded="false"><span aria-hidden="true">☰</span></button>';
+    output = output.replace(/<nav\b/i, generatedButton + '<nav');
+    buttonMatch = output.match(/<button\b[^>]*class=["'][^"']*menu-toggle[^"']*["'][^>]*>[\s\S]*?<\/button>/i);
+  }
   if (!buttonMatch) return output;
   let button = buttonMatch[0];
   if (!/\btype=/i.test(button)) button = button.replace("<button", '<button type="button"');
