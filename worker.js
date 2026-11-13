@@ -189,6 +189,100 @@ function enforceSegmentPhotography(html, business = {}) {
   return output;
 }
 
+
+function enforceArchitectureFinalPolish(html, business = {}) {
+  let output = String(html || "");
+  const resolved = inferBusinessType(business, business.userBrief || "").type;
+  if (resolved !== "arquitetura") return output;
+
+  const colorMap = {
+    "#6f42c1":"#9a704c","#7c3aed":"#9a704c","#8b5cf6":"#b18a67",
+    "#a855f7":"#b18a67","#9333ea":"#9a704c","#6d28d9":"#76563b",
+    "#5b21b6":"#76563b","#4c1d95":"#292722","#7e22ce":"#9a704c",
+    "#a78bfa":"#c9b49d","#c4b5fd":"#ded3c5","#ddd6fe":"#e9e1d7",
+    "#f3e8ff":"#f5f1eb","#ede9fe":"#eee8df","#e9d5ff":"#e6ddd1",
+    "#faf5ff":"#f7f5f0","#f5f3ff":"#f7f5f0"
+  };
+  for (const [from, to] of Object.entries(colorMap)) {
+    output = output.replace(new RegExp(from.replace("#","\\#"), "gi"), to);
+  }
+  output = output.replace(/\b(?:purple|violet)\b/gi, "copper");
+  output = output.replace(/hsl\(\s*(?:25[0-9]|26[0-9]|27[0-9]|28[0-9]|29[0-9]|3[0-1][0-9])\s*,\s*([^)]*)\)/gi, "hsl(28, 24%, 46%)");
+
+  const serviceRe = /<section\b(?=[^>]*\bid=["'](?:servicos|serviços|services)["'])[^>]*>[\s\S]*?<\/section>/i;
+  if (serviceRe.test(output)) {
+    output = output.replace(serviceRe, section => {
+      const opening = section.match(/^<section\b[^>]*>/i)?.[0] || '<section id="servicos">';
+      const id = (opening.match(/\bid=["']([^"']+)["']/i) || [,"servicos"])[1];
+      return '<section id="' + id + '" class="criasite-architecture-scope"><div class="criasite-architecture-wrap">' +
+        '<p class="criasite-architecture-kicker">PENSAMENTO E PROCESSO</p>' +
+        '<h2>Um projeto começa pelas perguntas certas</h2>' +
+        '<p class="criasite-architecture-lead">Cada espaço tem contexto, limites e possibilidades próprios. Estas frentes apresentam temas que podem ser explorados durante a conversa inicial — o escopo efetivamente oferecido deve ser confirmado pelo escritório.</p>' +
+        '<div class="criasite-architecture-services">' +
+        '<article><span>01</span><h3>Leitura do espaço</h3><p>Observar dimensões, luz natural, circulação, necessidades de uso e relação com o entorno antes de propor soluções.</p></article>' +
+        '<article><span>02</span><h3>Estudo de possibilidades</h3><p>Comparar alternativas de organização, volumetria, materiais e linguagem visual considerando as prioridades do projeto.</p></article>' +
+        '<article><span>03</span><h3>Coerência nos detalhes</h3><p>Conectar escolhas funcionais e estéticas para que ambientes, acabamentos e iluminação formem uma solução integrada.</p></article>' +
+        '</div><p class="criasite-architecture-disclaimer">Conteúdo informativo: confirme diretamente com o escritório quais serviços e etapas fazem parte de sua atuação.</p>' +
+        '</div></section>';
+    });
+  }
+
+  const refRe = /<section\b(?=[^>]*\bid=["'](?:referencias|referências|portfolio|projetos)["'])[^>]*>[\s\S]*?<\/section>/i;
+  if (refRe.test(output)) {
+    output = output.replace(refRe, section => {
+      const opening = section.match(/^<section\b[^>]*>/i)?.[0] || '<section id="referencias">';
+      const id = (opening.match(/\bid=["']([^"']+)["']/i) || [,"referencias"])[1];
+      return '<section id="' + id + '" class="criasite-reference-section"><div class="criasite-reference-wrap">' +
+        '<p class="criasite-eyebrow">LINGUAGEM ARQUITETÔNICA</p><h2>Referências e princípios de projeto</h2>' +
+        '<p class="criasite-reference-intro">Um repertório de ideias para orientar conversas e estudos. Os itens abaixo são referências conceituais, não projetos executados ou clientes do escritório.</p>' +
+        '<div class="criasite-reference-grid">' +
+        '<article><span>01 / ESPAÇO</span><h3>Fachadas e volumetria</h3><p>Proporção, ritmo, escala e relação entre a construção e seu entorno.</p></article>' +
+        '<article><span>02 / EXPERIÊNCIA</span><h3>Interiores e circulação</h3><p>Fluxos, ergonomia, luz e organização dos ambientes a partir dos usos previstos.</p></article>' +
+        '<article><span>03 / MATÉRIA</span><h3>Materiais e iluminação</h3><p>Texturas, desempenho, manutenção e temperatura visual como parte da identidade do espaço.</p></article>' +
+        '</div></div></section>';
+    });
+  }
+
+  const css = [
+    ":root{--cs-ink:#292722;--cs-paper:#f7f5f0;--cs-sand:#e9e1d7;--cs-copper:#9a704c;--cs-muted:#68635c}",
+    "body{color:var(--cs-ink)}",
+    ".criasite-architecture-scope{padding:clamp(3.5rem,7vw,6rem) 0;background:var(--cs-paper);color:var(--cs-ink)}",
+    ".criasite-architecture-wrap{width:min(1100px,calc(100% - 40px));margin-inline:auto}",
+    ".criasite-architecture-kicker{font-size:.72rem;letter-spacing:.16em;font-weight:700;color:var(--cs-copper);margin:0 0 1rem}",
+    ".criasite-architecture-scope h2,.criasite-reference-section h2{max-width:760px;font-size:clamp(2rem,4vw,3.6rem);line-height:1.06;letter-spacing:-.04em;margin:0 0 1rem}",
+    ".criasite-architecture-lead,.criasite-reference-intro{max-width:700px;color:var(--cs-muted);line-height:1.75}",
+    ".criasite-architecture-services{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;margin-top:2.25rem;background:#d8cfc3;border:1px solid #d8cfc3}",
+    ".criasite-architecture-services article{background:#fff;padding:clamp(1.25rem,2.5vw,2rem);min-height:220px}",
+    ".criasite-architecture-services article span{color:var(--cs-copper);font-size:.75rem;letter-spacing:.14em}",
+    ".criasite-architecture-services h3{font-size:1.2rem;margin:1.5rem 0 .65rem}",
+    ".criasite-architecture-services p,.criasite-architecture-disclaimer{color:var(--cs-muted);line-height:1.7;font-size:.94rem}",
+    ".criasite-architecture-disclaimer{font-size:.78rem;margin-top:1rem}",
+    ".criasite-reference-section{padding:clamp(3.5rem,7vw,6rem) 0;background:#eee8df!important;color:var(--cs-ink)}",
+    ".criasite-reference-wrap{width:min(1100px,calc(100% - 40px));margin-inline:auto}",
+    ".criasite-reference-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem;margin-top:2rem}",
+    ".criasite-reference-grid article{background:#fff;border:1px solid #d8cfc3;padding:1.5rem;min-height:190px}",
+    ".criasite-reference-grid article span{color:var(--cs-copper);font-size:.72rem;letter-spacing:.12em}",
+    ".criasite-reference-grid h3{margin:1rem 0 .5rem;font-size:1.15rem}",
+    ".criasite-reference-grid p{color:var(--cs-muted);line-height:1.65}",
+    "a:focus-visible,button:focus-visible{outline:3px solid var(--cs-copper);outline-offset:4px}",
+    "@media(max-width:760px){.criasite-architecture-services,.criasite-reference-grid{grid-template-columns:1fr}.criasite-architecture-services article{min-height:0}}",
+    ".criasite-architecture-hero-cta{display:inline-flex;align-items:center;justify-content:center;margin-top:1rem;padding:.9rem 1.25rem;background:#292722;color:#fff;text-decoration:none;border:1px solid #292722;transition:background .2s,color .2s}",
+    ".criasite-architecture-hero-cta:hover{background:#9a704c;border-color:#9a704c}"
+  ].join("\n");
+  if (/<style\b[^>]*>[\s\S]*?<\/style>/i.test(output)) output = output.replace(/<\/style>/i, css + "\n</style>");
+  else output = output.replace(/<\/head>/i, "<style>" + css + "</style></head>");
+
+  const heroRe = /<section\b(?=[^>]*(?:\bid=["']hero["']|\bclass=["'][^"]*\bhero\b))[^>]*>[\s\S]*?<\/section>/i;
+  if (heroRe.test(output)) {
+    output = output.replace(heroRe, hero => {
+      if (/<a\b[^>]*href=["']#(?:servicos|serviços|contato)["']/i.test(hero)) return hero;
+      const cta = '<a class="criasite-architecture-hero-cta" href="#servicos">Conheça o processo</a>';
+      return hero.replace(/<\/section>/i, cta + "</section>");
+    });
+  }
+  return output;
+}
+
 function inspectHtml(html, business = {}) {
   const issues = [];
   const sections = (html.match(/<section\b/gi) || []).length;
@@ -848,7 +942,7 @@ Descrição e necessidades do cliente: ${prompt}`;
       }, status, origin);
     }
 
-    let html = enforceNavigationAccessibility(enforceResponsiveLayout(enforceSegmentPhotography(enforceContactIntegrity(enforceBusinessIntegrity(polishHtml(extractHtml(result)), business), business), business)));
+    let html = enforceArchitectureFinalPolish(enforceNavigationAccessibility(enforceResponsiveLayout(enforceSegmentPhotography(enforceContactIntegrity(enforceBusinessIntegrity(polishHtml(extractHtml(result)), business), business), business))), business);
     if (!html || !/^<!doctype html/i.test(html) || !/<html[\s>]/i.test(html) || html.length < 500) {
       return json({ error: "A IA não retornou um HTML completo. Tente uma descrição mais específica." }, 502, origin);
     }
@@ -894,7 +988,7 @@ Descrição e necessidades do cliente: ${prompt}`;
         });
         const repairResult = await repairResponse.json().catch(() => ({}));
         if (repairResponse.ok) {
-          const candidate = enforceNavigationAccessibility(enforceResponsiveLayout(enforceSegmentPhotography(enforceContactIntegrity(enforceBusinessIntegrity(polishHtml(extractHtml(repairResult)), business), business), business)));
+          const candidate = enforceArchitectureFinalPolish(enforceNavigationAccessibility(enforceResponsiveLayout(enforceSegmentPhotography(enforceContactIntegrity(enforceBusinessIntegrity(polishHtml(extractHtml(repairResult)), business), business), business))), business);
           if (candidate && /^<!doctype html/i.test(candidate) && /<html[\s>]/i.test(candidate) && candidate.length >= 500) {
             const candidateQuality = inspectHtml(candidate, business);
             const weight = issue => /IDs duplicados|Links internos sem destino|Seções superficiais|Estrutura incompleta|Seção obrigatória ausente|Galeria da academia|afirmações sobre equipe|lista nav ul|Seção de modalidades|Contato ainda parece|Hero sem composição detalhada|adaptação responsiva comprovada/i.test(issue) ? 30 : 12;
