@@ -544,6 +544,7 @@ function inspectHtml(html, business = {}) {
   }
   const navList = (html.match(/<nav\b[^>]*>[\s\S]*?<\/nav>/i) || [""])[0];
   if (hasMenuButton && navList.includes("<ul") && !/list\.classList\.toggle\(['"]active['"],\s*!!open\)/.test(html)) issues.push("O menu mobile não controla a própria lista nav ul. O botão precisa abrir/fechar ul.active e sincronizar aria-expanded.");
+  if (hasMenuButton && /header nav(?:\s*\{[^}]*display\s*:\s*none|\s+\{[^}]*display\s*:\s*none)/i.test(html) && !/header nav\.criasite-menu-open\s*\{[^}]*display\s*:\s*block!important/i.test(html)) issues.push("O contêiner nav permanece oculto mesmo quando a lista de links é aberta no celular.");
   if (hasMenuButton && /header nav ul\{[^}]*display\s*:\s*none!important/i.test(html) && !/header nav ul\.active[^}]*display\s*:\s*flex!important/i.test(html)) issues.push("O CSS do menu esconde os links sem uma regra correspondente para exibir a lista ativa.");
   const heroPhotoId = ((hero.match(/<img\b[^>]*src=["'][^"']*images\.unsplash\.com\/(photo-[^?]+)/i) || [])[1] || "");
   if (heroPhotoId && galleryPhotoIds.includes(heroPhotoId)) issues.push("A fotografia do hero está repetida na galeria. Reserve quatro imagens distintas para a galeria e mantenha a foto principal independente.");
@@ -939,30 +940,30 @@ function enforceNavigationAccessibility(html) {
   if (!/\baria-expanded=/i.test(button)) button = button.replace("<button", '<button aria-expanded="false"');
   output = output.replace(buttonMatch[0], button);
   const css = [
-    "/* CriaSite navigation accessibility v5 — controlador único */",
+    "/* CriaSite navigation accessibility v6 — painel mobile funcional */",
     ".menu-btn,.menu-toggle,#menu-btn,#menu-toggle,.nav-toggle,#menu-button{display:none}",
     "@media(max-width:760px){",
     ".menu-btn,.menu-toggle,#menu-btn,#menu-toggle,.nav-toggle,#menu-button{display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px}",
     "header nav{position:relative}",
-    "header nav ul{display:none!important;position:absolute;top:100%;left:0;right:0;z-index:1001;flex-direction:column!important;align-items:stretch;gap:12px;padding:20px;background:#fff;box-shadow:0 16px 32px rgba(15,23,42,.12);list-style:none;margin:0}",
+    "header nav.criasite-menu-open{display:block!important;position:absolute!important;top:100%;left:0;right:0;z-index:1001;width:100%;padding:12px 16px;background:#fff;box-shadow:0 16px 32px rgba(15,23,42,.12)}",
+    "header nav ul{display:none!important;position:static!important;width:100%;flex-direction:column!important;align-items:stretch;gap:8px;padding:8px 0;background:#fff;list-style:none;margin:0}",
     "header nav ul.active,header nav ul.is-open{display:flex!important}",
     "header nav ul li{width:100%}",
-    "header nav ul a{display:flex;align-items:center;min-height:44px;padding:8px 4px}",
+    "header nav ul a{display:flex;align-items:center;min-height:44px;padding:8px 12px}",
     "}",
-    "@media(min-width:761px){.menu-btn,.menu-toggle,#menu-btn,#menu-toggle,.nav-toggle,#menu-button{display:none!important}}"
+    "@media(min-width:761px){.menu-btn,.menu-toggle,#menu-btn,#menu-toggle,.nav-toggle,#menu-button{display:none!important}header nav.criasite-menu-open{display:block!important;position:static!important;padding:0;box-shadow:none}}"
   ].join("\n");
-  if (!/CriaSite navigation accessibility v5/.test(output)) {
-    if (/<style\b[^>]*>[\s\S]*?<\/style>/i.test(output)) output = output.replace(/<\/style>/i, css + "\n</style>");
-    else output = output.replace(/<\/head>/i, "<style>" + css + "</style></head>");
-  }
+  output = output.replace(/\/\* CriaSite navigation accessibility v5 — controlador único \*\/[\s\S]*?(?=@media|<\/style>)/i, "");
+  if (/<style\b[^>]*>[\s\S]*?<\/style>/i.test(output)) output = output.replace(/<\/style>/i, css + "\n</style>");
+  else output = output.replace(/<\/head>/i, "<style>" + css + "</style></head>");
   const controller = [
     "(function(){function init(){",
     "var original=document.querySelector('" + selector + "');",
     "var nav=document.getElementById(original&&original.getAttribute('aria-controls'))||document.querySelector('header nav');",
-    "if(!original||!nav||original.dataset.criasiteMenuV5)return;",
-    "var button=original.cloneNode(true);button.removeAttribute('onclick');button.dataset.criasiteMenuV5='1';original.replaceWith(button);",
+    "if(!original||!nav||original.dataset.criasiteMenuV6)return;",
+    "var button=original.cloneNode(true);button.removeAttribute('onclick');button.dataset.criasiteMenuV6='1';original.replaceWith(button);",
     "var list=nav.querySelector('ul')||nav;",
-    "function setOpen(open){list.classList.toggle('active',!!open);list.classList.toggle('is-open',!!open);button.setAttribute('aria-expanded',String(!!open));button.setAttribute('aria-label',open?'Fechar menu de navegação':'Abrir menu de navegação');}",
+    "function setOpen(open){list.classList.toggle('active',!!open);list.classList.toggle('is-open',!!open);nav.classList.toggle('criasite-menu-open',!!open);button.setAttribute('aria-expanded',String(!!open));button.setAttribute('aria-label',open?'Fechar menu de navegação':'Abrir menu de navegação');}",
     "button.addEventListener('click',function(event){event.preventDefault();event.stopPropagation();setOpen(button.getAttribute('aria-expanded')!=='true');});",
     "list.addEventListener('click',function(event){if(event.target&&event.target.closest&&event.target.closest('a'))setOpen(false);});",
     "document.addEventListener('keydown',function(event){if(event.key==='Escape'&&button.getAttribute('aria-expanded')==='true'){setOpen(false);button.focus();}});",
@@ -970,15 +971,35 @@ function enforceNavigationAccessibility(html) {
     "setOpen(false);}",
     "if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();})();"
   ].join("");
-  if (!/CriaSite navigation accessibility v5 controller/.test(output)) {
-    output = output.replace(/<\/body>/i, "<script>/* CriaSite navigation accessibility v5 controller */" + controller + "</script></body>");
-  }
+  output = output.replace(/<script>\s*\/\* CriaSite navigation accessibility v5 controller \*\/[\s\S]*?<\/script>/i, "");
+  output = output.replace(/<\/body>/i, "<script>/* CriaSite navigation accessibility v6 controller */" + controller + "</script></body>");
+  return output;
+}
+
+function enforceInternalAnchorIntegrity(html) {
+  let output = String(html || "");
+  const ids = new Set(Array.from(output.matchAll(/\bid=["']([^"']+)["']/gi), match => match[1]));
+  const galleryId = (output.match(/<section\b[^>]*\bid=["']([^"']+)["'][^>]*class=["'][^"']*(?:gallery|galeria)[^"']*["']/i) || [])[1] ||
+    (output.match(/<section\b[^>]*\bclass=["'][^"']*(?:gallery|galeria)[^"']*["'][^>]*\bid=["']([^"']+)["']/i) || [])[1];
+  const referenceId = ["referencias", "portfolio", "projetos"].find(id => ids.has(id));
+  const serviceId = ["servicos", "services", "sobre"].find(id => ids.has(id));
+  const contactId = ["contato", "contact"].find(id => ids.has(id));
+  output = output.replace(/\bhref=(["'])#([^"']+)\1/gi, (whole, quote, target) => {
+    if (ids.has(target)) return whole;
+    const key = target.toLowerCase();
+    let fallback = "";
+    if (/galeria|gallery|portfolio|projetos|referencias/.test(key)) fallback = galleryId || referenceId || serviceId;
+    else if (/servic|service|modalidade|planos/.test(key)) fallback = serviceId || referenceId || contactId;
+    else if (/contato|contact|whatsapp|agendar/.test(key)) fallback = contactId || serviceId || referenceId;
+    else fallback = serviceId || referenceId || contactId || Array.from(ids).find(id => id !== "main-content");
+    return fallback ? 'href=' + quote + '#' + fallback + quote : 'href=' + quote + '#main-content' + quote;
+  });
   return output;
 }
 
 function qualityReport(quality) {
-  const criticalPattern = /O menu mobile não controla a própria lista|O CSS do menu esconde os links|Arquitetura: a seção de serviços|Arquitetura: crie uma seção de referências|Arquitetura: o hero precisa|Documento sem idioma pt-BR|Há mais de um h1|Falta landmark main|Há link com href vazio|Há botão sem nome acessível|O FAQ promete contato, visita ou suporte de equipe|O menu não atualiza aria-expanded|O menu não fecha ao selecionar um link|O menu não fecha ao pressionar Escape|Há parágrafos repetidos entre seções|textos alternativos da galeria são genéricos|A galeria repete fotografias|A fotografia do hero está repetida na galeria|alegações comerciais ou técnicas não encontradas|O conteúdo apresenta alegações comerciais ou técnicas não encontradas|Há afirmações sobre equipe, equipamentos, instalações ou serviços|O conteúdo apresenta como fatos serviços|A imagem principal do hero desaparece no celular|HTML com estrutura inválida|IDs duplicados|Links internos sem destino|Falta meta viewport|Falta um título principal h1|Contato contém e-mail|chamada sem ação funcional|Foto principal do hero incompatível|Galeria usa fotos ausentes ou incompatíveis|WhatsApp fictício|WhatsApp informado pelo cliente precisa estar conectado|afirmações sobre equipe|afirmações comerciais específicas|afirmações não comprovadas|placeholder|instrução provisória|Formulário sem tratamento|Formulário bloqueia|Markdown visível|script externo|dependência externa/i;
-  const majorPattern = /O menu mobile não controla a própria lista|O CSS do menu esconde os links|Arquitetura: a seção de serviços|Arquitetura: crie uma seção de referências|Arquitetura: o hero precisa|Galeria sem composição editorial|A galeria mantém imagens com altura fixa em celulares|Falta um segundo momento visual editorial além do hero|A fotografia do hero está repetida na galeria|A galeria não tem adaptação mobile específica|A imagem principal do hero desaparece no celular|Falta um rodapé completo|botão do menu móvel deve ficar oculto|menu não atualiza aria-expanded|menu não fecha ao selecionar|menu não fecha ao pressionar Escape|parágrafos repetidos|textos alternativos da galeria são genéricos|afirmações comerciais específicas|Poucas seções|Há seções demais|Seções superficiais|Profundidade editorial|Falta uma media query|adaptação responsiva|Galeria|Hero sem|direção de arte|composição|FAQ|Planos|modalidades|lista nav ul|menu móvel|Seção obrigatória|benefícios|manifesto|método|links sem destino/i;
+  const criticalPattern = /O menu mobile não controla a própria lista|O CSS do menu esconde os links|O contêiner nav permanece oculto|Arquitetura: a seção de serviços|Arquitetura: crie uma seção de referências|Arquitetura: o hero precisa|Documento sem idioma pt-BR|Há mais de um h1|Falta landmark main|Há link com href vazio|Há botão sem nome acessível|O FAQ promete contato, visita ou suporte de equipe|O menu não atualiza aria-expanded|O menu não fecha ao selecionar um link|O menu não fecha ao pressionar Escape|Há parágrafos repetidos entre seções|textos alternativos da galeria são genéricos|A galeria repete fotografias|A fotografia do hero está repetida na galeria|alegações comerciais ou técnicas não encontradas|O conteúdo apresenta alegações comerciais ou técnicas não encontradas|Há afirmações sobre equipe, equipamentos, instalações ou serviços|O conteúdo apresenta como fatos serviços|A imagem principal do hero desaparece no celular|HTML com estrutura inválida|IDs duplicados|Links internos sem destino|Falta meta viewport|Falta um título principal h1|Contato contém e-mail|chamada sem ação funcional|Foto principal do hero incompatível|Galeria usa fotos ausentes ou incompatíveis|WhatsApp fictício|WhatsApp informado pelo cliente precisa estar conectado|afirmações sobre equipe|afirmações comerciais específicas|afirmações não comprovadas|placeholder|instrução provisória|Formulário sem tratamento|Formulário bloqueia|Markdown visível|script externo|dependência externa/i;
+  const majorPattern = /O menu mobile não controla a própria lista|O CSS do menu esconde os links|O contêiner nav permanece oculto|Arquitetura: a seção de serviços|Arquitetura: crie uma seção de referências|Arquitetura: o hero precisa|Galeria sem composição editorial|A galeria mantém imagens com altura fixa em celulares|Falta um segundo momento visual editorial além do hero|A fotografia do hero está repetida na galeria|A galeria não tem adaptação mobile específica|A imagem principal do hero desaparece no celular|Falta um rodapé completo|botão do menu móvel deve ficar oculto|menu não atualiza aria-expanded|menu não fecha ao selecionar|menu não fecha ao pressionar Escape|parágrafos repetidos|textos alternativos da galeria são genéricos|afirmações comerciais específicas|Poucas seções|Há seções demais|Seções superficiais|Profundidade editorial|Falta uma media query|adaptação responsiva|Galeria|Hero sem|direção de arte|composição|FAQ|Planos|modalidades|lista nav ul|menu móvel|Seção obrigatória|benefícios|manifesto|método|links sem destino/i;
   const criticalIssues = quality.issues.filter(issue => criticalPattern.test(issue));
   const majorIssues = quality.issues.filter(issue => majorPattern.test(issue) && !criticalPattern.test(issue));
   const minorIssues = quality.issues.filter(issue => !criticalPattern.test(issue) && !majorPattern.test(issue));
@@ -1090,7 +1111,7 @@ Descrição e necessidades do cliente: ${prompt}`;
       }, status, origin);
     }
 
-    let html = enforceArchitectureFinalPolish(enforceNavigationAccessibility(enforceResponsiveLayout(enforceSegmentPhotography(enforceContactIntegrity(enforceBusinessIntegrity(polishHtml(extractHtml(result)), business), business), business))), business);
+    let html = enforceInternalAnchorIntegrity(enforceArchitectureFinalPolish(enforceNavigationAccessibility(enforceResponsiveLayout(enforceSegmentPhotography(enforceContactIntegrity(enforceBusinessIntegrity(polishHtml(extractHtml(result)), business), business), business))), business));
     if (!html || !/^<!doctype html/i.test(html) || !/<html[\s>]/i.test(html) || html.length < 500) {
       return json({ error: "A IA não retornou um HTML completo. Tente uma descrição mais específica." }, 502, origin);
     }
@@ -1136,7 +1157,7 @@ Descrição e necessidades do cliente: ${prompt}`;
         });
         const repairResult = await repairResponse.json().catch(() => ({}));
         if (repairResponse.ok) {
-          const candidate = enforceArchitectureFinalPolish(enforceNavigationAccessibility(enforceResponsiveLayout(enforceSegmentPhotography(enforceContactIntegrity(enforceBusinessIntegrity(polishHtml(extractHtml(repairResult)), business), business), business))), business);
+          const candidate = enforceInternalAnchorIntegrity(enforceArchitectureFinalPolish(enforceNavigationAccessibility(enforceResponsiveLayout(enforceSegmentPhotography(enforceContactIntegrity(enforceBusinessIntegrity(polishHtml(extractHtml(repairResult)), business), business), business))), business));
           if (candidate && /^<!doctype html/i.test(candidate) && /<html[\s>]/i.test(candidate) && candidate.length >= 500) {
             const candidateQuality = inspectHtml(candidate, business);
             const weight = issue => /IDs duplicados|Links internos sem destino|Seções superficiais|Estrutura incompleta|Seção obrigatória ausente|Galeria da academia|afirmações sobre equipe|lista nav ul|Seção de modalidades|Contato ainda parece|Hero sem composição detalhada|adaptação responsiva comprovada/i.test(issue) ? 30 : 12;
