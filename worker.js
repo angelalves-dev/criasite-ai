@@ -148,6 +148,22 @@ function enforceSegmentPhotography(html, business = {}) {
     if (contactStart >= 0) output = output.slice(0, contactStart) + galleryMarkup + output.slice(contactStart);
     else output = output.replace(/<\/body>/i, galleryMarkup + "</body>");
   }
+  if (selected === "arquitetura") {
+    const referenceRe = /<section\b(?=[^>]*\bid=["'](?:referencias|referências|portfolio|projetos)["'])[^>]*>[\s\S]*?<\/section>/i;
+    output = output.replace(referenceRe, section => {
+      const opening = section.match(/^<section\b[^>]*>/i)?.[0] || '<section id="referencias">';
+      const id = (opening.match(/\bid=["']([^"']+)["']/i) || [,"referencias"])[1];
+      return '<section id="' + id + '" class="criasite-reference-section"><div class="criasite-reference-wrap">' +
+        '<p class="criasite-eyebrow">LINGUAGEM ARQUITETÔNICA</p>' +
+        '<h2>Referências de projeto</h2>' +
+        '<p class="criasite-reference-intro">Princípios visuais e espaciais que podem orientar um projeto. Os itens abaixo são referências conceituais, não obras executadas pelo escritório.</p>' +
+        '<div class="criasite-reference-grid">' +
+        '<article><span>01</span><h3>Fachadas e volumetria</h3><p>Composição de volumes, proporção, relação com a luz e integração com o entorno.</p></article>' +
+        '<article><span>02</span><h3>Interiores e circulação</h3><p>Organização dos ambientes, fluidez dos percursos e equilíbrio entre função e conforto.</p></article>' +
+        '<article><span>03</span><h3>Materiais e iluminação</h3><p>Texturas, acabamentos e luz como elementos de unidade visual e identidade espacial.</p></article>' +
+        '</div></div></section>';
+    });
+  }
   const galleryCss = "/* CriaSite: mosaico editorial consistente e responsivo */\n" +
     ".criasite-gallery-section{padding:clamp(3.5rem,7vw,6rem) 0;overflow:hidden}\n" +
     ".criasite-gallery-wrap{width:min(1100px,calc(100% - 40px));margin-inline:auto}\n" +
@@ -165,6 +181,11 @@ function enforceSegmentPhotography(html, business = {}) {
     "@media(prefers-reduced-motion:reduce){.criasite-gallery__item img{transition:none}}\n";
   if (/<style\b[^>]*>[\s\S]*?<\/style>/i.test(output)) output = output.replace(/<\/style>/i, galleryCss + "\n</style>");
   else output = output.replace(/<\/head>/i, "<style>" + galleryCss + "</style></head>");
+  if (selected === "arquitetura") {
+    const referenceCss = ".criasite-reference-section{padding:clamp(3rem,7vw,6rem) 0;background:#f5f1eb;color:#292722}.criasite-reference-wrap{width:min(1100px,calc(100% - 40px));margin:auto}.criasite-eyebrow{font-size:.72rem;letter-spacing:.16em;font-weight:700;color:#9a704c;margin-bottom:1rem}.criasite-reference-intro{max-width:650px;margin-bottom:2rem;color:#68635c}.criasite-reference-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem}.criasite-reference-grid article{padding:1.5rem;border:1px solid #d9d0c4;background:#fff;min-height:190px}.criasite-reference-grid article span{color:#9a704c;font-size:.75rem;letter-spacing:.12em}.criasite-reference-grid h3{margin:1rem 0 .5rem;font-size:1.15rem}.criasite-reference-grid p{font-size:.92rem;color:#68635c}@media(max-width:700px){.criasite-reference-grid{grid-template-columns:1fr}}";
+    if (/<style\b[^>]*>[\s\S]*?<\/style>/i.test(output)) output = output.replace(/<\/style>/i, referenceCss + "\n</style>");
+    else output = output.replace(/<\/head>/i, "<style>" + referenceCss + "</style></head>");
+  }
   return output;
 }
 
