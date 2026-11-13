@@ -268,6 +268,21 @@ function inspectHtml(html, business = {}) {
   const correctSegmentPhotos = galleryPhotoIds.filter(id => expectedPhotoIds.includes(id)).length;
   if (hasGallery && galleryImagesWithAlt < 4) issues.push("Galeria precisa conter quatro fotografias reais com texto alternativo útil.");
   if (hasGallery && expectedPhotoIds.length && correctSegmentPhotos < 4) issues.push("Galeria usa fotos ausentes ou incompatíveis com o segmento. Use exatamente as quatro URLs de fotografia fornecidas para este tipo de negócio.");
+
+  const segmentType = String(business.type || "").toLowerCase();
+  if (segmentType === "arquitetura") {
+    const servicesSection = (html.match(/<section\b(?=[^>]*\bid=["'](?:servicos|serviços)["'])[^>]*>[\s\S]*?<\/section>/i) || [""])[0];
+    const serviceCards = (servicesSection.match(/<(?:article|li)\b|class=["'][^"']*(?:service-card|servico-card|card-servico)[^"']*["']/gi) || []).length;
+    const portfolioSection = (html.match(/<section\b(?=[^>]*\bid=["'](?:portfolio|projetos)["'])[^>]*>[\s\S]*?<\/section>/i) || [""])[0];
+    const portfolioItems = (portfolioSection.match(/<(?:article|figure)\b|class=["'][^"']*(?:project-card|projeto-card|portfolio-item)[^"']*["']/gi) || []).length;
+    const heroHasAction = /<a\b[^>]*href=["']#(?:servicos|contato)["'][^>]*>/i.test(hero);
+    if (!servicesSection || servicesSection.replace(/<[^>]+>/g," ").trim().length < 420 || serviceCards < 3) issues.push("Arquitetura: a seção de serviços precisa apresentar pelo menos três blocos desenvolvidos, com explicação útil e sem inventar serviços não confirmados.");
+    if (!portfolioSection || portfolioItems < 3) issues.push("Arquitetura: crie uma seção de referências visuais com pelo menos três itens identificados; não apresente imagens ilustrativas como obras executadas.");
+    if (!heroHasAction) issues.push("Arquitetura: o hero precisa de uma chamada visível que leve a #servicos ou #contato.");
+  }
+  const navList = (html.match(/<nav\b[^>]*>[\s\S]*?<\/nav>/i) || [""])[0];
+  if (hasMenuButton && navList.includes("<ul") && !/list\.classList\.toggle\(['"]active['"],\s*!!open\)/.test(html)) issues.push("O menu mobile não controla a própria lista nav ul. O botão precisa abrir/fechar ul.active e sincronizar aria-expanded.");
+  if (hasMenuButton && /header nav ul\{[^}]*display\s*:\s*none!important/i.test(html) && !/header nav ul\.active[^}]*display\s*:\s*flex!important/i.test(html)) issues.push("O CSS do menu esconde os links sem uma regra correspondente para exibir a lista ativa.");
   const heroPhotoId = ((hero.match(/<img\b[^>]*src=["'][^"']*images\.unsplash\.com\/(photo-[^?]+)/i) || [])[1] || "");
   if (heroPhotoId && galleryPhotoIds.includes(heroPhotoId)) issues.push("A fotografia do hero está repetida na galeria. Reserve quatro imagens distintas para a galeria e mantenha a foto principal independente.");
   if (expectedPhotoIds.length && !expectedPhotoIds.includes(heroPhotoId)) issues.push("Foto principal do hero incompatível com o segmento selecionado. Substitua pela primeira fotografia oficial do perfil do negócio.");
@@ -645,14 +660,10 @@ function enforceNavigationAccessibility(html) {
   const navMatch = output.match(/<nav\b([^>]*)>/i);
   if (!navMatch) return output;
   const navId = (navMatch[1].match(/\bid=["']([^"']+)["']/i) || [])[1] || "criasite-primary-nav";
-  if (!/\bid=/i.test(navMatch[1])) {
-    output = output.replace(navMatch[0], '<nav id="' + navId + '"' + navMatch[1] + '>');
-  }
-
+  if (!/\bid=/i.test(navMatch[1])) output = output.replace(navMatch[0], '<nav id="' + navId + '"' + navMatch[1] + '>');
+  const selector = ".menu-btn,.menu-toggle,#menu-btn,#menu-toggle,.nav-toggle,#menu-button";
   let buttonMatch = output.match(/<button\b(?=[^>]*(?:class=["'][^"']*(?:menu|nav)[^"']*["']|id=["'][^"']*(?:menu|nav)[^"']*["']|aria-controls=["']))[^>]*>[\s\S]*?<\/button>/i);
-  if (!buttonMatch) {
-    buttonMatch = output.match(/<button\b[^>]*>[\s\S]*?(?:☰|≡|menu)[\s\S]*?<\/button>/i);
-  }
+  if (!buttonMatch) buttonMatch = output.match(/<button\b[^>]*>[\s\S]*?(?:☰|≡|menu)[\s\S]*?<\/button>/i);
   if (!buttonMatch) return output;
   let button = buttonMatch[0];
   if (!/\btype=/i.test(button)) button = button.replace("<button", '<button type="button"');
@@ -660,65 +671,47 @@ function enforceNavigationAccessibility(html) {
   if (!/\baria-controls=/i.test(button)) button = button.replace("<button", '<button aria-controls="' + navId + '"');
   if (!/\baria-expanded=/i.test(button)) button = button.replace("<button", '<button aria-expanded="false"');
   output = output.replace(buttonMatch[0], button);
-
-  const scripts = Array.from(output.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi), match => match[1]);
-  const hasExistingController = scripts.some(script =>
-    /addEventListener\s*\(\s*["']click["']/i.test(script) &&
-    /aria-expanded/i.test(script) &&
-    /classList\.(?:toggle|add|remove)/i.test(script)
-  );
-  const hasEscapeClose = scripts.some(script => /keydown/i.test(script) && /Escape/i.test(script));
-
   const css = [
-    "/* CriaSite navigation accessibility v4 */",
+    "/* CriaSite navigation accessibility v5 — controlador único */",
     ".menu-btn,.menu-toggle,#menu-btn,#menu-toggle,.nav-toggle,#menu-button{display:none}",
     "@media(max-width:760px){",
     ".menu-btn,.menu-toggle,#menu-btn,#menu-toggle,.nav-toggle,#menu-button{display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px}",
     "header nav{position:relative}",
-    "header nav ul{display:none!important;position:absolute;top:100%;left:0;right:0;z-index:1001;flex-direction:column!important;align-items:stretch;gap:12px;padding:20px;background:#fff;box-shadow:0 16px 32px rgba(15,23,42,.12)}",
+    "header nav ul{display:none!important;position:absolute;top:100%;left:0;right:0;z-index:1001;flex-direction:column!important;align-items:stretch;gap:12px;padding:20px;background:#fff;box-shadow:0 16px 32px rgba(15,23,42,.12);list-style:none;margin:0}",
     "header nav ul.active,header nav ul.is-open{display:flex!important}",
     "header nav ul li{width:100%}",
     "header nav ul a{display:flex;align-items:center;min-height:44px;padding:8px 4px}",
     "}",
     "@media(min-width:761px){.menu-btn,.menu-toggle,#menu-btn,#menu-toggle,.nav-toggle,#menu-button{display:none!important}}"
   ].join("\n");
-  if (!/CriaSite navigation accessibility v4/.test(output)) {
+  if (!/CriaSite navigation accessibility v5/.test(output)) {
     if (/<style\b[^>]*>[\s\S]*?<\/style>/i.test(output)) output = output.replace(/<\/style>/i, css + "\n</style>");
     else output = output.replace(/<\/head>/i, "<style>" + css + "</style></head>");
   }
-
-  if (hasExistingController) {
-    // Reaproveita o controlador criado pela IA. Escape aciona o mesmo botão
-    // para fechar o menu, sem criar um segundo sistema de alternância.
-    if (!hasEscapeClose && !/criasite-menu-escape-bridge/i.test(output)) {
-      const bridge = '<script>/* criasite-menu-escape-bridge */(function(){var b=document.querySelector(".menu-btn,.menu-toggle,#menu-btn,#menu-toggle,.nav-toggle,#menu-button");if(!b)return;document.addEventListener("keydown",function(e){if(e.key==="Escape"&&b.getAttribute("aria-expanded")==="true")b.click();});})();</script>';
-      output = output.replace(/<\/body>/i, bridge + "</body>");
-    }
-    return output;
-  }
-
-  if (/CriaSite navigation accessibility v3/.test(output)) return output;
-  const script = [
+  const controller = [
     "(function(){function init(){",
-    "var button=document.querySelector('.menu-btn,.menu-toggle,#menu-btn,#menu-toggle,.nav-toggle,#menu-button');",
-    "if(!button||button.dataset.criasiteMenuV4)return;",
-    "var nav=document.getElementById(button.getAttribute('aria-controls'))||document.querySelector('header nav');if(!nav)return;",
-    "var list=nav.querySelector('ul')||nav;button.dataset.criasiteMenuV4='1';",
-    "function setOpen(v){list.classList.toggle('active',v);list.classList.toggle('is-open',v);button.setAttribute('aria-expanded',String(v));button.setAttribute('aria-label',v?'Fechar menu de navegação':'Abrir menu de navegação');}",
-    "button.addEventListener('click',function(e){e.preventDefault();setOpen(button.getAttribute('aria-expanded')!=='true');});",
-    "list.addEventListener('click',function(e){if(e.target&&e.target.closest&&e.target.closest('a'))setOpen(false);});",
-    "document.addEventListener('keydown',function(e){if(e.key==='Escape'&&button.getAttribute('aria-expanded')==='true'){setOpen(false);button.focus();}});",
-    "document.addEventListener('click',function(e){if(button.getAttribute('aria-expanded')==='true'&&!nav.contains(e.target)&&!button.contains(e.target))setOpen(false);});",
+    "var original=document.querySelector('" + selector + "');",
+    "var nav=document.getElementById(original&&original.getAttribute('aria-controls'))||document.querySelector('header nav');",
+    "if(!original||!nav||original.dataset.criasiteMenuV5)return;",
+    "var button=original.cloneNode(true);button.removeAttribute('onclick');button.dataset.criasiteMenuV5='1';original.replaceWith(button);",
+    "var list=nav.querySelector('ul')||nav;",
+    "function setOpen(open){list.classList.toggle('active',!!open);list.classList.toggle('is-open',!!open);button.setAttribute('aria-expanded',String(!!open));button.setAttribute('aria-label',open?'Fechar menu de navegação':'Abrir menu de navegação');}",
+    "button.addEventListener('click',function(event){event.preventDefault();event.stopPropagation();setOpen(button.getAttribute('aria-expanded')!=='true');});",
+    "list.addEventListener('click',function(event){if(event.target&&event.target.closest&&event.target.closest('a'))setOpen(false);});",
+    "document.addEventListener('keydown',function(event){if(event.key==='Escape'&&button.getAttribute('aria-expanded')==='true'){setOpen(false);button.focus();}});",
+    "document.addEventListener('click',function(event){if(button.getAttribute('aria-expanded')==='true'&&!nav.contains(event.target)&&!button.contains(event.target))setOpen(false);});",
     "setOpen(false);}",
     "if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();})();"
   ].join("");
-  output = output.replace(/<\/body>/i, "<script>/* CriaSite navigation accessibility v4 controller */" + script + "</script></body>");
+  if (!/CriaSite navigation accessibility v5 controller/.test(output)) {
+    output = output.replace(/<\/body>/i, "<script>/* CriaSite navigation accessibility v5 controller */" + controller + "</script></body>");
+  }
   return output;
 }
 
 function qualityReport(quality) {
-  const criticalPattern = /Documento sem idioma pt-BR|Há mais de um h1|Falta landmark main|Há link com href vazio|Há botão sem nome acessível|O FAQ promete contato, visita ou suporte de equipe|O menu não atualiza aria-expanded|O menu não fecha ao selecionar um link|O menu não fecha ao pressionar Escape|Há parágrafos repetidos entre seções|textos alternativos da galeria são genéricos|A galeria repete fotografias|A fotografia do hero está repetida na galeria|alegações comerciais ou técnicas não encontradas|O conteúdo apresenta alegações comerciais ou técnicas não encontradas|Há afirmações sobre equipe, equipamentos, instalações ou serviços|O conteúdo apresenta como fatos serviços|A imagem principal do hero desaparece no celular|HTML com estrutura inválida|IDs duplicados|Links internos sem destino|Falta meta viewport|Falta um título principal h1|Contato contém e-mail|chamada sem ação funcional|Foto principal do hero incompatível|Galeria usa fotos ausentes ou incompatíveis|WhatsApp fictício|WhatsApp informado pelo cliente precisa estar conectado|afirmações sobre equipe|afirmações comerciais específicas|afirmações não comprovadas|placeholder|instrução provisória|Formulário sem tratamento|Formulário bloqueia|Markdown visível|script externo|dependência externa/i;
-  const majorPattern = /Galeria sem composição editorial|A galeria mantém imagens com altura fixa em celulares|Falta um segundo momento visual editorial além do hero|A fotografia do hero está repetida na galeria|A galeria não tem adaptação mobile específica|A imagem principal do hero desaparece no celular|Falta um rodapé completo|botão do menu móvel deve ficar oculto|menu não atualiza aria-expanded|menu não fecha ao selecionar|menu não fecha ao pressionar Escape|parágrafos repetidos|textos alternativos da galeria são genéricos|afirmações comerciais específicas|Poucas seções|Há seções demais|Seções superficiais|Profundidade editorial|Falta uma media query|adaptação responsiva|Galeria|Hero sem|direção de arte|composição|FAQ|Planos|modalidades|lista nav ul|menu móvel|Seção obrigatória|benefícios|manifesto|método|links sem destino/i;
+  const criticalPattern = /O menu mobile não controla a própria lista|O CSS do menu esconde os links|Arquitetura: a seção de serviços|Arquitetura: crie uma seção de referências|Arquitetura: o hero precisa|Documento sem idioma pt-BR|Há mais de um h1|Falta landmark main|Há link com href vazio|Há botão sem nome acessível|O FAQ promete contato, visita ou suporte de equipe|O menu não atualiza aria-expanded|O menu não fecha ao selecionar um link|O menu não fecha ao pressionar Escape|Há parágrafos repetidos entre seções|textos alternativos da galeria são genéricos|A galeria repete fotografias|A fotografia do hero está repetida na galeria|alegações comerciais ou técnicas não encontradas|O conteúdo apresenta alegações comerciais ou técnicas não encontradas|Há afirmações sobre equipe, equipamentos, instalações ou serviços|O conteúdo apresenta como fatos serviços|A imagem principal do hero desaparece no celular|HTML com estrutura inválida|IDs duplicados|Links internos sem destino|Falta meta viewport|Falta um título principal h1|Contato contém e-mail|chamada sem ação funcional|Foto principal do hero incompatível|Galeria usa fotos ausentes ou incompatíveis|WhatsApp fictício|WhatsApp informado pelo cliente precisa estar conectado|afirmações sobre equipe|afirmações comerciais específicas|afirmações não comprovadas|placeholder|instrução provisória|Formulário sem tratamento|Formulário bloqueia|Markdown visível|script externo|dependência externa/i;
+  const majorPattern = /O menu mobile não controla a própria lista|O CSS do menu esconde os links|Arquitetura: a seção de serviços|Arquitetura: crie uma seção de referências|Arquitetura: o hero precisa|Galeria sem composição editorial|A galeria mantém imagens com altura fixa em celulares|Falta um segundo momento visual editorial além do hero|A fotografia do hero está repetida na galeria|A galeria não tem adaptação mobile específica|A imagem principal do hero desaparece no celular|Falta um rodapé completo|botão do menu móvel deve ficar oculto|menu não atualiza aria-expanded|menu não fecha ao selecionar|menu não fecha ao pressionar Escape|parágrafos repetidos|textos alternativos da galeria são genéricos|afirmações comerciais específicas|Poucas seções|Há seções demais|Seções superficiais|Profundidade editorial|Falta uma media query|adaptação responsiva|Galeria|Hero sem|direção de arte|composição|FAQ|Planos|modalidades|lista nav ul|menu móvel|Seção obrigatória|benefícios|manifesto|método|links sem destino/i;
   const criticalIssues = quality.issues.filter(issue => criticalPattern.test(issue));
   const majorIssues = quality.issues.filter(issue => majorPattern.test(issue) && !criticalPattern.test(issue));
   const minorIssues = quality.issues.filter(issue => !criticalPattern.test(issue) && !majorPattern.test(issue));
@@ -774,7 +767,7 @@ export default {
     if (prompt.length > 5000) return json({ error: "A descrição deve ter no máximo 5.000 caracteres." }, 400, origin);
 
     const visualBrief = segmentVisualBrief(business.type);
-    const instructions = `Você é uma equipe sênior de design UX/UI, desenvolvimento front-end, conversão e SEO. Veterinária, fisioterapia, odontologia e clínica médica são segmentos distintos: nunca reutilize imagens, descrições ou vocabulário entre eles. Veterinária exige contexto de atendimento animal; fisioterapia exige reabilitação e movimento; odontologia exige saúde bucal humana.  Crie um site comercial realmente profissional, rico e personalizado para o negócio descrito, em português do Brasil. Entregue SOMENTE um documento HTML completo começando com <!doctype html>, com CSS dentro de <style> e JavaScript puro dentro de <script>. Tudo deve funcionar em um único arquivo, sem frameworks, bibliotecas externas, fontes externas ou scripts de terceiros. Não faça uma página genérica curta. Para clínica veterinária, crie 8 a 12 seções reais e substanciais, incluindo serviços, diferenciais, galeria, FAQ e contato; nunca reduza o conteúdo a pilares genéricos. O hero precisa de CTA que leve a uma seção útil. Não invente serviços, especialidades, equipe, endereço, avaliações, preços, horários ou canais de contato. REGRA DE FIDELIDADE: não invente história de fundação, tempo de mercado, especialização, protocolos, estrutura física, instalações, equipamentos, equipe, processos internos, parcerias, prêmios ou resultados. Desejos descritos como 'quero', 'gostaria' ou 'inclua' são requisitos de design, não fatos sobre a empresa. Use como fatos somente os dados explicitamente fornecidos; apresente o restante como conteúdo educativo geral, possibilidade a confirmar ou omita.
+    const instructions = `Você é uma equipe sênior de design UX/UI, desenvolvimento front-end, conversão e SEO. Veterinária, fisioterapia, odontologia e clínica médica são segmentos distintos: nunca reutilize imagens, descrições ou vocabulário entre eles. Veterinária exige contexto de atendimento animal; fisioterapia exige reabilitação e movimento; odontologia exige saúde bucal humana.  Crie um site comercial realmente profissional, rico e personalizado para o negócio descrito, em português do Brasil. Entregue SOMENTE um documento HTML completo começando com <!doctype html>, com CSS dentro de <style> e JavaScript puro dentro de <script>. Tudo deve funcionar em um único arquivo, sem frameworks, bibliotecas externas, fontes externas ou scripts de terceiros. Não faça uma página genérica curta. Para clínica veterinária, crie 8 a 12 seções reais e substanciais, incluindo serviços, diferenciais, galeria, FAQ e contato; nunca reduza o conteúdo a pilares genéricos. Para arquitetura, inclua serviços desenvolvidos em pelo menos três blocos, processo de projeto, referências visuais claramente identificadas como ilustrativas quando não forem obras comprovadas e CTA do hero para #servicos ou #contato; não transforme possibilidades em fatos comerciais. O hero precisa de CTA que leve a uma seção útil. Não invente serviços, especialidades, equipe, endereço, avaliações, preços, horários ou canais de contato. REGRA DE FIDELIDADE: não invente história de fundação, tempo de mercado, especialização, protocolos, estrutura física, instalações, equipamentos, equipe, processos internos, parcerias, prêmios ou resultados. Desejos descritos como 'quero', 'gostaria' ou 'inclua' são requisitos de design, não fatos sobre a empresa. Use como fatos somente os dados explicitamente fornecidos; apresente o restante como conteúdo educativo geral, possibilidade a confirmar ou omita.
 
 ${visualBrief}
 
@@ -848,7 +841,7 @@ Descrição e necessidades do cliente: ${prompt}`;
         "INTEGRIDADE SEMÂNTICA: veterinária, fisioterapia, odontologia e clínica médica são segmentos distintos. Em veterinária, use cães/gatos e consulta veterinária; nunca cadeira odontológica, dentista ou saúde bucal. Em fisioterapia, use reabilitação, movimento e exercício terapêutico; nunca vocabulário odontológico, veterinário ou de academia. Em odontologia, use saúde bucal humana. Não misture bancos de imagens e descreva corretamente cada foto.",
         "DIREÇÃO DE ARTE: reconstrua como estúdio digital profissional. Antes de escrever, defina um conceito visual específico, uma paleta curta, uma escala tipográfica e uma composição própria. A primeira dobra deve ter impacto e hierarquia; alterne seções editoriais, mosaicos, faixas e listas visuais. Não repita o mesmo cartão em todas as seções. Cada seção deve parecer desenhada para este negócio, não um template trocando cores. Não use emoji como ícone principal, nem formas aleatórias para fingir fotografia. Use a primeira URL de fotografia selecionada no visualBrief no hero e as quatro URLs seguintes, distintas, na galeria; SVG/CSS complementa, mas não substitui essas fotos.",
         visualBrief,
-        "SEÇÕES OBRIGATÓRIAS: para academia entregue exatamente 10 elementos <section> reais, nesta ordem: hero, sobre, modalidades, benefícios, método/etapas, galeria, planos, manifesto/filosofia, FAQ e contato. Para clínica veterinária entregue de 8 a 12 seções reais, incluindo obrigatoriamente hero, sobre, serviços (id=servicos), diferenciais (id=diferenciais), galeria (id=galeria), FAQ (id=faq) e contato (id=contato). A seção de serviços deve desenvolver pelo menos três áreas de cuidado em textos úteis, sem inventar procedimentos, especialidades, exames, equipe, equipamentos, endereço, preços ou horários. A seção de diferenciais deve apresentar princípios e abordagem, não fatos não fornecidos. O hero deve ter CTA funcional para #servicos ou #contato. Para outros segmentos, entregue 8 a 12 seções úteis. Não omita nem funda seções. Cada seção precisa ter conteúdo desenvolvido, id próprio e composição visual variada.",
+        "SEÇÕES OBRIGATÓRIAS: para academia entregue exatamente 10 elementos <section> reais, nesta ordem: hero, sobre, modalidades, benefícios, método/etapas, galeria, planos, manifesto/filosofia, FAQ e contato. Para clínica veterinária entregue de 8 a 12 seções reais, incluindo obrigatoriamente hero, sobre, serviços (id=servicos), diferenciais (id=diferenciais), galeria (id=galeria), FAQ (id=faq) e contato (id=contato). Para arquitetura, entregue de 8 a 12 seções com hero, sobre, serviços (id=servicos), referências visuais/portfólio (id=portfolio), processo, princípios, FAQ, galeria e contato. A seção serviços deve ter no mínimo três blocos com descrições específicas, mas só trate como serviços oferecidos aquilo que o cliente confirmou; quando não houver dados, explique etapas e possibilidades de projeto como conteúdo informativo. O portfólio deve ter pelo menos três itens de referências visuais, claramente rotulados como imagens ilustrativas quando não forem obras reais; nunca invente nome de cliente, obra, endereço, cidade, metragem, orçamento ou resultado. O hero deve ter um CTA visível e funcional para #servicos ou #contato. A seção de serviços deve desenvolver pelo menos três áreas de cuidado em textos úteis, sem inventar procedimentos, especialidades, exames, equipe, equipamentos, endereço, preços ou horários. A seção de diferenciais deve apresentar princípios e abordagem, não fatos não fornecidos. O hero deve ter CTA funcional para #servicos ou #contato. Para outros segmentos, entregue 8 a 12 seções úteis. Não omita nem funda seções. Cada seção precisa ter conteúdo desenvolvido, id próprio e composição visual variada.",
         "SEGMENTO ACADEMIA: use linguagem visual esportiva premium. A primeira fotografia selecionada no visualBrief deve ser usada exclusivamente no hero. As quatro fotografias seguintes devem ser usadas exclusivamente na galeria, sem repetição entre si ou com o hero. As fotos são referências ilustrativas, não prova de que a academia possui os equipamentos ou espaços mostrados. Use alt descritivo e não invente instalações próprias.",
         "HERO: composição editorial assimétrica, título grande com quebra intencional, etiqueta curta, CTA destacado e uma das fotografias exatas do visualBrief como imagem principal. Em celular, mantenha a foto visível e empilhe o texto e a imagem em uma coluna; não use display:none na imagem do hero. Use camadas, recortes, escala e profundidade; SVG inline pode complementar, mas não substituir a fotografia.",
         'O hero deve usar uma das quatro fotografias exatas do visualBrief. Se adicionar SVG, ele é apenas um detalhe complementar, não um requisito nem substituto da foto.',
