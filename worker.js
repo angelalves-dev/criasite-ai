@@ -23,6 +23,8 @@ function inferBusinessType(business = {}, prompt = "") {
 const n=v=>String(v||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9 ]/g," ").replace(/\s+/g," ").trim();
 const supplied=n(business.type), text=n([prompt,business.name,business.tagline,business.offerings,business.description].join(" "));
 const has=(...terms)=>terms.some(t=>text.includes(n(t)));
+const explicitArchitecture=/\b(?:escritorio de arquitetura|arquiteto|arquiteta|projeto arquitetonico|arquitetura residencial|arquitetura comercial|studio de arquitetura)\b/.test(text);
+if(explicitArchitecture)return {...business,type:"arquitetura",detectedType:"arquitetura",originalType:supplied||"não informado"};
 if(has("clinica veterinaria","hospital veterinario","medicina veterinaria","medico veterinario","medica veterinaria","consulta veterinaria","saude animal")||supplied==="veterinaria")return {...business,type:"veterinaria",detectedType:"veterinaria",originalType:supplied||"não informado"};
 if(has("fisioterapia","fisioterapeuta","reabilitacao fisica","reabilitacao motora","terapia manual","recuperacao de movimento")||supplied==="fisioterapia")return {...business,type:"fisioterapia",detectedType:"fisioterapia",originalType:supplied||"não informado"};
 if(has("odontologia","odontologica","odontologico","dentista","consultorio odontologico","saude bucal","implante dentario","ortodontia")||supplied==="odontologia")return {...business,type:"odontologia",detectedType:"odontologia",originalType:supplied||"não informado"};
@@ -72,7 +74,8 @@ function segmentVisualBrief(type) {
 
 function enforceSegmentPhotography(html, business = {}) {
   let output = String(html || "");
-  const key = String(business.type || "servicos").trim().toLowerCase()
+  const resolvedType = inferBusinessType(business, business.userBrief || "").type;
+  const key = String(resolvedType || "servicos").trim().toLowerCase()
     .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
     .replace(/[_-]+/g, " ").replace(/\s+/g, " ");
   const profiles = {
@@ -260,7 +263,8 @@ function inspectHtml(html, business = {}) {
   const gallerySemanticSvgs = galleryMatch ? (galleryMatch[0].match(/<svg\b(?=[^>]*(?:role=["']img["']|aria-label=["']))[^>]*>/gi) || []).length : 0;
   const galleryImageCount = galleryMatch ? (galleryMatch[0].match(/<img\b/gi) || []).length : 0;
   const galleryImagesWithAlt = galleryMatch ? (galleryMatch[0].match(/<img\b(?=[^>]*\balt=["'][^"']+["'])[^>]*>/gi) || []).length : 0;
-  const expectedPhotoIds = Array.from(segmentVisualBrief(business.type).matchAll(/images\.unsplash\.com\/(photo-[^?]+)/g), match => match[1]);
+  const resolvedSegmentType = inferBusinessType(business, business.userBrief || "").type;
+  const expectedPhotoIds = Array.from(segmentVisualBrief(resolvedSegmentType).matchAll(/images\.unsplash\.com\/(photo-[^?]+)/g), match => match[1]);
   const galleryImageTags = galleryMatch ? Array.from(galleryMatch[0].matchAll(/<img\b[^>]*>/gi), match => match[0]) : [];
   const galleryPhotoIds = galleryImageTags.map(tag => ((tag.match(/src=["'][^"']*images\.unsplash\.com\/(photo-[^?]+)/i) || [])[1] || ""));
   const repeatedGalleryPhotos = galleryPhotoIds.filter((id, index) => id && galleryPhotoIds.indexOf(id) !== index);
@@ -269,11 +273,11 @@ function inspectHtml(html, business = {}) {
   if (hasGallery && galleryImagesWithAlt < 4) issues.push("Galeria precisa conter quatro fotografias reais com texto alternativo útil.");
   if (hasGallery && expectedPhotoIds.length && correctSegmentPhotos < 4) issues.push("Galeria usa fotos ausentes ou incompatíveis com o segmento. Use exatamente as quatro URLs de fotografia fornecidas para este tipo de negócio.");
 
-  const segmentType = String(business.type || "").toLowerCase();
+  const segmentType = String(resolvedSegmentType || "servicos").toLowerCase();
   if (segmentType === "arquitetura") {
     const servicesSection = (html.match(/<section\b(?=[^>]*\bid=["'](?:servicos|serviços)["'])[^>]*>[\s\S]*?<\/section>/i) || [""])[0];
     const serviceCards = (servicesSection.match(/<(?:article|li)\b|class=["'][^"']*(?:service-card|servico-card|card-servico)[^"']*["']/gi) || []).length;
-    const portfolioSection = (html.match(/<section\b(?=[^>]*\bid=["'](?:portfolio|projetos)["'])[^>]*>[\s\S]*?<\/section>/i) || [""])[0];
+    const portfolioSection = (html.match(/<section\b(?=[^>]*\bid=["'](?:portfolio|projetos|referencias|referências)["'])[^>]*>[\s\S]*?<\/section>/i) || [""])[0];
     const portfolioItems = (portfolioSection.match(/<(?:article|figure)\b|class=["'][^"']*(?:project-card|projeto-card|portfolio-item)[^"']*["']/gi) || []).length;
     const heroHasAction = /<a\b[^>]*href=["']#(?:servicos|contato)["'][^>]*>/i.test(hero);
     if (!servicesSection || servicesSection.replace(/<[^>]+>/g," ").trim().length < 420 || serviceCards < 3) issues.push("Arquitetura: a seção de serviços precisa apresentar pelo menos três blocos desenvolvidos, com explicação útil e sem inventar serviços não confirmados.");
