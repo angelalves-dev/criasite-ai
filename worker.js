@@ -674,7 +674,7 @@ function enforceNavigationAccessibility(html) {
     ".menu-btn,.menu-toggle,#menu-btn,#menu-toggle,.nav-toggle,#menu-button{display:none}",
     "@media(max-width:760px){",
     ".menu-btn,.menu-toggle,#menu-btn,#menu-toggle,.nav-toggle,#menu-button{display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px}",
-    "header{position:relative}",
+    "header nav{position:relative}",
     "header nav ul{display:none!important;position:absolute;top:100%;left:0;right:0;z-index:1001;flex-direction:column!important;align-items:stretch;gap:12px;padding:20px;background:#fff;box-shadow:0 16px 32px rgba(15,23,42,.12)}",
     "header nav ul.active,header nav ul.is-open{display:flex!important}",
     "header nav ul li{width:100%}",
