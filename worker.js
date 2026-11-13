@@ -243,6 +243,61 @@ function enforceArchitectureFinalPolish(html, business = {}) {
     });
   }
 
+  // Protege o conteúdo contra promessas comerciais não confirmadas.
+  const faqRe = /<section\b(?=[^>]*\bid=["']faq["'])[^>]*>[\s\S]*?<\/section>/i;
+  if (faqRe.test(output)) {
+    output = output.replace(faqRe, () =>
+      '<section id="faq" class="criasite-architecture-faq">' +
+      '<p class="criasite-architecture-kicker">DÚVIDAS INICIAIS</p><h2>Perguntas para orientar a conversa</h2>' +
+      '<details><summary>Como começa a definição de um projeto?</summary><p>O primeiro passo é reunir informações sobre o espaço, as necessidades, as prioridades e as condições do projeto.</p></details>' +
+      '<details><summary>Quais informações devo preparar?</summary><p>Se possível, reúna medidas disponíveis, fotografias do local, referências visuais e uma descrição do que deseja resolver.</p></details>' +
+      '<details><summary>O escritório atende reformas?</summary><p>O atendimento a reformas precisa ser confirmado diretamente com o Studio Forma.</p></details>' +
+      '<details><summary>Quais serviços estão disponíveis?</summary><p>O escopo de serviços, as etapas incluídas e as entregas devem ser confirmados em uma conversa com o escritório.</p></details>' +
+      '<details><summary>Qual é o prazo de desenvolvimento?</summary><p>O prazo depende do escopo, da complexidade e das informações necessárias. Solicite uma estimativa antes de iniciar.</p></details>' +
+      '<details><summary>Como solicitar uma proposta?</summary><p>Utilize os canais oficiais do escritório depois que telefone, WhatsApp ou e-mail forem informados nesta página.</p></details></section>'
+    );
+  }
+
+  const differentiatorsRe = /<section\b(?=[^>]*\bid=["']diferenciais["'])[^>]*>[\s\S]*?<\/section>/i;
+  if (differentiatorsRe.test(output)) {
+    output = output.replace(differentiatorsRe, () =>
+      '<section id="diferenciais" class="criasite-architecture-principles">' +
+      '<p class="criasite-architecture-kicker">CRITÉRIOS DE PROJETO</p><h2>O que observar em uma boa solução</h2>' +
+      '<div class="criasite-architecture-services">' +
+      '<article><span>01</span><h3>Clareza</h3><p>Organizar prioridades, necessidades e limites antes de escolher uma direção.</p></article>' +
+      '<article><span>02</span><h3>Contexto</h3><p>Considerar o local, a incidência de luz, a circulação e a relação com o entorno.</p></article>' +
+      '<article><span>03</span><h3>Coerência</h3><p>Buscar equilíbrio entre uso, materiais, conforto e expressão visual.</p></article>' +
+      '</div><p class="criasite-architecture-disclaimer">Princípios conceituais; não representam certificações, resultados ou diferenciais comerciais comprovados.</p></section>'
+    );
+  }
+
+  const contactRe = /<section\b(?=[^>]*\bid=["']contato["'])[^>]*>[\s\S]*?<\/section>/i;
+  if (contactRe.test(output)) {
+    output = output.replace(contactRe, section => {
+      const verified = /https?:\/\/(?:www\.)?wa\.me\/[0-9]{10,15}|mailto:[^"'\s<>]+|tel:[^"'\s<>]+/i.test(section);
+      if (verified) return section;
+      return '<section id="contato" class="criasite-architecture-contact">' +
+        '<p class="criasite-architecture-kicker">PRÓXIMO PASSO</p><h2>Vamos conversar sobre seu espaço?</h2>' +
+        '<p>Os dados de contato oficiais ainda precisam ser adicionados pelo responsável pelo escritório antes da publicação.</p>' +
+        '<p class="criasite-architecture-disclaimer">Inclua somente um telefone, WhatsApp ou e-mail confirmado. Nenhum canal foi inventado nesta demonstração.</p></section>';
+    });
+  }
+
+  // Evita dois botões concorrentes no hero: mantém uma chamada principal.
+  const heroFinalRe = /<section\b(?=[^>]*(?:\bid=["']hero["']|\bclass=["'][^"]*\bhero\b))[^>]*>[\s\S]*?<\/section>/i;
+  if (heroFinalRe.test(output)) {
+    output = output.replace(heroFinalRe, hero => {
+      hero = hero.replace(/<a\b[^>]*class=["'][^"']*criasite-architecture-hero-cta[^"']*["'][^>]*>[\s\S]*?<\/a>/gi, "");
+      const first = hero.match(/<a\b([^>]*)>([\s\S]*?)<\/a>/i);
+      if (first) {
+        let attrs = first[1].replace(/\sclass=["'][^"']*["']/i, "").replace(/\shref=["'][^"']*["']/i, "");
+        hero = hero.replace(first[0], '<a' + attrs + ' class="criasite-architecture-hero-cta" href="#servicos">' + first[2] + '</a>');
+        return hero;
+      }
+      return hero.replace(/<\/section>/i, '<a class="criasite-architecture-hero-cta" href="#servicos">Conheça o processo</a></section>');
+    });
+  }
+
   const css = [
     ":root{--cs-ink:#292722;--cs-paper:#f7f5f0;--cs-sand:#e9e1d7;--cs-copper:#9a704c;--cs-muted:#68635c}",
     "body{color:var(--cs-ink)}",
@@ -267,7 +322,15 @@ function enforceArchitectureFinalPolish(html, business = {}) {
     "a:focus-visible,button:focus-visible{outline:3px solid var(--cs-copper);outline-offset:4px}",
     "@media(max-width:760px){.criasite-architecture-services,.criasite-reference-grid{grid-template-columns:1fr}.criasite-architecture-services article{min-height:0}}",
     ".criasite-architecture-hero-cta{display:inline-flex;align-items:center;justify-content:center;margin-top:1rem;padding:.9rem 1.25rem;background:#292722;color:#fff;text-decoration:none;border:1px solid #292722;transition:background .2s,color .2s}",
-    ".criasite-architecture-hero-cta:hover{background:#9a704c;border-color:#9a704c}"
+    ".criasite-architecture-hero-cta:hover{background:#9a704c;border-color:#9a704c}",
+    ".criasite-architecture-faq,.criasite-architecture-principles,.criasite-architecture-contact{width:min(1100px,calc(100% - 40px));margin-inline:auto;padding:clamp(3rem,7vw,5rem) 0}",
+    ".criasite-architecture-faq h2,.criasite-architecture-principles h2,.criasite-architecture-contact h2{font-size:clamp(2rem,4vw,3rem);line-height:1.1;margin:0 0 1.5rem}",
+    ".criasite-architecture-faq details{padding:1.1rem 0;border-bottom:1px solid #d8cfc3}",
+    ".criasite-architecture-faq summary{cursor:pointer;font-weight:650;min-height:44px;display:flex;align-items:center}",
+    ".criasite-architecture-contact{background:#292722;color:#fff;padding:clamp(2rem,5vw,4rem);margin-block:2rem}",
+    ".criasite-architecture-contact .criasite-architecture-kicker{color:#c9a989}",
+    ".criasite-architecture-contact p{max-width:680px;line-height:1.75}",
+    ".criasite-architecture-contact .criasite-architecture-disclaimer{color:#ddd3c8}"
   ].join("\n");
   if (/<style\b[^>]*>[\s\S]*?<\/style>/i.test(output)) output = output.replace(/<\/style>/i, css + "\n</style>");
   else output = output.replace(/<\/head>/i, "<style>" + css + "</style></head>");
