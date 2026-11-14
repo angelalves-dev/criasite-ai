@@ -1055,6 +1055,51 @@ function enforceResponsiveLayout(html) {
 }
 
 
+function enforceCommercialTruthIntegrity(html, business = {}) {
+  let output = String(html || "");
+  if (!output) return output;
+  const normalize = value => String(value || "").toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ").trim();
+  // Campos estruturados são evidências; o pedido livre é uma especificação, não comprovação.
+  const trusted = normalize([
+    business.name, business.description, business.offerings, business.services,
+    business.modalities, business.servicos, business.procedures, business.procedimentos,
+    business.plans, business.benefits, business.team, business.address,
+    business.email, business.phone, business.whatsapp
+  ].filter(Boolean).join(" | "));
+  const riskyClaims = [
+    "nossa equipe", "nosso time", "nossos profissionais", "equipe especializada",
+    "equipe qualificada", "profissionais certificados", "profissionais experientes",
+    "anos de experiencia", "mais de 5 anos", "mais de 10 anos", "mais de 15 anos",
+    "desde 19", "desde 20", "fundada em", "fundado em", "somos referencia",
+    "referencia na regiao", "lider no mercado", "resultados comprovados",
+    "resultados garantidos", "clientes satisfeitos", "centenas de clientes",
+    "milhares de clientes", "estrutura completa", "instalacoes modernas",
+    "equipamentos modernos", "ambiente climatizado", "estacionamento gratuito",
+    "metodo exclusivo", "metodologia propria", "tecnologia exclusiva",
+    "certificacao", "premiado", "premiada", "parceiro oficial",
+    "oferecemos", "realizamos", "executamos", "atendemos", "agendamos",
+    "agende sua visita", "agende agora", "estamos a disposicao",
+    "fale com nossa equipe", "nossa unidade", "nosso espaco", "nossa estrutura",
+    "nosso atendimento", "atendimento personalizado", "atendimento humanizado",
+    "acompanhamento individual", "acompanhamento especializado",
+    "avaliacao gratuita", "consulta gratuita", "orcamento gratuito"
+  ];
+  output = output.replace(/<p\b([^>]*)>([\s\S]*?)<\/p>/gi, (whole, attrs, inner) => {
+    const plain = normalize(inner.replace(/<[^>]*>/g, " "));
+    const unsupported = riskyClaims.filter(claim => plain.includes(claim) && !trusted.includes(claim));
+    if (!unsupported.length) return whole;
+    return '<p' + attrs + '>Para evitar informações incorretas, confirme diretamente com o estabelecimento os detalhes, a disponibilidade e as condições deste item.</p>';
+  });
+  output = output.replace(/<a\b([^>]*href=["'](?:#|javascript:void\(0\)|javascript:;)["'][^>]*)>([\s\S]*?)<\/a>/gi,
+    (whole, attrs, inner) => {
+      const label = normalize(inner.replace(/<[^>]*>/g, " "));
+      return /(agendar|marcar|solicitar|orcamento|fale conosco|whatsapp|ligar|comprar|contratar)/.test(label)
+        ? '<span class="criasite-action-unavailable">' + inner + '</span>' : whole;
+    });
+  return output;
+}
+
 function enforceNavigationAccessibility(html) {
   let output = String(html || "");
   if (!output) return output;
@@ -1062,6 +1107,13 @@ function enforceNavigationAccessibility(html) {
   if (!navMatch) return output;
   const navId = (navMatch[1].match(/\bid=["']([^"']+)["']/i) || [])[1] || "criasite-primary-nav";
   if (!/\bid=/i.test(navMatch[1])) output = output.replace(navMatch[0], '<nav id="' + navId + '"' + navMatch[1] + '>');
+  // Remove controladores antigos do mesmo menu, preservando scripts de outras funções.
+  output = output.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, script => {
+    const body = script.toLowerCase();
+    const oldMenuLogic = /navmenu\.classlist\.(?:toggle|add|remove)/.test(body) ||
+      /menubtn\.addeventlistener/.test(body) || /menutoggle\.addeventlistener/.test(body);
+    return oldMenuLogic && !/criasite navigation accessibility v6 controller/i.test(script) ? "" : script;
+  });
   const selector = ".menu-btn,.menu-toggle,#menu-btn,#menu-toggle,.nav-toggle,#menu-button";
   let buttonMatch = output.match(/<button\b(?=[^>]*(?:class=["'][^"']*(?:menu|nav)[^"']*["']|id=["'][^"']*(?:menu|nav)[^"']*["']|aria-controls=["']))[^>]*>[\s\S]*?<\/button>/i);
   if (!buttonMatch) buttonMatch = output.match(/<button\b[^>]*>[\s\S]*?(?:☰|≡|menu)[\s\S]*?<\/button>/i);
@@ -1249,7 +1301,7 @@ Descrição e necessidades do cliente: ${prompt}`;
       }, status, origin);
     }
 
-    let html = enforceInternalAnchorIntegrity(enforceBeautyFinalPolish(enforceArchitectureFinalPolish(enforceNavigationAccessibility(enforceResponsiveLayout(enforceSegmentPhotography(enforceContactIntegrity(enforceBusinessIntegrity(polishHtml(extractHtml(result)), business), business), business))), business)));
+    let html = enforceCommercialTruthIntegrity(enforceInternalAnchorIntegrity(enforceBeautyFinalPolish(enforceArchitectureFinalPolish(enforceNavigationAccessibility(enforceResponsiveLayout(enforceSegmentPhotography(enforceContactIntegrity(enforceBusinessIntegrity(polishHtml(extractHtml(result)), business), business), business))), business))), business);
     if (!html || !/^<!doctype html/i.test(html) || !/<html[\s>]/i.test(html) || html.length < 500) {
       return json({ error: "A IA não retornou um HTML completo. Tente uma descrição mais específica." }, 502, origin);
     }
@@ -1295,7 +1347,7 @@ Descrição e necessidades do cliente: ${prompt}`;
         });
         const repairResult = await repairResponse.json().catch(() => ({}));
         if (repairResponse.ok) {
-          const candidate = enforceInternalAnchorIntegrity(enforceBeautyFinalPolish(enforceArchitectureFinalPolish(enforceNavigationAccessibility(enforceResponsiveLayout(enforceSegmentPhotography(enforceContactIntegrity(enforceBusinessIntegrity(polishHtml(extractHtml(repairResult)), business), business), business))), business)));
+          const candidate = enforceCommercialTruthIntegrity(enforceInternalAnchorIntegrity(enforceBeautyFinalPolish(enforceArchitectureFinalPolish(enforceNavigationAccessibility(enforceResponsiveLayout(enforceSegmentPhotography(enforceContactIntegrity(enforceBusinessIntegrity(polishHtml(extractHtml(repairResult)), business), business), business))), business))), business);
           if (candidate && /^<!doctype html/i.test(candidate) && /<html[\s>]/i.test(candidate) && candidate.length >= 500) {
             const candidateQuality = inspectHtml(candidate, business);
             const weight = issue => /IDs duplicados|Links internos sem destino|Seções superficiais|Estrutura incompleta|Seção obrigatória ausente|Galeria da academia|afirmações sobre equipe|lista nav ul|Seção de modalidades|Contato ainda parece|Hero sem composição detalhada|adaptação responsiva comprovada/i.test(issue) ? 30 : 12;
