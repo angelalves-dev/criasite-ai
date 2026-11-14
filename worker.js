@@ -428,6 +428,78 @@ function enforceArchitectureFinalPolish(html, business = {}) {
   return output;
 }
 
+
+function enforceBeautyFinalPolish(html, business = {}) {
+  let output = String(html || "");
+  const resolved = inferBusinessType(business, business.userBrief || "").type;
+  if (resolved !== "beleza") return output;
+
+  const digits = String(business.whatsapp || "").replace(/\\D/g, "");
+  const hasWhatsApp = digits.length >= 10 && digits.length <= 15 && !/^0+$/.test(digits);
+  const serviceRe = /<section\\b(?=[^>]*\\bid=["'](?:servicos|serviços|services)["'])[^>]*>[\\s\\S]*?<\\/section>/i;
+  if (serviceRe.test(output) && !String(business.offerings || business.services || "").trim()) {
+    output = output.replace(serviceRe,
+      '<section id="servicos" class="criasite-beauty-services">' +
+      '<div class="criasite-beauty-wrap">' +
+      '<p class="criasite-beauty-eyebrow">CUIDADO COM INFORMAÇÃO</p>' +
+      '<h2>Uma escolha começa com uma boa conversa</h2>' +
+      '<p class="criasite-beauty-lead">Cada pessoa tem necessidades e expectativas diferentes. Antes de considerar qualquer cuidado, vale compreender o objetivo, conhecer as informações disponíveis e confirmar o que realmente faz parte da atuação da clínica.</p>' +
+      '<div class="criasite-beauty-grid">' +
+      '<article><span>01 / ESCUTA</span><h3>Entender suas necessidades</h3><p>Compartilhe suas dúvidas, expectativas e prioridades. Uma conversa inicial ajuda a esclarecer o que você procura, sem presumir que uma opção seja adequada para todas as pessoas.</p></article>' +
+      '<article><span>02 / INFORMAÇÃO</span><h3>Conhecer possibilidades</h3><p>Peça explicações sobre cada opção considerada, incluindo objetivos, limites, cuidados necessários e informações que devem ser avaliadas por um profissional habilitado.</p></article>' +
+      '<article><span>03 / DECISÃO</span><h3>Confirmar antes de escolher</h3><p>Verifique quais atendimentos estão efetivamente disponíveis, quem é responsável por realizá-los e quais condições se aplicam antes de tomar qualquer decisão.</p></article>' +
+      '</div><p class="criasite-beauty-note">Conteúdo informativo. Os serviços, procedimentos, profissionais e condições da clínica precisam ser confirmados diretamente com o estabelecimento.</p>' +
+      '</div></section>'
+    );
+  }
+
+  const contactRe = /<section\\b(?=[^>]*\\bid=["']contato["'])[^>]*>[\\s\\S]*?<\\/section>/i;
+  if (contactRe.test(output) && !hasWhatsApp && !/\\b(?:mailto:|tel:)/i.test((output.match(contactRe) || [""])[0])) {
+    output = output.replace(contactRe,
+      '<section id="contato" class="criasite-beauty-contact">' +
+      '<div class="criasite-beauty-wrap">' +
+      '<p class="criasite-beauty-eyebrow">INFORMAÇÕES E PRÓXIMO PASSO</p>' +
+      '<h2>Conheça a proposta da Bella Derma</h2>' +
+      '<p>Antes de agendar ou escolher um atendimento, confirme diretamente com a clínica os canais oficiais, os serviços disponíveis e as condições atualizadas.</p>' +
+      '<p class="criasite-beauty-note">Esta demonstração não possui um canal direto de contato configurado. Nenhum telefone, endereço ou agendamento foi inventado.</p>' +
+      '</div></section>'
+    );
+  }
+
+  const heroRe = /<section\\b(?=[^>]*(?:\\bid=["']hero["']|\\bclass=["'][^"']*\\bhero\\b))[^>]*>[\\s\\S]*?<\\/section>/i;
+  if (heroRe.test(output)) {
+    output = output.replace(heroRe, hero => {
+      if (/<a\\b[^>]*href=["']#(?:servicos|serviços|sobre|contato)["']/i.test(hero)) return hero;
+      return hero.replace(/<\\/section>/i,
+        '<a class="criasite-beauty-hero-cta" href="#servicos">Conheça nossa abordagem</a></section>');
+    });
+  }
+
+  const css = [
+    "/* CriaSite AI — acabamento comercial para beleza e estética */",
+    ".criasite-beauty-wrap{width:min(1100px,calc(100% - 40px));margin-inline:auto}",
+    ".criasite-beauty-services{padding:clamp(4rem,8vw,7rem) 0;background:#f6f1ec;color:#39332f}",
+    ".criasite-beauty-services h2,.criasite-beauty-contact h2{max-width:760px;font-size:clamp(2.1rem,4.5vw,3.8rem);line-height:1.05;letter-spacing:-.04em;margin:0 0 1rem}",
+    ".criasite-beauty-eyebrow{font-size:.72rem;letter-spacing:.17em;font-weight:700;color:#a47e69;margin:0 0 1rem}",
+    ".criasite-beauty-lead{max-width:720px;color:#6d625b;line-height:1.8;font-size:1.04rem}",
+    ".criasite-beauty-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;margin-top:2.5rem;background:#dfd2c8;border:1px solid #dfd2c8}",
+    ".criasite-beauty-grid article{background:#fff;padding:clamp(1.4rem,3vw,2.2rem);min-height:245px}",
+    ".criasite-beauty-grid article span{font-size:.7rem;letter-spacing:.15em;color:#a47e69;font-weight:700}",
+    ".criasite-beauty-grid h3{font-size:1.25rem;line-height:1.2;margin:1.5rem 0 .75rem;color:#39332f}",
+    ".criasite-beauty-grid p,.criasite-beauty-contact>div>p:not(.criasite-beauty-eyebrow){color:#6d625b;line-height:1.75}",
+    ".criasite-beauty-note{margin-top:1.25rem;font-size:.82rem;color:#776b63;line-height:1.7}",
+    ".criasite-beauty-contact{padding:clamp(4rem,8vw,7rem) 0;background:#eee4dc;color:#39332f}",
+    ".criasite-beauty-contact>div>p:not(.criasite-beauty-eyebrow){max-width:700px}",
+    ".criasite-beauty-hero-cta{display:inline-flex;align-items:center;justify-content:center;margin-top:1.4rem;min-height:48px;padding:.9rem 1.35rem;background:#8f6d5a;color:#fff;text-decoration:none;border-radius:3px;font-weight:650;transition:background .2s,transform .2s}",
+    ".criasite-beauty-hero-cta:hover{background:#725442;transform:translateY(-2px)}",
+    "@media(max-width:760px){.criasite-beauty-grid{grid-template-columns:1fr}.criasite-beauty-grid article{min-height:0}.criasite-beauty-wrap{width:min(100% - 32px,1100px)}}",
+    "@media(prefers-reduced-motion:reduce){.criasite-beauty-hero-cta{transition:none}}"
+  ].join("\\n");
+  if (/<style\\b[^>]*>[\\s\\S]*?<\\/style>/i.test(output)) output = output.replace(/<\\/style>/i, css + "\\n</style>");
+  else output = output.replace(/<\\/head>/i, "<style>" + css + "</style></head>");
+  return output;
+}
+
 function inspectHtml(html, business = {}) {
   const issues = [];
   const sections = (html.match(/<section\b/gi) || []).length;
@@ -1113,7 +1185,7 @@ Descrição e necessidades do cliente: ${prompt}`;
       }, status, origin);
     }
 
-    let html = enforceInternalAnchorIntegrity(enforceArchitectureFinalPolish(enforceNavigationAccessibility(enforceResponsiveLayout(enforceSegmentPhotography(enforceContactIntegrity(enforceBusinessIntegrity(polishHtml(extractHtml(result)), business), business), business))), business));
+    let html = enforceInternalAnchorIntegrity(enforceBeautyFinalPolish(enforceArchitectureFinalPolish(enforceNavigationAccessibility(enforceResponsiveLayout(enforceSegmentPhotography(enforceContactIntegrity(enforceBusinessIntegrity(polishHtml(extractHtml(result)), business), business), business))), business));
     if (!html || !/^<!doctype html/i.test(html) || !/<html[\s>]/i.test(html) || html.length < 500) {
       return json({ error: "A IA não retornou um HTML completo. Tente uma descrição mais específica." }, 502, origin);
     }
@@ -1159,7 +1231,7 @@ Descrição e necessidades do cliente: ${prompt}`;
         });
         const repairResult = await repairResponse.json().catch(() => ({}));
         if (repairResponse.ok) {
-          const candidate = enforceInternalAnchorIntegrity(enforceArchitectureFinalPolish(enforceNavigationAccessibility(enforceResponsiveLayout(enforceSegmentPhotography(enforceContactIntegrity(enforceBusinessIntegrity(polishHtml(extractHtml(repairResult)), business), business), business))), business));
+          const candidate = enforceInternalAnchorIntegrity(enforceBeautyFinalPolish(enforceArchitectureFinalPolish(enforceNavigationAccessibility(enforceResponsiveLayout(enforceSegmentPhotography(enforceContactIntegrity(enforceBusinessIntegrity(polishHtml(extractHtml(repairResult)), business), business), business))), business));
           if (candidate && /^<!doctype html/i.test(candidate) && /<html[\s>]/i.test(candidate) && candidate.length >= 500) {
             const candidateQuality = inspectHtml(candidate, business);
             const weight = issue => /IDs duplicados|Links internos sem destino|Seções superficiais|Estrutura incompleta|Seção obrigatória ausente|Galeria da academia|afirmações sobre equipe|lista nav ul|Seção de modalidades|Contato ainda parece|Hero sem composição detalhada|adaptação responsiva comprovada/i.test(issue) ? 30 : 12;
