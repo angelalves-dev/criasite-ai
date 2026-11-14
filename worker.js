@@ -21,7 +21,7 @@ function json(data, status, origin) {
 
 function inferBusinessType(business = {}, prompt = "") {
 const n=v=>String(v||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9 ]/g," ").replace(/\s+/g," ").trim();
-const supplied=n(business.type), text=n([prompt,business.name,business.tagline,business.offerings,business.description].join(" "));
+const supplied=n(business.type || business.category || business.segment || business.industry || business.businessType), text=n([prompt,business.type,business.category,business.segment,business.industry,business.businessType,business.name,business.tagline,business.offerings,business.services,business.modalities,business.description].join(" "));
 const has=(...terms)=>terms.some(t=>text.includes(n(t)));
 const explicitArchitecture=/\b(?:escritorio de arquitetura|arquiteto|arquiteta|projeto arquitetonico|arquitetura residencial|arquitetura comercial|studio de arquitetura)\b/.test(text);
 if(explicitArchitecture)return {...business,type:"arquitetura",detectedType:"arquitetura",originalType:supplied||"não informado"};
@@ -431,13 +431,17 @@ function enforceArchitectureFinalPolish(html, business = {}) {
 
 function enforceBeautyFinalPolish(html, business = {}) {
   let output = String(html || "");
-  const resolved = inferBusinessType(business, business.userBrief || "").type;
+  const context = [business.userBrief, business.name, business.type, business.category, business.segment, business.industry].filter(Boolean).join(" ");
+  const resolved = inferBusinessType(business, context).type;
   if (resolved !== "beleza") return output;
 
   const digits = String(business.whatsapp || "").replace(/\D/g, "");
   const hasWhatsApp = digits.length >= 10 && digits.length <= 15 && !/^0+$/.test(digits);
   const serviceRe = /<section\b(?=[^>]*\bid=["'](?:servicos|serviços|services)["'])[^>]*>[\s\S]*?<\/section>/i;
-  if (serviceRe.test(output) && !String(business.offerings || business.services || "").trim()) {
+  const suppliedOfferings = [business.offerings, business.services, business.modalities, business.servicos, business.procedures, business.procedimentos, business.attendances, business.atendimentos].flat().filter(Boolean).join(" ").trim();
+  const brief = String(business.userBrief || "").toLowerCase();
+  const explicitOfferingsInBrief = /(?:servi[cç]os|procedimentos|atendimentos|tratamentos|modalidades)\s*[:=-]\s*[^.\n]{4,}/i.test(brief);
+  if (serviceRe.test(output) && !suppliedOfferings && !explicitOfferingsInBrief) {
     output = output.replace(serviceRe,
       '<section id="servicos" class="criasite-beauty-services">' +
       '<div class="criasite-beauty-wrap">' +
@@ -461,7 +465,7 @@ function enforceBeautyFinalPolish(html, business = {}) {
       '<p class="criasite-beauty-eyebrow">INFORMAÇÕES E PRÓXIMO PASSO</p>' +
       '<h2>Conheça a proposta da clínica</h2>' +
       '<p>Antes de agendar ou escolher um atendimento, confirme diretamente com a clínica os canais oficiais, os serviços disponíveis e as condições atualizadas.</p>' +
-      '<p class="criasite-beauty-note">Esta demonstração não possui um canal direto de contato configurado. Nenhum telefone, endereço ou agendamento foi inventado.</p>' +
+      '<p class="criasite-beauty-note">Para conhecer os detalhes da proposta, confirme diretamente com o estabelecimento quais informações e condições estão atualizadas.</p>' +
       '</div></section>'
     );
   }
@@ -473,6 +477,18 @@ function enforceBeautyFinalPolish(html, business = {}) {
       return hero.replace(/<\/section>/i,
         '<a class="criasite-beauty-hero-cta" href="#servicos">Conheça nossa abordagem</a></section>');
     });
+  }
+
+  const sectionCount = (output.match(/<section\\b/gi) || []).length;
+  if (sectionCount < 8 && !/\\bid=["']como-conhecer["']/i.test(output)) {
+    const editorialSection = '<section id="como-conhecer" class="criasite-beauty-editorial">' +
+      '<div class="criasite-beauty-wrap criasite-beauty-editorial-grid">' +
+      '<div><p class="criasite-beauty-eyebrow">ESCOLHA CONSCIENTE</p><h2>Informação antes de qualquer decisão</h2></div>' +
+      '<div><p>Ao conhecer uma proposta de cuidado, procure entender o objetivo, as possíveis limitações, os cuidados envolvidos e as qualificações de quem realizará o atendimento.</p><p>Compare as informações com calma e confirme diretamente quais opções fazem parte dos serviços oferecidos pelo estabelecimento.</p></div>' +
+      '</div></section>';
+    const contactIndex = output.search(/<section\\b(?=[^>]*\\bid=["']contato["'])[^>]*>/i);
+    if (contactIndex >= 0) output = output.slice(0, contactIndex) + editorialSection + output.slice(contactIndex);
+    else output = output.replace(/<footer\\b/i, editorialSection + "<footer");
   }
 
   const css = [
@@ -489,10 +505,15 @@ function enforceBeautyFinalPolish(html, business = {}) {
     ".criasite-beauty-grid p,.criasite-beauty-contact>div>p:not(.criasite-beauty-eyebrow){color:#6d625b;line-height:1.75}",
     ".criasite-beauty-note{margin-top:1.25rem;font-size:.82rem;color:#776b63;line-height:1.7}",
     ".criasite-beauty-contact{padding:clamp(4rem,8vw,7rem) 0;background:#eee4dc;color:#39332f}",
+    ".criasite-beauty-editorial{padding:clamp(4rem,8vw,7rem) 0;background:#fff;color:#39332f}",
+    ".criasite-beauty-editorial-grid{display:grid;grid-template-columns:1fr 1fr;gap:clamp(2rem,6vw,6rem);align-items:start}",
+    ".criasite-beauty-editorial h2{max-width:560px;font-size:clamp(2rem,4vw,3.4rem);line-height:1.06;letter-spacing:-.04em;margin:0}",
+    ".criasite-beauty-editorial-grid>div:last-child{max-width:600px;color:#6d625b;line-height:1.85}",
+    ".criasite-beauty-editorial-grid>div:last-child p{margin:0 0 1rem}",
     ".criasite-beauty-contact>div>p:not(.criasite-beauty-eyebrow){max-width:700px}",
     ".criasite-beauty-hero-cta{display:inline-flex;align-items:center;justify-content:center;margin-top:1.4rem;min-height:48px;padding:.9rem 1.35rem;background:#8f6d5a;color:#fff;text-decoration:none;border-radius:3px;font-weight:650;transition:background .2s,transform .2s}",
     ".criasite-beauty-hero-cta:hover{background:#725442;transform:translateY(-2px)}",
-    "@media(max-width:760px){.criasite-beauty-grid{grid-template-columns:1fr}.criasite-beauty-grid article{min-height:0}.criasite-beauty-wrap{width:min(100% - 32px,1100px)}}",
+    "@media(max-width:760px){.criasite-beauty-grid{grid-template-columns:1fr}.criasite-beauty-grid article{min-height:0}.criasite-beauty-editorial-grid{grid-template-columns:1fr;gap:1.5rem}.criasite-beauty-wrap{width:min(100% - 32px,1100px)}}",
     "@media(prefers-reduced-motion:reduce){.criasite-beauty-hero-cta{transition:none}}"
   ].join("\n");
   if (/<style\b[^>]*>[\s\S]*?<\/style>/i.test(output)) output = output.replace(/<\/style>/i, css + "\n</style>");
