@@ -437,7 +437,7 @@ function enforceBeautyFinalPolish(html, business = {}) {
 
   const digits = String(business.whatsapp || "").replace(/\D/g, "");
   const hasWhatsApp = digits.length >= 10 && digits.length <= 15 && !/^0+$/.test(digits);
-  const serviceRe = /<section\b(?=[^>]*\bid=["'](?:servicos|serviços|services)["'])[^>]*>[\s\S]*?<\/section>/i;
+  const serviceRe = /<section\b(?=[^>]*\bid=["'](?:servicos|serviços|services|cuidados|tratamentos|procedimentos)["'])[^>]*>[\s\S]*?<\/section>/i;
   const suppliedOfferings = [business.offerings, business.services, business.modalities, business.servicos, business.procedures, business.procedimentos, business.attendances, business.atendimentos].flat().filter(Boolean).join(" ").trim();
   const brief = String(business.userBrief || "").toLowerCase();
   const explicitOfferingsInBrief = /(?:servi[cç]os|procedimentos|atendimentos|tratamentos|modalidades)\s*[:=-]\s*[^.\n]{4,}/i.test(brief);
@@ -455,6 +455,43 @@ function enforceBeautyFinalPolish(html, business = {}) {
       '</div><p class="criasite-beauty-note">Conteúdo informativo. Os serviços, procedimentos, profissionais e condições da clínica precisam ser confirmados diretamente com o estabelecimento.</p>' +
       '</div></section>'
     );
+  }
+
+  // Neutraliza afirmações institucionais quando o cadastro não contém fatos comerciais.
+  const hasConfirmedProfileDetails = [
+    business.description, business.tagline, business.offerings, business.services,
+    business.modalities, business.procedures, business.attendances, business.differentials,
+    business.team, business.address, business.hours, business.plans
+  ].some(value => String(value || "").trim().length > 12) ||
+    /(?:serviços|servicos|procedimentos|atendimentos|tratamentos|modalidades|diferenciais|equipe|endereço|endereco|horários|horarios|planos|estrutura|formação|formacao|experiência|experiencia)\s*[:=-]\s*[^.\n]{4,}/i.test(brief);
+
+  const replaceSection = (idPattern, replacement) => {
+    const re = new RegExp("<section\\b(?=[^>]*\\bid=[\\\"'](?:" + idPattern + ")[\\\"'])[^>]*>[\\s\\S]*?<\\/section>", "i");
+    if (re.test(output)) output = output.replace(re, replacement);
+  };
+
+  if (!hasConfirmedProfileDetails) {
+    replaceSection("sobre|about",
+      '<section id="sobre" class="criasite-beauty-editorial"><div class="criasite-beauty-wrap criasite-beauty-editorial-grid"><div><p class="criasite-beauty-eyebrow">BELLA DERMA</p><h2>Uma apresentação clara começa com informação confiável</h2></div><div><p>Esta página apresenta uma identidade visual para a Bella Derma. Informações sobre a atuação, os profissionais, os serviços e a estrutura do estabelecimento devem ser confirmadas diretamente com a empresa antes de serem consideradas como dados oficiais.</p><p>Conhecer os detalhes com clareza ajuda cada pessoa a avaliar se a proposta corresponde às suas necessidades.</p></div></div></section>'
+    );
+    replaceSection("diferenciais|diferenciais-da-clinica",
+      '<section id="diferenciais" class="criasite-beauty-editorial"><div class="criasite-beauty-wrap criasite-beauty-editorial-grid"><div><p class="criasite-beauty-eyebrow">CRITÉRIOS DE ESCOLHA</p><h2>O que vale a pena conhecer antes de decidir</h2></div><div><p>Procure informações claras sobre a qualificação de quem realiza cada atendimento, os objetivos, os cuidados envolvidos e as limitações de cada opção.</p><p>Esses são critérios gerais de avaliação, não uma declaração de certificações, equipe ou diferenciais específicos da Bella Derma.</p></div></div></section>'
+    );
+    replaceSection("metodo|processo|como-funciona",
+      '<section id="metodo" class="criasite-beauty-services"><div class="criasite-beauty-wrap"><p class="criasite-beauty-eyebrow">INFORMAÇÃO ANTES DA ESCOLHA</p><h2>Entenda cada etapa antes de seguir</h2><div class="criasite-beauty-grid"><article><span>01 / OBJETIVO</span><h3>Esclareça o que procura</h3><p>Organize suas dúvidas e expectativas para compreender quais informações são importantes para sua decisão.</p></article><article><span>02 / ORIENTAÇÃO</span><h3>Peça explicações</h3><p>Procure entender objetivos, riscos, limites e cuidados relacionados a qualquer procedimento considerado.</p></article><article><span>03 / CONFIRMAÇÃO</span><h3>Verifique os dados</h3><p>Confirme diretamente os serviços disponíveis, as qualificações profissionais e as condições antes de decidir.</p></article></div></div></section>'
+    );
+    const faqRe = /<section\b(?=[^>]*\bid=["'](?:faq|perguntas-frequentes)["'])[^>]*>[\s\S]*?<\/section>/i;
+    if (faqRe.test(output)) {
+      output = output.replace(faqRe,
+        '<section id="faq" class="criasite-beauty-editorial"><div class="criasite-beauty-wrap"><p class="criasite-beauty-eyebrow">DÚVIDAS FREQUENTES</p><h2>Informações para uma escolha consciente</h2>' +
+        '<details class="faq-item"><summary>Quais serviços estão disponíveis?</summary><p>Consulte diretamente a Bella Derma para confirmar a lista atualizada de serviços e procedimentos oferecidos.</p></details>' +
+        '<details class="faq-item"><summary>Como saber se um procedimento é adequado?</summary><p>A indicação depende de avaliação individual por profissional habilitado. Peça informações sobre objetivos, riscos, limites e cuidados.</p></details>' +
+        '<details class="faq-item"><summary>Quem realiza os atendimentos?</summary><p>Confirme diretamente com o estabelecimento a identidade e as qualificações dos profissionais responsáveis.</p></details>' +
+        '<details class="faq-item"><summary>Quais são os valores e as condições?</summary><p>Preços, formas de pagamento e condições comerciais precisam ser confirmados diretamente com o estabelecimento.</p></details>' +
+        '<details class="faq-item"><summary>Como confirmar disponibilidade?</summary><p>Verifique os canais oficiais da Bella Derma para obter informações atualizadas sobre disponibilidade e agendamento.</p></details>' +
+        '</div></section>'
+      );
+    }
   }
 
   const contactRe = /<section\b(?=[^>]*\bid=["']contato["'])[^>]*>[\s\S]*?<\/section>/i;
