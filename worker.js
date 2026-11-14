@@ -459,7 +459,7 @@ function enforceBeautyFinalPolish(html, business = {}) {
       '<section id="contato" class="criasite-beauty-contact">' +
       '<div class="criasite-beauty-wrap">' +
       '<p class="criasite-beauty-eyebrow">INFORMAÇÕES E PRÓXIMO PASSO</p>' +
-      '<h2>Conheça a proposta da Bella Derma</h2>' +
+      '<h2>Conheça a proposta da clínica</h2>' +
       '<p>Antes de agendar ou escolher um atendimento, confirme diretamente com a clínica os canais oficiais, os serviços disponíveis e as condições atualizadas.</p>' +
       '<p class="criasite-beauty-note">Esta demonstração não possui um canal direto de contato configurado. Nenhum telefone, endereço ou agendamento foi inventado.</p>' +
       '</div></section>'
