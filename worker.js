@@ -566,6 +566,12 @@ function enforceBeautyFinalPolish(html, business = {}) {
 
 function inspectHtml(html, business = {}) {
   const issues = [];
+  const menuControllerCount = (html.match(/CriaSite navigation accessibility v7 controller/gi) || []).length;
+  const legacyMenuControllers = Array.from(html.matchAll(/<script\b[^>]*>[\s\S]*?<\/script>/gi), match => match[0])
+    .filter(script => !/CriaSite navigation accessibility v7 controller/i.test(script) && /aria-expanded/i.test(script) && /classList\.(?:toggle|add|remove)/i.test(script) && /(menu|nav)/i.test(script) && /addEventListener/i.test(script) && script.length < 5000);
+  if (menuControllerCount !== 1) issues.push("O menu possui controladores duplicados ou ausentes. Mantenha exatamente um controlador CriaSite e remova scripts antigos.");
+  if (legacyMenuControllers.length) issues.push("Há um controlador antigo de menu junto do controlador atual. Remova o script duplicado sem apagar outras funcionalidades.");
+
   const sections = (html.match(/<section\b/gi) || []).length;
   const ids = new Set(Array.from(html.matchAll(/\bid=["']([^"']+)["']/gi), m => m[1]));
   const idValues = Array.from(html.matchAll(/\bid=["']([^"']+)["']/gi), m => m[1]);
@@ -881,11 +887,6 @@ function inspectHtml(html, business = {}) {
   }
   if (paragraphTexts.some((value,index)=>paragraphTexts.indexOf(value)!==index)) issues.push("Há parágrafos repetidos entre seções; dê uma finalidade própria a cada bloco.");
 
-  const menuControllerCount = (html.match(/CriaSite navigation accessibility v7 controller/gi) || []).length;
-  const legacyMenuControllers = Array.from(html.matchAll(/<script\b[^>]*>[\s\S]*?<\/script>/gi), match => match[0])
-    .filter(script => !/CriaSite navigation accessibility v7 controller/i.test(script) && /aria-expanded/i.test(script) && /classList\.(?:toggle|add|remove)/i.test(script) && /(menu|nav)/i.test(script) && /addEventListener/i.test(script) && script.length < 5000);
-  if (menuControllerCount !== 1) issues.push("O menu possui controladores duplicados ou ausentes. Mantenha exatamente um controlador CriaSite e remova scripts antigos.");
-  if (legacyMenuControllers.length) issues.push("Há um controlador antigo de menu junto do controlador atual. Remova o script duplicado sem apagar outras funcionalidades.");
   return { sections, issues: issues.slice(0, 24) };
 }
 function polishHtml(html) {
@@ -1068,7 +1069,7 @@ function enforceCommercialTruthIntegrity(html, business = {}) {
   const claims = ["nossa equipe","nosso time","nossos profissionais","equipe especializada","equipe qualificada","equipe multidisciplinar","profissionais certificados","profissionais experientes","anos de experiencia","mais de 5 anos","mais de 10 anos","mais de 15 anos","desde 19","desde 20","fundada em","fundado em","somos referencia","referencia na regiao","lider no mercado","resultados comprovados","resultados garantidos","clientes satisfeitos","centenas de clientes","milhares de clientes","estrutura completa","instalacoes modernas","equipamentos modernos","equipamentos de ultima geracao","ambiente climatizado","estacionamento gratuito","metodo exclusivo","metodologia propria","tecnologia exclusiva","certificacao","premiado","premiada","parceiro oficial","agende sua visita","agende agora","estamos a disposicao","fale com nossa equipe","nossa unidade","nosso espaco","nossa estrutura","nosso atendimento","atendimento personalizado","atendimento humanizado","acompanhamento individual","acompanhamento especializado","avaliacao gratuita","consulta gratuita","orcamento gratuito","protocolos exclusivos","protocolo exclusivo","procedimentos exclusivos","tecnicas exclusivas","tecnologia de ponta","tratamento garantido","satisfacao garantida","garantia de resultado","horarios flexiveis","aula experimental","aulas experimentais","visita guiada","tour guiado","suporte tecnico","prioridade em agendamentos","prioridade no suporte","professor a disposicao","personal trainer","instrutores acompanham","treino supervisionado","avaliacao fisica","planilha personalizada","plano personalizado","desconto progressivo"];
   const unsupported = value => claims.some(claim => value.includes(claim) && !facts.includes(claim));
   const neutral = {h1:"Conheça as informações do estabelecimento",h2:"Informações importantes",h3:"Detalhes a confirmar",h4:"Mais informações",h5:"Informações",h6:"Detalhes",p:"Para manter as informações corretas, confirme diretamente com o estabelecimento os detalhes, as condições e a disponibilidade.",li:"Detalhes a confirmar diretamente com o estabelecimento.",summary:"Quais informações devo confirmar?",blockquote:"Consulte o estabelecimento para confirmar os detalhes.",figcaption:"Imagem ilustrativa.",dt:"Informações",dd:"Detalhes a confirmar diretamente com o estabelecimento."};
-  output = output.replace(/<(h[1-6]|p|li|summary|blockquote|figcaption|dt|dd)\b([^>]*)>([\s\S]*?)<\/\1>/gi,(whole,tag,attrs,inner)=>{const plain=normalize(inner.replace(/<[^>]*>/g," "));if(!plain||!unsupported(plain))return whole;return "<"+tag+attrs+">"+(neutral[tag.toLowerCase()]||neutral.p)+"</"+tag+">";});
+  output = output.replace(/<(h[1-6]|p|li|summary|blockquote|figcaption|dt|dd|span|strong|em|small)\b([^>]*)>([\s\S]*?)<\/\1>/gi,(whole,tag,attrs,inner)=>{const plain=normalize(inner.replace(/<[^>]*>/g," "));if(!plain||!unsupported(plain))return whole;return "<"+tag+attrs+">"+(neutral[tag.toLowerCase()]||neutral.p)+"</"+tag+">";});
   output = output.replace(/<meta\b([^>]*\bname=["']description["'][^>]*)>/gi,(whole,attrs)=>{const m=attrs.match(/\bcontent=["']([^"']*)["']/i);if(!m||!unsupported(normalize(m[1])))return whole;const safe=String(business.tagline||business.name||"Informações do estabelecimento").replace(/["<>]/g,"").slice(0,155);return "<meta"+attrs.replace(/\bcontent=["'][^"']*["']/i,'content="'+safe+'"')+">";});
   const offerings=normalize([business.offerings,business.services,business.modalities,business.servicos,business.procedures,business.procedimentos].filter(Boolean).join(" | "));
   if(!offerings) output=output.replace(/<section\b([^>]*\bid=["'](?:servicos|services|modalidades|procedimentos|menu)["'][^>]*)>([\s\S]*?)<\/section>/i,(whole,attrs,inner)=>{const heading=(inner.match(/<h[1-6]\b[^>]*>[\s\S]*?<\/h[1-6]>/i)||["<h2>Informações sobre serviços</h2>"])[0];return "<section"+attrs+">"+heading+'<p class="criasite-verified-content-note">Os serviços, produtos e condições ainda não foram informados. Inclua esses dados no cadastro para que o site apresente somente ofertas confirmadas.</p></section>';});
