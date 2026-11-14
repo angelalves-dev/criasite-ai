@@ -434,9 +434,9 @@ function enforceBeautyFinalPolish(html, business = {}) {
   const resolved = inferBusinessType(business, business.userBrief || "").type;
   if (resolved !== "beleza") return output;
 
-  const digits = String(business.whatsapp || "").replace(/\\D/g, "");
+  const digits = String(business.whatsapp || "").replace(/\D/g, "");
   const hasWhatsApp = digits.length >= 10 && digits.length <= 15 && !/^0+$/.test(digits);
-  const serviceRe = /<section\\b(?=[^>]*\\bid=["'](?:servicos|serviços|services)["'])[^>]*>[\\s\\S]*?<\\/section>/i;
+  const serviceRe = /<section\b(?=[^>]*\bid=["'](?:servicos|serviços|services)["'])[^>]*>[\s\S]*?<\/section>/i;
   if (serviceRe.test(output) && !String(business.offerings || business.services || "").trim()) {
     output = output.replace(serviceRe,
       '<section id="servicos" class="criasite-beauty-services">' +
@@ -453,8 +453,8 @@ function enforceBeautyFinalPolish(html, business = {}) {
     );
   }
 
-  const contactRe = /<section\\b(?=[^>]*\\bid=["']contato["'])[^>]*>[\\s\\S]*?<\\/section>/i;
-  if (contactRe.test(output) && !hasWhatsApp && !/\\b(?:mailto:|tel:)/i.test((output.match(contactRe) || [""])[0])) {
+  const contactRe = /<section\b(?=[^>]*\bid=["']contato["'])[^>]*>[\s\S]*?<\/section>/i;
+  if (contactRe.test(output) && !hasWhatsApp && !/\b(?:mailto:|tel:)/i.test((output.match(contactRe) || [""])[0])) {
     output = output.replace(contactRe,
       '<section id="contato" class="criasite-beauty-contact">' +
       '<div class="criasite-beauty-wrap">' +
@@ -466,11 +466,11 @@ function enforceBeautyFinalPolish(html, business = {}) {
     );
   }
 
-  const heroRe = /<section\\b(?=[^>]*(?:\\bid=["']hero["']|\\bclass=["'][^"']*\\bhero\\b))[^>]*>[\\s\\S]*?<\\/section>/i;
+  const heroRe = /<section\b(?=[^>]*(?:\bid=["']hero["']|\bclass=["'][^"']*\bhero\b))[^>]*>[\s\S]*?<\/section>/i;
   if (heroRe.test(output)) {
     output = output.replace(heroRe, hero => {
-      if (/<a\\b[^>]*href=["']#(?:servicos|serviços|sobre|contato)["']/i.test(hero)) return hero;
-      return hero.replace(/<\\/section>/i,
+      if (/<a\b[^>]*href=["']#(?:servicos|serviços|sobre|contato)["']/i.test(hero)) return hero;
+      return hero.replace(/<\/section>/i,
         '<a class="criasite-beauty-hero-cta" href="#servicos">Conheça nossa abordagem</a></section>');
     });
   }
@@ -494,9 +494,9 @@ function enforceBeautyFinalPolish(html, business = {}) {
     ".criasite-beauty-hero-cta:hover{background:#725442;transform:translateY(-2px)}",
     "@media(max-width:760px){.criasite-beauty-grid{grid-template-columns:1fr}.criasite-beauty-grid article{min-height:0}.criasite-beauty-wrap{width:min(100% - 32px,1100px)}}",
     "@media(prefers-reduced-motion:reduce){.criasite-beauty-hero-cta{transition:none}}"
-  ].join("\\n");
-  if (/<style\\b[^>]*>[\\s\\S]*?<\\/style>/i.test(output)) output = output.replace(/<\\/style>/i, css + "\\n</style>");
-  else output = output.replace(/<\\/head>/i, "<style>" + css + "</style></head>");
+  ].join("\n");
+  if (/<style\b[^>]*>[\s\S]*?<\/style>/i.test(output)) output = output.replace(/<\/style>/i, css + "\n</style>");
+  else output = output.replace(/<\/head>/i, "<style>" + css + "</style></head>");
   return output;
 }
 
