@@ -603,7 +603,7 @@ function inspectHtml(html, business = {}) {
   const hasEditorialMoment = /<blockquote\b[^>]*(?:font-size\s*:\s*(?:1\.[8-9]|[2-9]rem)|class=["'][^"']*(?:manifesto|quote|editorial))/i.test(html) ||
     /class=["'][^"']*(?:manifesto|editorial-band|feature-band|timeline)/i.test(html) ||
     /<(?:section|div)\b[^>]*style=["'][^"']*(?:background:\s*(?:#|linear-gradient)|padding:\s*[4-9]\dpx)/i.test(html);
-  const galleryHasMobileHeightOverride = /@media\s*\([^)]*(?:max-width|max-inline-size)[^)]*\)[\s\S]{0,5000}(?:gallery-item|gallery-grid|galeria)[^{]*\{[^}]*(?:height\s*:|aspect-ratio\s*:)/i.test(html);
+  const galleryHasMobileHeightOverride = /@media\s*\([^)]*(?:max-width|max-inline-size)[^)]*\)[\s\S]{0,5000}(?:criasite-)?(?:gallery|galeria)[^{]*\{[^}]*(?:height\s*:|aspect-ratio\s*:)/i.test(html);
   const galleryUsesFixedTallImages = /\.gallery-item\s*\{[^}]*height\s*:\s*(?:3\d\d|4\d\d|5\d\d)px/i.test(html);
   const whatsappDigits = String(business.whatsapp || "").replace(/[^0-9]/g, "");
   const hasWhatsAppContact = whatsappDigits.length >= 10 && whatsappDigits.length <= 15 &&
@@ -718,7 +718,8 @@ function inspectHtml(html, business = {}) {
   if (!whatsappDigits && !/<form\b/i.test(contactBlock) && fakeContactCta) issues.push("A seção de contato apresenta uma chamada sem ação funcional. Sem canal real fornecido, transforme o encerramento em conteúdo editorial neutro e remova o falso botão.");
   if (whatsappDigits.length >= 10 && whatsappDigits.length <= 15 && !hasWhatsAppContact) issues.push("O WhatsApp informado pelo cliente precisa estar conectado em um link https://wa.me/ com o número correto.");
   if (/agende uma visita|fale conosco|entre em contato|solicite um or[cç]amento/i.test(contactBlock || html) && !hasRealContact && whatsappDigits.length > 0) issues.push("A chamada comercial precisa usar o WhatsApp real informado pelo cliente.");
-  if (/<img\b/i.test(html) && /<img\b(?![^>]*\bloading=["']lazy["'])/i.test(html)) issues.push("Imagens fora do hero devem usar loading=lazy para melhorar o carregamento.");
+  const htmlWithoutHero = hero ? html.replace(hero, "") : html;
+  if (/<img\b(?![^>]*\bloading=["']lazy["'])/i.test(htmlWithoutHero)) issues.push("Imagens fora do hero devem usar loading=lazy para melhorar o carregamento.");
   if (/(?:min-width\s*:\s*(?:280|300|320|350)px|width\s*:\s*(?:300|320|350)px)/i.test(html) && !/overflow-x\s*:\s*hidden|overflow-x\s*:\s*clip/i.test(html)) issues.push("Revise larguras mínimas fixas que podem causar rolagem horizontal em celulares; use grids fluidos com minmax(0, 1fr).");
 
   if (!/<html\b[^>]*\blang=["']pt-BR["']/i.test(html)) issues.push("Documento sem idioma pt-BR declarado. Adicione lang=\"pt-BR\" à tag html.");
@@ -866,12 +867,12 @@ function inspectHtml(html, business = {}) {
   if (unsupportedClaims.test(html)) issues.push("Há afirmações sobre equipe, equipamentos, instalações ou serviços que não foram confirmadas nos dados fornecidos.");
   const mobileUlRule = /nav\s+ul[^{]*\{[^}]*display\s*:\s*flex[^}]*flex-direction\s*:\s*column|nav\s+ul[^{]*\{[^}]*flex-direction\s*:\s*column[^}]*display\s*:\s*flex/i.test(mobileCss);
   if (hasMenuButton && hasMobileRules && !mobileUlRule) issues.push("A lista nav ul precisa ter regra mobile explícita com display:flex e flex-direction:column.");
-  const visualMoments = [/manifesto|faixa[- ]editorial|statement/i, /timeline|etapas|processo/i, /masonry|grid-template-areas|bento|assim[eé]tric/i, /clip-path|mask-image|background-image|radial-gradient|linear-gradient/i].filter(pattern => pattern.test(normalizedHtml)).length;
+  const visualMoments = [/manifesto|faixa[- ]editorial|statement/i, /timeline|etapas|processo/i, /masonry|grid-template-areas|bento|assim[eé]tric|grid-template-columns[^}]*1\.4fr/i, /clip-path|mask-image|background-image|radial-gradient|linear-gradient/i].filter(pattern => pattern.test(normalizedHtml)).length;
   if (visualMoments < 2) issues.push("Direção de arte sem variedade: crie pelo menos dois momentos visuais especiais além do hero.");
 
   if (hasMenuButton && !/setAttribute\(\s*["']aria-expanded["']/i.test(html)) issues.push("O menu não atualiza aria-expanded dinamicamente ao abrir e fechar.");
-  if (hasMenuButton && !/querySelectorAll\(["']a["']\)[\s\S]{0,500}addEventListener\(["']click["']/i.test(html)) issues.push("O menu não fecha ao selecionar um link.");
-  if (hasMenuButton && !/e\.key\s*===?\s*["']Escape["']/i.test(html)) issues.push("O menu não fecha ao pressionar Escape.");
+  if (hasMenuButton && !(/querySelectorAll\(["']a["']\)[\s\S]{0,500}addEventListener\(["']click["']/i.test(html) || /(?:list|nav)\.addEventListener\(["']click["'][\s\S]{0,500}closest\(["']a["']\)/i.test(html))) issues.push("O menu não fecha ao selecionar um link.");
+  if (hasMenuButton && !/(?:e|event)\.key\s*===?\s*["']Escape["']/i.test(html)) issues.push("O menu não fecha ao pressionar Escape.");
   if (galleryMatch) {
     const alts = Array.from(galleryMatch[0].matchAll(/<img\b[^>]*\balt=["']([^"']*)["'][^>]*>/gi), m => m[1].toLowerCase().trim());
         if (alts.length >= 3 && alts.filter(alt => /^(imagem ilustrativa|imagem|foto)(\s+\d+)?(\s+do segmento)?(\s+\w+)?$/.test(alt)).length >= 3) issues.push("Os textos alternativos da galeria são genéricos; descreva cada cena ilustrativa.");
@@ -887,8 +888,9 @@ function inspectHtml(html, business = {}) {
   }
   const paragraphTexts = [];
   for (const section of sectionBlocks) for (const m of section.body.matchAll(/<p\b[^>]*>([\s\S]*?)<\/p>/gi)) {
-    const value=m[1].replace(/<[^>]+>/g," ").replace(/\s+/g," ").trim().toLowerCase();
-    if(value.length>=65) paragraphTexts.push(value);
+    const value=m[1].replace(/<[^>]+>/g," ").replace(/\s+/g," ").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+    const neutralBoilerplate = /^(para manter as informacoes corretas|os dados de contato ainda nao foram cadastrados|as informacoes de endereco ainda nao foram cadastradas|detalhes a confirmar diretamente com o estabelecimento|informacao a confirmar)/.test(value);
+    if(value.length>=65 && !neutralBoilerplate) paragraphTexts.push(value);
   }
   if (paragraphTexts.some((value,index)=>paragraphTexts.indexOf(value)!==index)) issues.push("Há parágrafos repetidos entre seções; dê uma finalidade própria a cada bloco.");
 
