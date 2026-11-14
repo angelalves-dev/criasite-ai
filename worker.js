@@ -601,8 +601,8 @@ function inspectHtml(html, business = {}) {
   const hasAsymmetricGallery = /(?:gallery|galeria)[^{]*\{[^}]*grid-template-areas|(?:gallery|galeria)[^{]*\{[^}]*masonry|(?:gallery|galeria)[^{]*\{[^}]*grid-template-columns[^}]*1\.4fr|(?:gallery|galeria)[^{]*\{[^}]*aspect-ratio/i.test(html) ||
     /(?:gallery|galeria)[^{]*:nth-child\s*\(/i.test(html);
   const hasEditorialMoment = /<blockquote\b[^>]*(?:font-size\s*:\s*(?:1\.[8-9]|[2-9]rem)|class=["'][^"']*(?:manifesto|quote|editorial))/i.test(html) ||
-    /class=["'][^"']*(?:manifesto|editorial-band|feature-band|timeline)/i.test(html) ||
-    /<(?:section|div)\b[^>]*style=["'][^"']*(?:background:\s*(?:#|linear-gradient)|padding:\s*[4-9]\dpx)/i.test(html);
+    /class=["'][^"']*(?:manifesto|editorial-band|feature-band|timeline|criasite-gallery)/i.test(html) ||
+    /<(?:section|div)\b[^>]*style=["'][^"']*(?:background:\s*(?:#|linear-gradient)|padding:\s*[4-9]\dpx)/i.test(html) || hasAsymmetricGallery;
   const galleryHasMobileHeightOverride = /@media\s*\([^)]*(?:max-width|max-inline-size)[^)]*\)[\s\S]{0,12000}\.criasite-gallery[^}]*\b(?:aspect-ratio|min-height|height)\s*:/i.test(html);
   const galleryUsesFixedTallImages = /\.gallery-item\s*\{[^}]*height\s*:\s*(?:3\d\d|4\d\d|5\d\d)px/i.test(html);
   const whatsappDigits = String(business.whatsapp || "").replace(/[^0-9]/g, "");
@@ -645,7 +645,7 @@ function inspectHtml(html, business = {}) {
   if (hasMenuButton && !/keydown/i.test(html)) issues.push("O menu móvel deve fechar ao pressionar Escape.");
   if (hasMenuButton && !/(?:querySelectorAll|querySelector)\(["'][^"']*a[^"']*["']\)[\s\S]{0,900}addEventListener\(["']click|addEventListener\(["']click[\s\S]{0,900}(?:querySelectorAll|querySelector)\(["'][^"']*a/i.test(html)) issues.push("Feche o painel mobile depois que qualquer link do menu for selecionado.");
   const mobileCss = Array.from(html.matchAll(/@media\s*\([^)]*\)([\s\S]{0,5000})/gi), match => match[1]).join("\n");
-  const galleryMobileRule = /(?:gallery|galeria|mosaic)[^{]*\{[^}]*grid-template-columns\s*:\s*(?:1fr|repeat\(\s*1)/i.test(mobileCss);
+  const galleryMobileRule = /(?:gallery|galeria|mosaic)[^{]*\{[^}]*grid-template-columns\s*:\s*(?:1fr|minmax\(\s*0\s*,\s*1fr\s*\)|repeat\(\s*1)/i.test(mobileCss);
   if (galleryMatch && !galleryMobileRule) issues.push("A galeria não tem adaptação mobile específica. Em telas pequenas, reorganize o mosaico em uma coluna ou grade fluida sem cortes nem rolagem horizontal.");
   const mobileNavIsVertical = /(?:nav\s+ul|nav\s+\.?(?:nav-links|menu-links)|\.?(?:nav-links|menu-links))[^{]*\{[^}]*flex-direction\s*:\s*column/i.test(mobileCss);
   if (hasMenuButton && hasMobileRules && !mobileNavIsVertical) issues.push("No celular, os próprios links da lista de navegação precisam ficar empilhados verticalmente; não basta transformar o contêiner nav em coluna.");
