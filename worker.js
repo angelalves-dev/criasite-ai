@@ -479,16 +479,16 @@ function enforceBeautyFinalPolish(html, business = {}) {
     });
   }
 
-  const sectionCount = (output.match(/<section\\b/gi) || []).length;
-  if (sectionCount < 8 && !/\\bid=["']como-conhecer["']/i.test(output)) {
+  const sectionCount = (output.match(/<section\b/gi) || []).length;
+  if (sectionCount < 8 && !/\bid=["']como-conhecer["']/i.test(output)) {
     const editorialSection = '<section id="como-conhecer" class="criasite-beauty-editorial">' +
       '<div class="criasite-beauty-wrap criasite-beauty-editorial-grid">' +
       '<div><p class="criasite-beauty-eyebrow">ESCOLHA CONSCIENTE</p><h2>Informação antes de qualquer decisão</h2></div>' +
       '<div><p>Ao conhecer uma proposta de cuidado, procure entender o objetivo, as possíveis limitações, os cuidados envolvidos e as qualificações de quem realizará o atendimento.</p><p>Compare as informações com calma e confirme diretamente quais opções fazem parte dos serviços oferecidos pelo estabelecimento.</p></div>' +
       '</div></section>';
-    const contactIndex = output.search(/<section\\b(?=[^>]*\\bid=["']contato["'])[^>]*>/i);
+    const contactIndex = output.search(/<section\b(?=[^>]*\bid=["']contato["'])[^>]*>/i);
     if (contactIndex >= 0) output = output.slice(0, contactIndex) + editorialSection + output.slice(contactIndex);
-    else output = output.replace(/<footer\\b/i, editorialSection + "<footer");
+    else output = output.replace(/<footer\b/i, editorialSection + "<footer");
   }
 
   const css = [
