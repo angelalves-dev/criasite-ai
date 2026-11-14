@@ -438,7 +438,12 @@ function enforceBeautyFinalPolish(html, business = {}) {
   const digits = String(business.whatsapp || "").replace(/\D/g, "");
   const hasWhatsApp = digits.length >= 10 && digits.length <= 15 && !/^0+$/.test(digits);
   const serviceRe = /<section\b(?=[^>]*\bid=["'](?:servicos|serviços|services|cuidados|tratamentos|procedimentos)["'])[^>]*>[\s\S]*?<\/section>/i;
-  const suppliedOfferings = [business.offerings, business.services, business.modalities, business.servicos, business.procedures, business.procedimentos, business.attendances, business.atendimentos].flat().filter(Boolean).join(" ").trim();
+  const suppliedOfferings = [business.offerings, business.services, business.modalities, business.servicos, business.procedures, business.procedimentos, business.attendances, business.atendimentos]
+    .flat()
+    .flatMap(value => String(value || "").split(/[,;\n]+/))
+    .map(value => value.trim())
+    .filter(value => value.length > 2 && !/^(?:atendimento personalizado|atendimento de qualidade|qualidade|agilidade|confiança|confianca|profissionalismo|excelência|excelencia|bem estar|bem-estar)$/i.test(value))
+    .join(", ");
   const brief = String(business.userBrief || "").toLowerCase();
   // O prompt é uma especificação de criação, não uma fonte confiável de serviços.
   // Somente os campos próprios do cadastro podem confirmar uma oferta comercial.
