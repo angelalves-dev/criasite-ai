@@ -1085,9 +1085,16 @@ function enforceCommercialTruthIntegrity(html, business = {}) {
     "acompanhamento individual", "acompanhamento especializado",
     "avaliacao gratuita", "consulta gratuita", "orcamento gratuito"
   ];
+  const suppliedOfferings = normalize([
+    business.offerings, business.services, business.modalities, business.servicos,
+    business.procedures, business.procedimentos
+  ].filter(Boolean).join(", ")).split(/[,;|]+/).map(item => item.trim()).filter(item => item.length > 2);
+  const actionClaims = new Set(["oferecemos", "realizamos", "executamos", "atendemos", "agendamos"]);
   output = output.replace(/<p\b([^>]*)>([\s\S]*?)<\/p>/gi, (whole, attrs, inner) => {
     const plain = normalize(inner.replace(/<[^>]*>/g, " "));
-    const unsupported = riskyClaims.filter(claim => plain.includes(claim) && !trusted.includes(claim));
+    const mentionsSuppliedOffering = suppliedOfferings.some(item => plain.includes(item));
+    const unsupported = riskyClaims.filter(claim => plain.includes(claim) && !trusted.includes(claim) &&
+      !(actionClaims.has(claim) && mentionsSuppliedOffering));
     if (!unsupported.length) return whole;
     return '<p' + attrs + '>Para evitar informações incorretas, confirme diretamente com o estabelecimento os detalhes, a disponibilidade e as condições deste item.</p>';
   });
