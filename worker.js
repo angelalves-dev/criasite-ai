@@ -440,7 +440,9 @@ function enforceBeautyFinalPolish(html, business = {}) {
   const serviceRe = /<section\b(?=[^>]*\bid=["'](?:servicos|serviços|services|cuidados|tratamentos|procedimentos)["'])[^>]*>[\s\S]*?<\/section>/i;
   const suppliedOfferings = [business.offerings, business.services, business.modalities, business.servicos, business.procedures, business.procedimentos, business.attendances, business.atendimentos].flat().filter(Boolean).join(" ").trim();
   const brief = String(business.userBrief || "").toLowerCase();
-  const explicitOfferingsInBrief = /(?:servi[cç]os|procedimentos|atendimentos|tratamentos|modalidades)\s*[:=-]\s*[^.\n]{4,}/i.test(brief);
+  // O prompt é uma especificação de criação, não uma fonte confiável de serviços.
+  // Somente os campos próprios do cadastro podem confirmar uma oferta comercial.
+  const explicitOfferingsInBrief = false;
   if (serviceRe.test(output) && !suppliedOfferings && !explicitOfferingsInBrief) {
     output = output.replace(serviceRe,
       '<section id="servicos" class="criasite-beauty-services">' +
@@ -458,12 +460,11 @@ function enforceBeautyFinalPolish(html, business = {}) {
   }
 
   // Neutraliza afirmações institucionais quando o cadastro não contém fatos comerciais.
-  const hasConfirmedProfileDetails = [
-    business.description, business.tagline, business.offerings, business.services,
-    business.modalities, business.procedures, business.attendances, business.differentials,
-    business.team, business.address, business.hours, business.plans
-  ].some(value => String(value || "").trim().length > 12) ||
-    /(?:serviços|servicos|procedimentos|atendimentos|tratamentos|modalidades|diferenciais|equipe|endereço|endereco|horários|horarios|planos|estrutura|formação|formacao|experiência|experiencia)\s*[:=-]\s*[^.\n]{4,}/i.test(brief);
+  // Só uma descrição institucional explícita pode liberar texto institucional.
+  // Subtítulos e listas genéricas como "qualidade, agilidade e atendimento" não são fatos.
+  const confirmedDescription = String(business.description || "").trim();
+  const genericDescription = /^(?:qualidade|excelência|excelencia|atendimento personalizado|qualidade e confiança|qualidade, confiança e atendimento|profissionalismo|bem estar|bem-estar)[.! ]*$/i.test(confirmedDescription);
+  const hasConfirmedProfileDetails = confirmedDescription.length >= 40 && !genericDescription;
 
   const replaceSection = (idPattern, replacement) => {
     const re = new RegExp("<section\\b(?=[^>]*\\bid=[\\\"'](?:" + idPattern + ")[\\\"'])[^>]*>[\\s\\S]*?<\\/section>", "i");
