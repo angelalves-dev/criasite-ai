@@ -602,7 +602,7 @@ function inspectHtml(html, business = {}) {
   const fakeContact = /(?:mailto:|href=["'][^"']*(?:example\.com|powerfit\.com|seudominio|seuemail)|contato@(?:powerfit|exemplo|example)\.)/i.test(contactBlock);
   const waLinks = Array.from(contactBlock.matchAll(/https?:\/\/(?:www\.)?wa\.me\/([0-9+]+)/gi), match => match[1].replace(/\D/g, ""));
   const hasDummyWhatsApp = waLinks.some(number => number.length < 10 || number.length > 15 || /^0+$/.test(number) || /^(1234567890|11999999999|5511999999999)$/.test(number));
-  const sourceFacts = String([business.userBrief, business.name, business.tagline, business.description, business.offerings, business.services, business.modalities, business.plans, business.benefits].filter(Boolean).join(" ")).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const sourceFacts = String([business.name, business.tagline, business.description, business.offerings, business.services, business.modalities, business.plans, business.benefits, business.team, business.address, business.phone, business.whatsapp].filter(Boolean).join(" ")).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   const visibleText = html.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, " ").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   const unverifiedClaims = ["acesso livre","acesso total","nasceu da necessidade","fundada em","anos de experiencia","mais de 10 anos","mais de 15 anos","acompanhamento geriatrico","protocolos de vacinacao atualizados","ambiente pensado para reduzir o estresse","ambiente desenhado para minimizar o estresse","estrutura pensada para reduzir o estresse","clinica veterinaria especializada","acompanhamento especializado","medicina baseada em evidencias","excelencia clinica","equipe multidisciplinar","equipe veterinaria","equipe odontologica","profissionais certificados","atendimento humanizado","referencia na regiao","lider no mercado","resultados comprovados","resultados garantidos","centenas de clientes","projetos realizados","clientes satisfeitos","avaliacao inicial","avaliacao mensal","acompanhamento total","acompanhamento individual","acompanhamento continuo","horario de funcionamento","horario de atendimento","equipe tecnica","equipe especializada","treino supervisionado","avaliacao periodica","reavaliacao periodica","planilha de treino personalizada","visita guiada","tour guiado","suporte tecnico","prioridade em agendamentos","prioridade no suporte","visite nossa unidade","nossa recepcao","recepcao da academia","profissionais certificados","instrutores acompanham","atendimento personalizado","consultoria de treino","consultoria completa","desconto progressivo","aula experimental","aulas experimentais","avaliacao fisica","personal trainer","professor a disposicao","estacionamento gratuito","vestiario","ar condicionado","ambiente climatizado","biomecanica","periodizacao","forca maxima","hipertrofia","prevencao de lesoes","acompanhamento constante","treino livre","treino orientado","treino de forca","treinamento funcional","musculacao orientada","condicionamento metabolico","condicionamento fisico","condicionamento","mobilidade","integracao","execucao tecnica","orientacao tecnica constante","orientacao tecnica","estrutura otimizada","estrutura completa","equipamentos modernos","equipamentos profissionais","ambiente focado em performance","seriedade tecnica","metodologia propria","metodo exclusivo","resultados reais","resultados garantidos","equipe qualificada","equipe experiente","profissionais especializados","profissionais qualificados","acompanhamento de evolucao","cronograma personalizado","planejamento individual","planos flexiveis","horarios flexiveis"].filter(claim => visibleText.includes(claim) && !sourceFacts.includes(claim));
   const unsupportedCommercialClaims = unverifiedClaims.length > 0;
@@ -881,6 +881,11 @@ function inspectHtml(html, business = {}) {
   }
   if (paragraphTexts.some((value,index)=>paragraphTexts.indexOf(value)!==index)) issues.push("Há parágrafos repetidos entre seções; dê uma finalidade própria a cada bloco.");
 
+  const menuControllerCount = (html.match(/CriaSite navigation accessibility v7 controller/gi) || []).length;
+  const legacyMenuControllers = Array.from(html.matchAll(/<script\b[^>]*>[\s\S]*?<\/script>/gi), match => match[0])
+    .filter(script => !/CriaSite navigation accessibility v7 controller/i.test(script) && /aria-expanded/i.test(script) && /classList\.(?:toggle|add|remove)/i.test(script) && /(menu|nav)/i.test(script) && /addEventListener/i.test(script) && script.length < 5000);
+  if (menuControllerCount !== 1) issues.push("O menu possui controladores duplicados ou ausentes. Mantenha exatamente um controlador CriaSite e remova scripts antigos.");
+  if (legacyMenuControllers.length) issues.push("Há um controlador antigo de menu junto do controlador atual. Remova o script duplicado sem apagar outras funcionalidades.");
   return { sections, issues: issues.slice(0, 24) };
 }
 function polishHtml(html) {
@@ -1058,118 +1063,43 @@ function enforceResponsiveLayout(html) {
 function enforceCommercialTruthIntegrity(html, business = {}) {
   let output = String(html || "");
   if (!output) return output;
-  const normalize = value => String(value || "").toLowerCase()
-    .normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ").trim();
-  // Campos estruturados são evidências; o pedido livre é uma especificação, não comprovação.
-  const trusted = normalize([
-    business.name, business.description, business.offerings, business.services,
-    business.modalities, business.servicos, business.procedures, business.procedimentos,
-    business.plans, business.benefits, business.team, business.address,
-    business.email, business.phone, business.whatsapp
-  ].filter(Boolean).join(" | "));
-  const riskyClaims = [
-    "nossa equipe", "nosso time", "nossos profissionais", "equipe especializada",
-    "equipe qualificada", "profissionais certificados", "profissionais experientes",
-    "anos de experiencia", "mais de 5 anos", "mais de 10 anos", "mais de 15 anos",
-    "desde 19", "desde 20", "fundada em", "fundado em", "somos referencia",
-    "referencia na regiao", "lider no mercado", "resultados comprovados",
-    "resultados garantidos", "clientes satisfeitos", "centenas de clientes",
-    "milhares de clientes", "estrutura completa", "instalacoes modernas",
-    "equipamentos modernos", "ambiente climatizado", "estacionamento gratuito",
-    "metodo exclusivo", "metodologia propria", "tecnologia exclusiva",
-    "certificacao", "premiado", "premiada", "parceiro oficial",
-    "oferecemos", "realizamos", "executamos", "atendemos", "agendamos",
-    "agende sua visita", "agende agora", "estamos a disposicao",
-    "fale com nossa equipe", "nossa unidade", "nosso espaco", "nossa estrutura",
-    "nosso atendimento", "atendimento personalizado", "atendimento humanizado",
-    "acompanhamento individual", "acompanhamento especializado",
-    "avaliacao gratuita", "consulta gratuita", "orcamento gratuito"
-  ];
-  const suppliedOfferings = normalize([
-    business.offerings, business.services, business.modalities, business.servicos,
-    business.procedures, business.procedimentos
-  ].filter(Boolean).join(", ")).split(/[,;|]+/).map(item => item.trim()).filter(item => item.length > 2);
-  const actionClaims = new Set(["oferecemos", "realizamos", "executamos", "atendemos", "agendamos"]);
-  output = output.replace(/<p\b([^>]*)>([\s\S]*?)<\/p>/gi, (whole, attrs, inner) => {
-    const plain = normalize(inner.replace(/<[^>]*>/g, " "));
-    const mentionsSuppliedOffering = suppliedOfferings.some(item => plain.includes(item));
-    const unsupported = riskyClaims.filter(claim => plain.includes(claim) && !trusted.includes(claim) &&
-      !(actionClaims.has(claim) && mentionsSuppliedOffering));
-    if (!unsupported.length) return whole;
-    return '<p' + attrs + '>Para evitar informações incorretas, confirme diretamente com o estabelecimento os detalhes, a disponibilidade e as condições deste item.</p>';
-  });
-  output = output.replace(/<a\b([^>]*href=["'](?:#|javascript:void\(0\)|javascript:;)["'][^>]*)>([\s\S]*?)<\/a>/gi,
-    (whole, attrs, inner) => {
-      const label = normalize(inner.replace(/<[^>]*>/g, " "));
-      return /(agendar|marcar|solicitar|orcamento|fale conosco|whatsapp|ligar|comprar|contratar)/.test(label)
-        ? '<span class="criasite-action-unavailable">' + inner + '</span>' : whole;
-    });
+  const normalize = value => String(value || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/&nbsp;|&#160;/gi, " ").replace(/\s+/g, " ").trim();
+  const facts = normalize([business.name,business.description,business.offerings,business.services,business.modalities,business.servicos,business.procedures,business.procedimentos,business.plans,business.benefits,business.team,business.address,business.email,business.phone,business.whatsapp].filter(Boolean).join(" | "));
+  const claims = ["nossa equipe","nosso time","nossos profissionais","equipe especializada","equipe qualificada","equipe multidisciplinar","profissionais certificados","profissionais experientes","anos de experiencia","mais de 5 anos","mais de 10 anos","mais de 15 anos","desde 19","desde 20","fundada em","fundado em","somos referencia","referencia na regiao","lider no mercado","resultados comprovados","resultados garantidos","clientes satisfeitos","centenas de clientes","milhares de clientes","estrutura completa","instalacoes modernas","equipamentos modernos","equipamentos de ultima geracao","ambiente climatizado","estacionamento gratuito","metodo exclusivo","metodologia propria","tecnologia exclusiva","certificacao","premiado","premiada","parceiro oficial","agende sua visita","agende agora","estamos a disposicao","fale com nossa equipe","nossa unidade","nosso espaco","nossa estrutura","nosso atendimento","atendimento personalizado","atendimento humanizado","acompanhamento individual","acompanhamento especializado","avaliacao gratuita","consulta gratuita","orcamento gratuito","protocolos exclusivos","protocolo exclusivo","procedimentos exclusivos","tecnicas exclusivas","tecnologia de ponta","tratamento garantido","satisfacao garantida","garantia de resultado","horarios flexiveis","aula experimental","aulas experimentais","visita guiada","tour guiado","suporte tecnico","prioridade em agendamentos","prioridade no suporte","professor a disposicao","personal trainer","instrutores acompanham","treino supervisionado","avaliacao fisica","planilha personalizada","plano personalizado","desconto progressivo"];
+  const unsupported = value => claims.some(claim => value.includes(claim) && !facts.includes(claim));
+  const neutral = {h1:"Conheça as informações do estabelecimento",h2:"Informações importantes",h3:"Detalhes a confirmar",h4:"Mais informações",h5:"Informações",h6:"Detalhes",p:"Para manter as informações corretas, confirme diretamente com o estabelecimento os detalhes, as condições e a disponibilidade.",li:"Detalhes a confirmar diretamente com o estabelecimento.",summary:"Quais informações devo confirmar?",blockquote:"Consulte o estabelecimento para confirmar os detalhes.",figcaption:"Imagem ilustrativa.",dt:"Informações",dd:"Detalhes a confirmar diretamente com o estabelecimento."};
+  output = output.replace(/<(h[1-6]|p|li|summary|blockquote|figcaption|dt|dd)\b([^>]*)>([\s\S]*?)<\/\1>/gi,(whole,tag,attrs,inner)=>{const plain=normalize(inner.replace(/<[^>]*>/g," "));if(!plain||!unsupported(plain))return whole;return "<"+tag+attrs+">"+(neutral[tag.toLowerCase()]||neutral.p)+"</"+tag+">";});
+  output = output.replace(/<meta\b([^>]*\bname=["']description["'][^>]*)>/gi,(whole,attrs)=>{const m=attrs.match(/\bcontent=["']([^"']*)["']/i);if(!m||!unsupported(normalize(m[1])))return whole;const safe=String(business.tagline||business.name||"Informações do estabelecimento").replace(/["<>]/g,"").slice(0,155);return "<meta"+attrs.replace(/\bcontent=["'][^"']*["']/i,'content="'+safe+'">')+">";});
+  const offerings=normalize([business.offerings,business.services,business.modalities,business.servicos,business.procedures,business.procedimentos].filter(Boolean).join(" | "));
+  if(!offerings) output=output.replace(/<section\b([^>]*\bid=["'](?:servicos|services|modalidades|procedimentos|menu)["'][^>]*)>([\s\S]*?)<\/section>/i,(whole,attrs,inner)=>{const heading=(inner.match(/<h[1-6]\b[^>]*>[\s\S]*?<\/h[1-6]>/i)||["<h2>Informações sobre serviços</h2>"])[0];return "<section"+attrs+">"+heading+'<p class="criasite-verified-content-note">Os serviços, produtos e condições ainda não foram informados. Inclua esses dados no cadastro para que o site apresente somente ofertas confirmadas.</p></section>';});
+  if(!normalize(business.plans)) output=output.replace(/<section\b([^>]*\bid=["']planos["'][^>]*)>([\s\S]*?)<\/section>/i,(whole,attrs,inner)=>{const heading=(inner.match(/<h[1-6]\b[^>]*>[\s\S]*?<\/h[1-6]>/i)||["<h2>Planos e condições</h2>"])[0];return "<section"+attrs+">"+heading+'<p class="criasite-verified-content-note">Valores, planos e condições comerciais não foram informados. Consulte o estabelecimento para obter dados atualizados.</p></section>';});
+  const validWhatsApp=/^\d{10,15}$/.test(String(business.whatsapp||"").replace(/\D/g,""));
+  if(!validWhatsApp) output=output.replace(/<(p|li|summary)\b([^>]*)>([\s\S]*?)<\/\1>/gi,(whole,tag,attrs,inner)=>{const plain=normalize(inner.replace(/<[^>]*>/g," "));if(!/(canais oficiais|fale com nossa equipe|entre em contato pelos|nossos canais|agende pelo|mande uma mensagem|responderemos|retornaremos seu contato)/.test(plain))return whole;return "<"+tag+attrs+">Os dados de contato ainda não foram cadastrados. Adicione um canal válido antes de publicar esta página.</"+tag+">";});
+  output=output.replace(/<a\b([^>]*href=["'](?:#|javascript:void\(0\)|javascript:;)["'][^>]*)>([\s\S]*?)<\/a>/gi,(whole,attrs,inner)=>{const label=normalize(inner.replace(/<[^>]*>/g," "));return /(agendar|marcar|solicitar|orcamento|fale conosco|whatsapp|ligar|comprar|contratar|reservar)/.test(label)?'<span class="criasite-action-unavailable">'+inner+"</span>":whole;});
   return output;
 }
 
 function enforceNavigationAccessibility(html) {
-  let output = String(html || "");
-  if (!output) return output;
-  const navMatch = output.match(/<nav\b([^>]*)>/i);
-  if (!navMatch) return output;
-  const navId = (navMatch[1].match(/\bid=["']([^"']+)["']/i) || [])[1] || "criasite-primary-nav";
-  if (!/\bid=/i.test(navMatch[1])) output = output.replace(navMatch[0], '<nav id="' + navId + '"' + navMatch[1] + '>');
-  // Remove controladores antigos do mesmo menu, preservando scripts de outras funções.
-  output = output.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, script => {
-    const body = script.toLowerCase();
-    const oldMenuLogic = /navmenu\.classlist\.(?:toggle|add|remove)/.test(body) ||
-      /menubtn\.addeventlistener/.test(body) || /menutoggle\.addeventlistener/.test(body);
-    return oldMenuLogic && !/criasite navigation accessibility v6 controller/i.test(script) ? "" : script;
-  });
-  const selector = ".menu-btn,.menu-toggle,#menu-btn,#menu-toggle,.nav-toggle,#menu-button";
-  let buttonMatch = output.match(/<button\b(?=[^>]*(?:class=["'][^"']*(?:menu|nav)[^"']*["']|id=["'][^"']*(?:menu|nav)[^"']*["']|aria-controls=["']))[^>]*>[\s\S]*?<\/button>/i);
-  if (!buttonMatch) buttonMatch = output.match(/<button\b[^>]*>[\s\S]*?(?:☰|≡|menu)[\s\S]*?<\/button>/i);
-  if (!buttonMatch) {
-    const generatedButton = '<button type="button" class="menu-toggle" aria-label="Abrir menu de navegação" aria-controls="' + navId + '" aria-expanded="false"><span aria-hidden="true">☰</span></button>';
-    output = output.replace(/<nav\b/i, generatedButton + '<nav');
-    buttonMatch = output.match(/<button\b[^>]*class=["'][^"']*menu-toggle[^"']*["'][^>]*>[\s\S]*?<\/button>/i);
-  }
-  if (!buttonMatch) return output;
-  let button = buttonMatch[0];
-  if (!/\btype=/i.test(button)) button = button.replace("<button", '<button type="button"');
-  if (!/\baria-label=/i.test(button)) button = button.replace("<button", '<button aria-label="Abrir menu de navegação"');
-  if (!/\baria-controls=/i.test(button)) button = button.replace("<button", '<button aria-controls="' + navId + '"');
-  if (!/\baria-expanded=/i.test(button)) button = button.replace("<button", '<button aria-expanded="false"');
-  output = output.replace(buttonMatch[0], button);
-  const css = [
-    "/* CriaSite navigation accessibility v6 — painel mobile funcional */",
-    ".menu-btn,.menu-toggle,#menu-btn,#menu-toggle,.nav-toggle,#menu-button{display:none}",
-    "@media(max-width:760px){",
-    ".menu-btn,.menu-toggle,#menu-btn,#menu-toggle,.nav-toggle,#menu-button{display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px}",
-    "header nav{position:relative}",
-    "header nav.criasite-menu-open{display:block!important;position:absolute!important;top:100%;left:0;right:0;z-index:1001;width:100%;padding:12px 16px;background:#fff;box-shadow:0 16px 32px rgba(15,23,42,.12)}",
-    "header nav ul{display:none!important;position:static!important;width:100%;flex-direction:column!important;align-items:stretch;gap:8px;padding:8px 0;background:#fff;list-style:none;margin:0}",
-    "header nav ul.active,header nav ul.is-open{display:flex!important}",
-    "header nav ul li{width:100%}",
-    "header nav ul a{display:flex;align-items:center;min-height:44px;padding:8px 12px}",
-    "}",
-    "@media(min-width:761px){.menu-btn,.menu-toggle,#menu-btn,#menu-toggle,.nav-toggle,#menu-button{display:none!important}header nav.criasite-menu-open{display:block!important;position:static!important;padding:0;box-shadow:none}}"
-  ].join("\n");
-  output = output.replace(/\/\* CriaSite navigation accessibility v5 — controlador único \*\/[\s\S]*?(?=@media|<\/style>)/i, "");
-  if (/<style\b[^>]*>[\s\S]*?<\/style>/i.test(output)) output = output.replace(/<\/style>/i, css + "\n</style>");
-  else output = output.replace(/<\/head>/i, "<style>" + css + "</style></head>");
-  const controller = [
-    "(function(){function init(){",
-    "var original=document.querySelector('" + selector + "');",
-    "var nav=document.getElementById(original&&original.getAttribute('aria-controls'))||document.querySelector('header nav');",
-    "if(!original||!nav||original.dataset.criasiteMenuV6)return;",
-    "var button=original.cloneNode(true);button.removeAttribute('onclick');button.dataset.criasiteMenuV6='1';original.replaceWith(button);",
-    "var list=nav.querySelector('ul')||nav;",
-    "function setOpen(open){list.classList.toggle('active',!!open);list.classList.toggle('is-open',!!open);nav.classList.toggle('criasite-menu-open',!!open);button.setAttribute('aria-expanded',String(!!open));button.setAttribute('aria-label',open?'Fechar menu de navegação':'Abrir menu de navegação');}",
-    "button.addEventListener('click',function(event){event.preventDefault();event.stopPropagation();setOpen(button.getAttribute('aria-expanded')!=='true');});",
-    "list.addEventListener('click',function(event){if(event.target&&event.target.closest&&event.target.closest('a'))setOpen(false);});",
-    "document.addEventListener('keydown',function(event){if(event.key==='Escape'&&button.getAttribute('aria-expanded')==='true'){setOpen(false);button.focus();}});",
-    "document.addEventListener('click',function(event){if(button.getAttribute('aria-expanded')==='true'&&!nav.contains(event.target)&&!button.contains(event.target))setOpen(false);});",
-    "setOpen(false);}",
-    "if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();})();"
-  ].join("");
-  output = output.replace(/<script>\s*\/\* CriaSite navigation accessibility v5 controller \*\/[\s\S]*?<\/script>/i, "");
-  output = output.replace(/<\/body>/i, "<script>/* CriaSite navigation accessibility v6 controller */" + controller + "</script></body>");
+  let output=String(html||"");if(!output)return output;
+  const navMatch=output.match(/<nav\b([^>]*)>/i);if(!navMatch)return output;
+  const navId=(navMatch[1].match(/\bid=["']([^"']+)["']/i)||[])[1]||"criasite-primary-nav";
+  if(!/\bid=/i.test(navMatch[1]))output=output.replace(navMatch[0],'<nav id="'+navId+'"'+navMatch[1]+">");
+  output=output.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,script=>{if(/criasite navigation accessibility v\d+ controller/i.test(script))return "";const body=script.toLowerCase();const oldMenu=/aria-expanded/.test(body)&&/classlist\.(?:toggle|add|remove)/.test(body)&&/(menu|nav)/.test(body)&&/addeventlistener/.test(body)&&script.length<5000;return oldMenu?"":script;});
+  const selector=".menu-btn,.menu-toggle,#menu-btn,#menu-toggle,.nav-toggle,#menu-button";
+  let buttonMatch=output.match(/<button\b(?=[^>]*(?:class=["'][^"']*(?:menu|nav)[^"']*["']|id=["'][^"']*(?:menu|nav)[^"']*["']|aria-controls=["']))[^>]*>[\s\S]*?<\/button>/i);
+  if(!buttonMatch)buttonMatch=output.match(/<button\b[^>]*>[\s\S]*?(?:☰|≡|menu)[\s\S]*?<\/button>/i);
+  if(!buttonMatch){const generated='<button type="button" class="menu-toggle" aria-label="Abrir menu de navegação" aria-controls="'+navId+'" aria-expanded="false"><span aria-hidden="true">☰</span></button>';output=output.replace(/<nav\b/i,generated+"<nav");buttonMatch=output.match(/<button\b[^>]*class=["'][^"']*menu-toggle[^"']*["'][^>]*>[\s\S]*?<\/button>/i);}
+  if(!buttonMatch)return output;let button=buttonMatch[0];
+  if(!/\btype=/i.test(button))button=button.replace("<button",'<button type="button"');
+  if(!/\baria-label=/i.test(button))button=button.replace("<button",'<button aria-label="Abrir menu de navegação"');
+  if(!/\baria-controls=/i.test(button))button=button.replace("<button",'<button aria-controls="'+navId+'"');
+  if(!/\baria-expanded=/i.test(button))button=button.replace("<button",'<button aria-expanded="false"');
+  output=output.replace(buttonMatch[0],button);
+  const css=["/* CriaSite navigation accessibility v7 — controlador único */",".menu-btn,.menu-toggle,#menu-btn,#menu-toggle,.nav-toggle,#menu-button{display:none}","@media(max-width:760px){",".menu-btn,.menu-toggle,#menu-btn,#menu-toggle,.nav-toggle,#menu-button{display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px}","header nav{position:relative}","header nav.criasite-menu-open{display:block!important;position:absolute!important;top:100%;left:0;right:0;z-index:1001;width:100%;padding:12px 16px;background:#fff;box-shadow:0 16px 32px rgba(15,23,42,.12)}","header nav ul{display:none!important;position:static!important;width:100%;flex-direction:column!important;align-items:stretch;gap:8px;padding:8px 0;background:#fff;list-style:none;margin:0}","header nav ul.active,header nav ul.is-open{display:flex!important}","header nav ul li{width:100%}","header nav ul a{display:flex;align-items:center;min-height:44px;padding:8px 12px}","}","@media(min-width:761px){.menu-btn,.menu-toggle,#menu-btn,#menu-toggle,.nav-toggle,#menu-button{display:none!important}header nav.criasite-menu-open{display:block!important;position:static!important;padding:0;box-shadow:none}}"].join("\n");
+  output=output.replace(/\/\* CriaSite navigation accessibility v\d+ — controlador único \*\/[\s\S]*?(?=@media|<\/style>)/i,"");
+  if(/<style\b[^>]*>[\s\S]*?<\/style>/i.test(output))output=output.replace(/<\/style>/i,css+"\n</style>");else output=output.replace(/<\/head>/i,"<style>"+css+"</style></head>");
+  const controller=["(function(){function init(){","var original=document.querySelector('"+selector+"');","var nav=document.getElementById(original&&original.getAttribute('aria-controls'))||document.querySelector('header nav');","if(!original||!nav||original.dataset.criasiteMenuV7)return;","var button=original.cloneNode(true);button.removeAttribute('onclick');button.dataset.criasiteMenuV7='1';original.replaceWith(button);","var list=nav.querySelector('ul')||nav;","function setOpen(open){list.classList.toggle('active',!!open);list.classList.toggle('is-open',!!open);nav.classList.toggle('criasite-menu-open',!!open);button.setAttribute('aria-expanded',String(!!open));button.setAttribute('aria-label',open?'Fechar menu de navegação':'Abrir menu de navegação');}","button.addEventListener('click',function(event){event.preventDefault();event.stopPropagation();setOpen(button.getAttribute('aria-expanded')!=='true');});","list.addEventListener('click',function(event){if(event.target&&event.target.closest&&event.target.closest('a'))setOpen(false);});","document.addEventListener('keydown',function(event){if(event.key==='Escape'&&button.getAttribute('aria-expanded')==='true'){setOpen(false);button.focus();}});","document.addEventListener('click',function(event){if(button.getAttribute('aria-expanded')==='true'&&!nav.contains(event.target)&&!button.contains(event.target))setOpen(false);});","setOpen(false);}","if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();})();"].join("");
+  output=output.replace(/<\/body>/i,"<script>/* CriaSite navigation accessibility v7 controller */"+controller+"</script></body>");
   return output;
 }
 
@@ -1195,7 +1125,7 @@ function enforceInternalAnchorIntegrity(html) {
 }
 
 function qualityReport(quality) {
-  const criticalPattern = /O menu mobile não controla a própria lista|O CSS do menu esconde os links|O contêiner nav permanece oculto|Arquitetura: a seção de serviços|Arquitetura: crie uma seção de referências|Arquitetura: o hero precisa|Documento sem idioma pt-BR|Há mais de um h1|Falta landmark main|Há link com href vazio|Há botão sem nome acessível|O FAQ promete contato, visita ou suporte de equipe|O menu não atualiza aria-expanded|O menu não fecha ao selecionar um link|O menu não fecha ao pressionar Escape|Há parágrafos repetidos entre seções|textos alternativos da galeria são genéricos|A galeria repete fotografias|A fotografia do hero está repetida na galeria|alegações comerciais ou técnicas não encontradas|O conteúdo apresenta alegações comerciais ou técnicas não encontradas|Há afirmações sobre equipe, equipamentos, instalações ou serviços|O conteúdo apresenta como fatos serviços|A imagem principal do hero desaparece no celular|HTML com estrutura inválida|IDs duplicados|Links internos sem destino|Falta meta viewport|Falta um título principal h1|Contato contém e-mail|chamada sem ação funcional|Foto principal do hero incompatível|Galeria usa fotos ausentes ou incompatíveis|WhatsApp fictício|WhatsApp informado pelo cliente precisa estar conectado|afirmações sobre equipe|afirmações comerciais específicas|afirmações não comprovadas|placeholder|instrução provisória|Formulário sem tratamento|Formulário bloqueia|Markdown visível|script externo|dependência externa/i;
+  const criticalPattern = /O menu mobile não controla a própria lista|O CSS do menu esconde os links|O contêiner nav permanece oculto|Arquitetura: a seção de serviços|Arquitetura: crie uma seção de referências|Arquitetura: o hero precisa|Documento sem idioma pt-BR|Há mais de um h1|Falta landmark main|Há link com href vazio|Há botão sem nome acessível|O FAQ promete contato, visita ou suporte de equipe|O menu não atualiza aria-expanded|O menu não fecha ao selecionar um link|O menu não fecha ao pressionar Escape|Há parágrafos repetidos entre seções|textos alternativos da galeria são genéricos|A galeria repete fotografias|A fotografia do hero está repetida na galeria|alegações comerciais ou técnicas não encontradas|O conteúdo apresenta alegações comerciais ou técnicas não encontradas|Há afirmações sobre equipe, equipamentos, instalações ou serviços|O conteúdo apresenta como fatos serviços|A imagem principal do hero desaparece no celular|HTML com estrutura inválida|IDs duplicados|Links internos sem destino|Falta meta viewport|Falta um título principal h1|Contato contém e-mail|chamada sem ação funcional|Foto principal do hero incompatível|Galeria usa fotos ausentes ou incompatíveis|WhatsApp fictício|WhatsApp informado pelo cliente precisa estar conectado|afirmações sobre equipe|afirmações comerciais específicas|afirmações não comprovadas|placeholder|instrução provisória|Formulário sem tratamento|Formulário bloqueia|Markdown visível|script externo|dependência externa|controladores duplicados ou ausentes|controlador antigo de menu/i;
   const majorPattern = /O menu mobile não controla a própria lista|O CSS do menu esconde os links|O contêiner nav permanece oculto|Arquitetura: a seção de serviços|Arquitetura: crie uma seção de referências|Arquitetura: o hero precisa|Galeria sem composição editorial|A galeria mantém imagens com altura fixa em celulares|Falta um segundo momento visual editorial além do hero|A fotografia do hero está repetida na galeria|A galeria não tem adaptação mobile específica|A imagem principal do hero desaparece no celular|Falta um rodapé completo|botão do menu móvel deve ficar oculto|menu não atualiza aria-expanded|menu não fecha ao selecionar|menu não fecha ao pressionar Escape|parágrafos repetidos|textos alternativos da galeria são genéricos|afirmações comerciais específicas|Poucas seções|Há seções demais|Seções superficiais|Profundidade editorial|Falta uma media query|adaptação responsiva|Galeria|Hero sem|direção de arte|composição|FAQ|Planos|modalidades|lista nav ul|menu móvel|Seção obrigatória|benefícios|manifesto|método|links sem destino/i;
   const criticalIssues = quality.issues.filter(issue => criticalPattern.test(issue));
   const majorIssues = quality.issues.filter(issue => majorPattern.test(issue) && !criticalPattern.test(issue));
